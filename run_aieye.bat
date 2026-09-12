@@ -10,7 +10,7 @@ echo Starting Backend API (FastAPI) and Frontend UI (Vite + React)...
 echo.
 
 :: Start FastAPI Backend on port 8000
-start "AI(EYE) in the sky Backend Server" cmd /k "cd /d %~dp0 && python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload"
+start "AI(EYE) in the sky Backend Server" cmd /k "cd /d %~dp0backend && python -m app.main"
 
 :: Wait 3 seconds for backend server startup
 timeout /t 3 /nobreak >nul
