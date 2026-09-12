@@ -19,7 +19,9 @@ COLOR_HSV_RANGES = {
     "dark": [((0, 0, 0), (180, 255, 80))],
     "white": [((0, 0, 200), (180, 30, 255))],
     "grey": [((0, 0, 60), (180, 40, 200))],
-    "orange": [((11, 100, 100), (25, 255, 255))]
+    "orange": [((11, 100, 100), (25, 255, 255))],
+    "khaki": [((15, 20, 100), (35, 150, 255))],
+    "beige": [((10, 10, 150), (30, 100, 255))]
 }
 
 class AppearanceAnalyzer:
@@ -101,7 +103,7 @@ class AppearanceAnalyzer:
         if "dark" in target_text or "black" in target_text:
             found_color = True
             best_score = max(best_score, color_feats.get(f"{region_prefix}_dark", 0.0), color_feats.get(f"{region_prefix}_black", 0.0))
-        return best_score if found_color else 0.5
+        return best_score if found_color else 0.1
 
     @staticmethod
     def get_dominant_color(region_prefix: str, color_feats: Dict[str, float]) -> str:
@@ -186,7 +188,7 @@ class AppearanceAnalyzer:
         if target_config.lower_clothing_color:
             weights.append(0.30)
             vals.append(avg_lower)
-        if target_config.backpack:
+        if target_config.backpack and target_config.backpack.lower() not in ["none", ""]:
             weights.append(0.30)
             vals.append(avg_backpack)
 
@@ -203,10 +205,10 @@ class AppearanceAnalyzer:
 
         # Final ranking score formula
         final_ranking_score = round(
-            0.45 * appearance_similarity +
-            0.30 * avg_det_conf +
-            0.15 * evidence_quality +
-            0.10 * (1.0 if analyzed_count >= 2 else 0.5),
+            0.70 * appearance_similarity +
+            0.15 * avg_det_conf +
+            0.10 * evidence_quality +
+            0.05 * (1.0 if analyzed_count >= 2 else 0.5),
             2
         )
 
