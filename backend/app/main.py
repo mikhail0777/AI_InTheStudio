@@ -13,7 +13,7 @@ os.makedirs(os.path.join(DATA_DIR, "crops"), exist_ok=True)
 os.makedirs(os.path.join(DATA_DIR, "reports"), exist_ok=True)
 
 app = FastAPI(
-    title="AeroFind Agent API",
+    title="AI(EYE) in the sky API",
     description="Agentic Post-Flight Drone-Footage Analysis Platform for Search and Rescue Operations",
     version="1.0.0"
 )
@@ -38,7 +38,7 @@ app.include_router(api_router)
 @app.get("/")
 def read_root():
     return {
-        "app": "AeroFind Agent",
+        "app": "AI(EYE) in the sky",
         "status": "online",
         "description": "Agentic SAR drone footage analysis platform"
     }

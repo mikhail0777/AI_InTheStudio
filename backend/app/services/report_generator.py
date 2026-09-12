@@ -122,7 +122,7 @@ class ReportGenerator:
 <html>
 <head>
     <meta charset="utf-8">
-    <title>AeroFind SAR Post-Flight Search Report - {report.session_id}</title>
+    <title>AI(EYE) in the sky SAR Post-Flight Search Report - {report.session_id}</title>
     <style>
         body {{ font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 2rem; }}
         .container {{ max-width: 1000px; margin: 0 auto; background: #1e293b; border-radius: 12px; padding: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }}
@@ -139,7 +139,7 @@ class ReportGenerator:
 <body>
     <div class="container">
         <div class="header">
-            <h1>🛸 AeroFind Agent - Post-Flight SAR Search Report</h1>
+            <h1>🛸 AI(EYE) in the sky - Post-Flight SAR Search Report</h1>
             <p><b>Mission ID:</b> {report.session_id} | <b>Generated:</b> {report.generated_at}</p>
         </div>
 

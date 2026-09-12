@@ -36,7 +36,7 @@ export const Header: React.FC<HeaderProps> = ({ status, onNewMission, onOpenRepo
         </div>
         <div>
           <h1 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            AeroFind <span style={{ color: '#38BDF8', fontWeight: 500 }}>Agent</span>
+            AI(EYE) <span style={{ color: '#38BDF8', fontWeight: 500 }}>in the sky</span>
           </h1>
           <p style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
             Agentic Post-Flight Drone Footage SAR Analysis Platform

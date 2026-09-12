@@ -8,7 +8,7 @@ BASE_URL = "http://localhost:8000/api"
 
 def run_e2e_test():
     print("==================================================")
-    print("[E2E] AeroFind Agent - Automated System Integration Test")
+    print("[E2E] AI(EYE) in the sky - Automated System Integration Test")
     print("==================================================")
 
     # 1. Health check
