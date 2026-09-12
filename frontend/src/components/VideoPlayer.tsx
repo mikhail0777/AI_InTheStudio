@@ -58,133 +58,138 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const getMarkerColor = (classification: string) => {
     switch (classification) {
-      case 'strong_match': return '#10B981';
-      case 'possible_match': return '#F59E0B';
-      case 'unlikely_match': return '#EF4444';
-      default: return '#8B949E';
+      case 'strong_match': return '#22c55e';
+      case 'possible_match': return '#eab308';
+      case 'unlikely_match': return 'var(--accent-orange)';
+      default: return 'var(--text-muted)';
     }
   };
 
   return (
-    <div className="modern-panel" style={{ padding: '1rem', gap: '0.85rem' }}>
-      <div className="modern-panel-header" style={{ margin: '-1rem -1rem 0 -1rem' }}>
-        <span className="modern-panel-title">
-          <Crosshair size={16} color="#38BDF8" /> Flight Footage Player & Timeline
-        </span>
-        <span style={{ fontSize: '0.78rem', color: '#38BDF8', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </span>
+    <div className="card-module" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="screws" />
+      <div className="vent-slots">
+        <div className="vent-slot" />
+        <div className="vent-slot" />
+        <div className="vent-slot" />
       </div>
 
-      {/* Video Container */}
-      <div style={{
-        position: 'relative',
-        background: '#000000',
-        borderRadius: '6px',
-        overflow: 'hidden',
-        aspectRatio: '16/9',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        border: '1px solid #222C3E'
-      }}>
-        {videoUrl ? (
-          <video
-            ref={videoRef}
-            src={videoUrl}
-            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleTimeUpdate}
-            onEnded={() => setIsPlaying(false)}
-          />
-        ) : (
-          <div style={{ color: '#6E7681', textAlign: 'center', padding: '2rem' }}>
-            <Film size={36} color="#222C3E" style={{ marginBottom: '0.4rem' }} />
-            <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#8B949E' }}>No Flight Video Loaded</p>
-            <p style={{ fontSize: '0.75rem', color: '#6E7681' }}>Select or upload video file to start timeline player.</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingRight: '24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ padding: '8px', background: 'var(--bg-chassis)', boxShadow: 'var(--shadow-recessed)', borderRadius: 'var(--radius-full)' }}>
+            <Crosshair size={20} color="var(--accent-orange)" />
           </div>
-        )}
-
-        {videoUrl && (
-          <button
-            onClick={togglePlay}
-            style={{
-              position: 'absolute',
-              background: 'rgba(18, 23, 34, 0.85)',
-              border: '1px solid #2D3A52',
-              borderRadius: '50%',
-              width: '48px',
-              height: '48px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#F0F6FC',
-              cursor: 'pointer',
-              opacity: isPlaying ? 0.25 : 1,
-              transition: 'opacity 0.15s ease'
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = isPlaying ? '0.25' : '1')}
-          >
-            {isPlaying ? <Pause size={20} /> : <Play size={20} style={{ marginLeft: '2px' }} />}
-          </button>
-        )}
+          <div>
+            <h2 style={{ fontSize: '1.25rem', margin: 0 }}>FLIGHT FOOTAGE</h2>
+            <div className="status-label">MAIN FEED / TIMELINE</div>
+          </div>
+        </div>
+        <div className="input-slot" style={{ width: 'auto', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-orange)', fontWeight: 700 }}>
+          <span className={`led ${isPlaying ? 'green animate-pulse-led' : 'red'}`} />
+          {formatTime(currentTime)} / {formatTime(duration)}
+        </div>
       </div>
 
-      {/* Modern Clean Timeline Bar */}
-      <div style={{ background: '#0A0D14', padding: '0.6rem 0.85rem', borderRadius: '6px', border: '1px solid #222C3E' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.35rem' }}>
-          <span>Candidate Sighting Markers</span>
-          <span style={{ color: '#38BDF8' }}>{tracks.length} Detections</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        {/* Video Container (CRT Style) */}
+        <div className="screen-panel" style={{
+          aspectRatio: '16/9',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: '12px solid #0f172a'
+        }}>
+          {videoUrl ? (
+            <video
+              ref={videoRef}
+              src={videoUrl}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', zIndex: 10, position: 'relative' }}
+              onTimeUpdate={handleTimeUpdate}
+              onLoadedMetadata={handleTimeUpdate}
+              onEnded={() => setIsPlaying(false)}
+            />
+          ) : (
+            <div style={{ color: 'var(--accent-orange)', textAlign: 'center', zIndex: 10, display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }} className="font-mono">
+              <Film size={48} style={{ opacity: 0.5 }} />
+              <div>
+                <p style={{ fontSize: '18px', fontWeight: 700 }}>NO SIGNAL DETECTED</p>
+                <p style={{ fontSize: '12px', opacity: 0.7, marginTop: '8px' }}>AWAITING VIDEO STREAM INPUT</p>
+              </div>
+            </div>
+          )}
+
+          {videoUrl && (
+            <button
+              onClick={togglePlay}
+              className="btn-industrial"
+              style={{
+                position: 'absolute',
+                bottom: '24px',
+                right: '24px',
+                width: '64px',
+                height: '64px',
+                borderRadius: 'var(--radius-full)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '0',
+                zIndex: 20
+              }}
+            >
+              {isPlaying ? <Pause size={28} /> : <Play size={28} style={{ marginLeft: '4px' }} />}
+            </button>
+          )}
         </div>
 
-        <div style={{ position: 'relative', height: '24px', display: 'flex', alignItems: 'center' }}>
-          <div style={{
-            position: 'absolute',
-            width: '100%',
-            height: '4px',
-            background: '#222C3E',
-            borderRadius: '2px',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%',
-              height: '100%',
-              background: '#38BDF8'
-            }} />
+        {/* Industrial Timeline Bar */}
+        <div style={{ padding: '16px', background: 'var(--bg-panel)', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sharp)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <span className="status-label">CANDIDATE SIGHTING MARKERS</span>
+            <span className="status-label" style={{ color: 'var(--text-primary)' }}>{tracks.length} DETECTIONS</span>
           </div>
 
-          {duration > 0 && tracks.map((t) => {
-            const posPercent = (t.best_timestamp_seconds / duration) * 100;
-            const isSelected = selectedTrack?.track_id === t.track_id;
-            const markerColor = getMarkerColor(t.classification);
+          <div className="input-slot" style={{ position: 'relative', height: '24px', padding: '0 4px', display: 'flex', alignItems: 'center', background: '#e2e8f0' }}>
+            <div style={{
+              width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%',
+              height: '8px',
+              background: 'var(--accent-orange)',
+              borderRadius: 'var(--radius-full)',
+              boxShadow: 'var(--shadow-glow)'
+            }} />
 
-            return (
-              <button
-                key={t.track_id}
-                onClick={() => {
-                  onSelectTrack(t);
-                  if (videoRef.current) {
-                    videoRef.current.currentTime = t.best_timestamp_seconds;
-                  }
-                }}
-                title={`Track #${t.track_id} - Score: ${(t.final_ranking_score * 100).toFixed(0)}% at ${t.best_timestamp_seconds.toFixed(1)}s`}
-                style={{
-                  position: 'absolute',
-                  left: `${posPercent}%`,
-                  transform: 'translateX(-50%)',
-                  width: isSelected ? '12px' : '8px',
-                  height: isSelected ? '12px' : '8px',
-                  borderRadius: '50%',
-                  backgroundColor: markerColor,
-                  border: isSelected ? '2px solid #FFFFFF' : '1px solid #0A0D14',
-                  cursor: 'pointer',
-                  zIndex: isSelected ? 10 : 5,
-                  transition: 'all 0.15s ease'
-                }}
-              />
-            );
-          })}
+            {duration > 0 && tracks.map((t) => {
+              const posPercent = (t.best_timestamp_seconds / duration) * 100;
+              const isSelected = selectedTrack?.track_id === t.track_id;
+              const markerColor = getMarkerColor(t.classification);
+
+              return (
+                <button
+                  key={t.track_id}
+                  onClick={() => {
+                    onSelectTrack(t);
+                    if (videoRef.current) {
+                      videoRef.current.currentTime = t.best_timestamp_seconds;
+                    }
+                  }}
+                  title={`Track #${t.track_id} - Score: ${(t.final_ranking_score * 100).toFixed(0)}% at ${t.best_timestamp_seconds.toFixed(1)}s`}
+                  style={{
+                    position: 'absolute',
+                    left: `${posPercent}%`,
+                    transform: 'translateX(-50%)',
+                    width: isSelected ? '16px' : '12px',
+                    height: isSelected ? '32px' : '24px',
+                    backgroundColor: markerColor,
+                    borderRadius: 'var(--radius-sm)',
+                    boxShadow: isSelected ? '0 0 10px rgba(0,0,0,0.5)' : 'var(--shadow-floating)',
+                    border: '2px solid var(--bg-chassis)',
+                    cursor: 'pointer',
+                    zIndex: isSelected ? 10 : 5,
+                    transition: 'all 150ms cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

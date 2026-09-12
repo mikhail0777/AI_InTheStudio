@@ -21,20 +21,20 @@ export const TelemetryMap: React.FC<TelemetryMapProps> = ({ tracks, onSelectTrac
     const width = canvas.width;
     const height = canvas.height;
 
-    // Background fill
-    ctx.fillStyle = '#0A0D14';
+    // Background fill (Deep radar blue/gray)
+    ctx.fillStyle = '#1e293b';
     ctx.fillRect(0, 0, width, height);
 
-    // Grid Lines
-    ctx.strokeStyle = '#1D2535';
+    // Grid Lines (Blueprint grid)
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.lineWidth = 1;
-    for (let x = 0; x < width; x += 30) {
+    for (let x = 0; x < width; x += 20) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, height);
       ctx.stroke();
     }
-    for (let y = 0; y < height; y += 30) {
+    for (let y = 0; y < height; y += 20) {
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(width, y);
@@ -66,7 +66,7 @@ export const TelemetryMap: React.FC<TelemetryMapProps> = ({ tracks, onSelectTrac
     };
 
     // Flight Path Line
-    ctx.strokeStyle = '#38BDF8';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
@@ -81,43 +81,60 @@ export const TelemetryMap: React.FC<TelemetryMapProps> = ({ tracks, onSelectTrac
     // Candidate Points
     gpsTracks.forEach((t) => {
       const pt = toScreen(t.gps_location!.latitude, t.gps_location!.longitude);
-      const color = t.classification === 'strong_match' ? '#10B981' : (t.classification === 'possible_match' ? '#F59E0B' : '#EF4444');
+      const color = t.classification === 'strong_match' ? '#22c55e' : (t.classification === 'possible_match' ? '#eab308' : '#ff4757');
 
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+      ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = '#FFFFFF';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
 
-      ctx.fillStyle = '#8B949E';
-      ctx.font = '600 9px Inter';
-      ctx.fillText(`#${t.track_id}`, pt.x + 8, pt.y - 4);
+      // Inner dot
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.font = '700 10px "JetBrains Mono"';
+      ctx.fillText(`M${t.track_id}`, pt.x + 8, pt.y - 4);
     });
   }, [tracks]);
 
   return (
-    <div className="modern-panel" style={{ padding: '1rem', gap: '0.75rem' }}>
-      <div className="modern-panel-header" style={{ margin: '-1rem -1rem 0 -1rem' }}>
-        <span className="modern-panel-title">
-          <Map size={16} color="#38BDF8" /> Tactical Flight GPS Radar
-        </span>
-        <span className="status-tag status-tag-blue" style={{ fontSize: '0.68rem' }}>
-          {gpsTracks.length} GPS Points
-        </span>
+    <div className="card-module" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="screws" />
+      <div className="vent-slots">
+        <div className="vent-slot" />
+        <div className="vent-slot" />
+        <div className="vent-slot" />
       </div>
 
-      <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', borderRadius: '4px', overflow: 'hidden', border: '1px solid #222C3E' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ padding: '8px', background: 'var(--bg-chassis)', boxShadow: 'var(--shadow-recessed)', borderRadius: 'var(--radius-full)' }}>
+            <Map size={20} color="var(--accent-orange)" />
+          </div>
+          <div>
+            <h2 style={{ fontSize: '1.25rem', margin: 0 }}>TELEMETRY</h2>
+            <div className="status-label">GPS RADAR</div>
+          </div>
+        </div>
+        <div className="input-slot" style={{ width: 'auto', padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-primary)', fontWeight: 700 }}>
+          <span className={`led ${gpsTracks.length > 0 ? 'green animate-pulse-led' : 'red'}`} />
+          {gpsTracks.length} NODES
+        </div>
+      </div>
+
+      <div className="screen-panel" style={{ position: 'relative', width: '100%', aspectRatio: '16/9', zIndex: 10 }}>
         <canvas
           ref={canvasRef}
           width={360}
           height={202}
-          style={{ width: '100%', height: '100%', display: 'block' }}
+          style={{ width: '100%', height: '100%', display: 'block', cursor: 'crosshair', position: 'relative', zIndex: 5 }}
         />
         {gpsTracks.length === 0 && (
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6E7681', fontSize: '0.78rem' }}>
-            No Telemetry Log Attached
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: '13px', zIndex: 10 }} className="font-mono font-bold">
+            NO TELEMETRY LOG ATTACHED
           </div>
         )}
       </div>

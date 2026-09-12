@@ -13,72 +13,53 @@ export const TrackDetailModal: React.FC<TrackDetailModalProps> = ({ track, onClo
 
   if (!track) return null;
 
+  const getLedColor = (classification: string) => {
+    switch (classification) {
+      case 'strong_match': return 'green';
+      case 'possible_match': return 'yellow';
+      case 'unlikely_match': return 'red';
+      default: return 'yellow';
+    }
+  };
+
   return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: 'rgba(10, 13, 20, 0.85)',
-      backdropFilter: 'blur(10px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 1000,
-      padding: '1.25rem'
-    }}>
-      <div style={{
-        background: '#121722',
-        border: '1px solid #222C3E',
-        borderRadius: '6px',
-        maxWidth: '860px',
-        width: '100%',
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)'
-      }}>
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <div className="screws" />
+        
         {/* Header */}
-        <div style={{
-          padding: '1rem 1.25rem',
-          borderBottom: '1px solid #222C3E',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: '#1A2130'
-        }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '32px' }}>
           <div>
-            <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F0F6FC', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              Track #{track.track_id} — Deep Inspection
-              <span className={`status-tag ${track.classification === 'strong_match' ? 'status-tag-green' : (track.classification === 'possible_match' ? 'status-tag-yellow' : 'status-tag-red')}`}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
+              <h2 style={{ fontSize: '1.5rem', margin: 0 }}>MODULE DEEP INSPECTION</h2>
+              <div className="status-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-panel)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-sharp)' }}>
+                <span className={`led ${getLedColor(track.classification)}`} />
                 {track.classification.replace('_', ' ')}
-              </span>
-            </h2>
-            <p style={{ fontSize: '0.75rem', color: '#8B949E', marginTop: '0.15rem' }}>
-              Observed from {track.first_seen_seconds.toFixed(1)}s to {track.last_seen_seconds.toFixed(1)}s (Best Frame: {track.best_timestamp_seconds.toFixed(1)}s)
+              </div>
+            </div>
+            <p className="status-label" style={{ color: 'var(--text-muted)' }}>
+              TRACK #{track.track_id} | {track.first_seen_seconds.toFixed(1)}S TO {track.last_seen_seconds.toFixed(1)}S
             </p>
           </div>
-          <button onClick={onClose} style={{ background: '#0A0D14', border: '1px solid #222C3E', borderRadius: '4px', color: '#8B949E', cursor: 'pointer', padding: '0.35rem' }}>
-            <X size={18} />
+          
+          <button onClick={onClose} className="btn-industrial" style={{ padding: '12px', borderRadius: 'var(--radius-full)' }}>
+            <X size={20} />
           </button>
         </div>
 
         {/* Content Body */}
-        <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Top Row: Crops & Metrics */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
             {/* Multi-frame Crops */}
-            <div>
-              <h4 style={{ fontSize: '0.82rem', fontWeight: 600, color: '#38BDF8', marginBottom: '0.5rem' }}>
-                Multi-Frame Temporal Crops ({track.cropped_samples.length})
-              </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.4rem' }}>
+            <div className="card-module" style={{ padding: '16px' }}>
+              <h4 className="status-label" style={{ marginBottom: '16px' }}>TEMPORAL CROPS ({track.cropped_samples.length})</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                 {track.cropped_samples.map((cropPath, idx) => (
-                  <div key={idx} style={{
-                    background: '#000000',
-                    borderRadius: '4px',
-                    overflow: 'hidden',
+                  <div key={idx} className="screen-panel" style={{
                     aspectRatio: '2/3',
-                    border: cropPath === track.best_frame_path ? '2px solid #38BDF8' : '1px solid #222C3E'
+                    border: cropPath === track.best_frame_path ? '2px solid var(--accent-orange)' : 'none',
+                    boxShadow: cropPath === track.best_frame_path ? 'var(--shadow-glow)' : 'var(--shadow-recessed)'
                   }}>
                     <img src={cropPath} alt={`Crop ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
@@ -87,66 +68,57 @@ export const TrackDetailModal: React.FC<TrackDetailModalProps> = ({ track, onClo
             </div>
 
             {/* Score Metrics */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', background: '#0A0D14', padding: '1rem', borderRadius: '6px', border: '1px solid #222C3E' }}>
-              <h4 style={{ fontSize: '0.82rem', fontWeight: 600, color: '#38BDF8' }}>
-                Confidence Breakdown
-              </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem' }}>
-                <div>
-                  <span style={{ fontSize: '0.72rem', color: '#8B949E' }}>Final Score:</span>
-                  <p style={{ fontSize: '1.35rem', fontWeight: 800, color: '#38BDF8' }}>{(track.final_ranking_score * 100).toFixed(0)}%</p>
+            <div className="card-module" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <h4 className="status-label">CONFIDENCE BREAKDOWN</h4>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                <div className="input-slot" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', textAlign: 'center' }}>
+                  <span className="status-label">FINAL SCORE</span>
+                  <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>{(track.final_ranking_score * 100).toFixed(0)}%</span>
                 </div>
-                <div>
-                  <span style={{ fontSize: '0.72rem', color: '#8B949E' }}>Appearance Sim:</span>
-                  <p style={{ fontSize: '1.35rem', fontWeight: 800, color: '#10B981' }}>{(track.appearance_similarity * 100).toFixed(0)}%</p>
+                <div className="input-slot" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', textAlign: 'center' }}>
+                  <span className="status-label">APPEARANCE</span>
+                  <span style={{ fontSize: '24px', fontWeight: 800, color: '#22c55e' }}>{(track.appearance_similarity * 100).toFixed(0)}%</span>
                 </div>
-                <div>
-                  <span style={{ fontSize: '0.72rem', color: '#8B949E' }}>Detector Conf:</span>
-                  <p style={{ fontSize: '1rem', fontWeight: 700, color: '#F0F6FC' }}>{(track.person_detection_confidence * 100).toFixed(0)}%</p>
+                <div className="input-slot" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', textAlign: 'center' }}>
+                  <span className="status-label">DETECTOR CONF</span>
+                  <span style={{ fontSize: '18px', fontWeight: 700 }}>{(track.person_detection_confidence * 100).toFixed(0)}%</span>
                 </div>
-                <div>
-                  <span style={{ fontSize: '0.72rem', color: '#8B949E' }}>Evidence Quality:</span>
-                  <p style={{ fontSize: '1rem', fontWeight: 700, color: '#F0F6FC' }}>{(track.evidence_quality * 100).toFixed(0)}%</p>
+                <div className="input-slot" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', textAlign: 'center' }}>
+                  <span className="status-label">EVIDENCE QUALITY</span>
+                  <span style={{ fontSize: '18px', fontWeight: 700 }}>{(track.evidence_quality * 100).toFixed(0)}%</span>
                 </div>
               </div>
 
               {track.gps_location && (
-                <div style={{ paddingTop: '0.5rem', borderTop: '1px solid #222C3E', fontSize: '0.78rem', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                  <MapPin size={14} />
-                  <span><b>GPS Position:</b> {track.gps_location.latitude.toFixed(5)}, {track.gps_location.longitude.toFixed(5)} ({track.gps_location.altitude_m.toFixed(0)}m Alt)</span>
+                <div className="input-slot" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <MapPin size={16} color="var(--accent-orange)" />
+                  <span style={{ fontSize: '13px', fontWeight: 600 }}>{track.gps_location.latitude.toFixed(5)}, {track.gps_location.longitude.toFixed(5)} ({track.gps_location.altitude_m.toFixed(0)}M)</span>
                 </div>
               )}
             </div>
           </div>
 
           {/* Attribute Table */}
-          <div>
-            <h4 style={{ fontSize: '0.82rem', fontWeight: 600, color: '#38BDF8', marginBottom: '0.5rem' }}>
-              Attribute Breakdown Matrix
-            </h4>
-            <div style={{ background: '#0A0D14', borderRadius: '6px', border: '1px solid #222C3E', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem', textAlign: 'left' }}>
+          <div className="card-module" style={{ padding: '24px' }}>
+            <h4 className="status-label" style={{ marginBottom: '16px' }}>ATTRIBUTE MATRIX</h4>
+            <div className="input-slot" style={{ padding: '0', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left', fontFamily: 'var(--font-mono)' }}>
                 <thead>
-                  <tr style={{ background: '#1A2130', color: '#8B949E', borderBottom: '1px solid #222C3E' }}>
-                    <th style={{ padding: '0.55rem 0.75rem' }}>Attribute</th>
-                    <th style={{ padding: '0.55rem 0.75rem' }}>Expected Target</th>
-                    <th style={{ padding: '0.55rem 0.75rem' }}>Observed Sighting</th>
-                    <th style={{ padding: '0.55rem 0.75rem' }}>Visibility</th>
-                    <th style={{ padding: '0.55rem 0.75rem' }}>Match Score</th>
+                  <tr style={{ borderBottom: '2px solid rgba(0,0,0,0.1)' }}>
+                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>ATTRIBUTE</th>
+                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>EXPECTED</th>
+                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>OBSERVED</th>
+                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>MATCH</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(track.attributes).map(([attrKey, detail]) => (
-                    <tr key={attrKey} style={{ borderBottom: '1px solid #222C3E' }}>
-                      <td style={{ padding: '0.55rem 0.75rem', fontWeight: 600, color: '#F0F6FC', textTransform: 'capitalize' }}>{attrKey.replace('_', ' ')}</td>
-                      <td style={{ padding: '0.55rem 0.75rem', color: '#8B949E' }}>{detail.expected}</td>
-                      <td style={{ padding: '0.55rem 0.75rem', color: '#F0F6FC' }}>{detail.observed}</td>
-                      <td style={{ padding: '0.55rem 0.75rem' }}>
-                        <span className={`status-tag ${detail.visibility === 'clear' ? 'status-tag-green' : 'status-tag-blue'}`} style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem' }}>
-                          {detail.visibility}
-                        </span>
-                      </td>
-                      <td style={{ padding: '0.55rem 0.75rem', fontWeight: 700, color: detail.score ? '#10B981' : '#8B949E' }}>
+                  {Object.entries(track.attributes).map(([attrKey, detail], idx) => (
+                    <tr key={attrKey} style={{ borderBottom: idx !== Object.entries(track.attributes).length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
+                      <td style={{ padding: '12px 16px', fontWeight: 700 }}>{attrKey.replace('_', ' ').toUpperCase()}</td>
+                      <td style={{ padding: '12px 16px' }}>{detail.expected.toUpperCase()}</td>
+                      <td style={{ padding: '12px 16px' }}>{detail.observed.toUpperCase()}</td>
+                      <td style={{ padding: '12px 16px', fontWeight: 700, color: detail.score ? '#22c55e' : 'var(--text-muted)' }}>
                         {detail.score !== null && detail.score !== undefined ? `${(detail.score * 100).toFixed(0)}%` : 'N/A'}
                       </td>
                     </tr>
@@ -157,84 +129,33 @@ export const TrackDetailModal: React.FC<TrackDetailModalProps> = ({ track, onClo
           </div>
 
           {/* Operator Decision */}
-          <div style={{ background: '#0A0D14', padding: '0.9rem', borderRadius: '6px', border: '1px solid #222C3E', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-            <h4 style={{ fontSize: '0.82rem', fontWeight: 600, color: '#38BDF8' }}>
-              Human SAR Operator Verification
-            </h4>
-            <div style={{ display: 'flex', gap: '0.6rem' }}>
-              <button
-                onClick={() => onFeedback(track.track_id, 'confirmed', notes)}
-                style={{
-                  flex: 1,
-                  padding: '0.55rem',
-                  borderRadius: '4px',
-                  border: '1px solid #10B981',
-                  background: 'rgba(16, 185, 129, 0.15)',
-                  color: '#10B981',
-                  fontWeight: 600,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem'
-                }}
-              >
-                <CheckCircle2 size={14} /> Confirm Sighting
+          <div className="card-module" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h4 className="status-label">SAR OPERATOR VERIFICATION</h4>
+            
+            <div style={{ display: 'flex', gap: '16px' }}>
+              <button className="btn-industrial" onClick={() => onFeedback(track.track_id, 'confirmed', notes)} style={{ flex: 1 }}>
+                <CheckCircle2 size={18} color="#22c55e" /> CONFIRM SIGHTING
               </button>
 
-              <button
-                onClick={() => onFeedback(track.track_id, 'rejected', notes)}
-                style={{
-                  flex: 1,
-                  padding: '0.55rem',
-                  borderRadius: '4px',
-                  border: '1px solid #EF4444',
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  color: '#EF4444',
-                  fontWeight: 600,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem'
-                }}
-              >
-                <XCircle size={14} /> Reject Sighting
+              <button className="btn-industrial" onClick={() => onFeedback(track.track_id, 'rejected', notes)} style={{ flex: 1 }}>
+                <XCircle size={18} color="var(--accent-orange)" /> REJECT SIGHTING
               </button>
 
-              <button
-                onClick={() => onFeedback(track.track_id, 'needs_research', notes)}
-                style={{
-                  flex: 1,
-                  padding: '0.55rem',
-                  borderRadius: '4px',
-                  border: '1px solid #F59E0B',
-                  background: 'rgba(245, 158, 11, 0.15)',
-                  color: '#F59E0B',
-                  fontWeight: 600,
-                  fontSize: '0.78rem',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.35rem'
-                }}
-              >
-                <AlertTriangle size={14} /> Flag Re-Search
+              <button className="btn-industrial" onClick={() => onFeedback(track.track_id, 'needs_research', notes)} style={{ flex: 1 }}>
+                <AlertTriangle size={18} color="#eab308" /> FLAG RE-SEARCH
               </button>
             </div>
 
             <textarea
-              className="modern-input"
+              className="input-slot"
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Add optional operator notes or comments..."
-              style={{ resize: 'none' }}
+              placeholder="APPEND MISSION NOTES..."
+              style={{ resize: 'none', marginTop: '8px' }}
             />
           </div>
+
         </div>
       </div>
     </div>

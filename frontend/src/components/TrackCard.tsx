@@ -19,10 +19,10 @@ export const TrackCard: React.FC<TrackCardProps> = ({
 }) => {
   const getBadgeStyle = (classification: string) => {
     switch (classification) {
-      case 'strong_match': return 'status-tag-green';
-      case 'possible_match': return 'status-tag-yellow';
-      case 'unlikely_match': return 'status-tag-red';
-      default: return 'status-tag-blue';
+      case 'strong_match': return 'green';
+      case 'possible_match': return 'yellow';
+      case 'unlikely_match': return 'red';
+      default: return 'blue';
     }
   };
 
@@ -35,85 +35,90 @@ export const TrackCard: React.FC<TrackCardProps> = ({
   const scorePercent = (track.final_ranking_score * 100).toFixed(0);
 
   return (
-    <div style={{
-      background: isSelected ? '#1A2130' : '#121722',
-      border: isSelected ? '1px solid #38BDF8' : '1px solid #222C3E',
-      borderRadius: '6px',
-      padding: '0.85rem',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '0.6rem',
-      cursor: 'pointer',
-      transition: 'all 0.15s ease'
-    }} onClick={onSelect}>
+    <div 
+      className="card-module group"
+      style={{
+        padding: '24px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        cursor: 'pointer',
+        boxShadow: isSelected ? 'var(--shadow-floating)' : 'var(--shadow-card)',
+        transform: isSelected ? 'translateY(-4px)' : 'none',
+        border: isSelected ? '1px solid rgba(255, 71, 87, 0.3)' : '1px solid transparent'
+      }} 
+      onClick={onSelect}
+    >
+      <div className="screws" />
+
       {/* Header Bar */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <span className={`status-tag ${getBadgeStyle(track.classification)}`}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div className="status-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-panel)', padding: '4px 8px', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-sharp)' }}>
+            <span className={`led ${getBadgeStyle(track.classification)}`} style={{ width: '8px', height: '8px' }} />
             {track.classification.replace('_', ' ')}
-          </span>
-          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#8B949E' }}>
-            Track #{track.track_id}
+          </div>
+          <span className="status-label" style={{ color: 'var(--text-primary)' }}>
+            MODULE #{track.track_id}
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', background: '#0A0D14', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #222C3E' }}>
-          <Award size={12} color="#38BDF8" />
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38BDF8' }}>
+        <div className="input-slot" style={{ width: 'auto', padding: '4px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Award size={14} color="var(--accent-orange)" />
+          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
             {scorePercent}%
           </span>
         </div>
       </div>
 
       {/* Body: Thumbnail & Specs */}
-      <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-        <div style={{
-          width: '68px',
-          height: '96px',
-          background: '#000000',
-          borderRadius: '4px',
-          overflow: 'hidden',
-          border: '1px solid #222C3E',
-          flexShrink: 0,
+      <div style={{ display: 'flex', gap: '20px', alignItems: 'center', zIndex: 10 }}>
+        <div className="input-slot" style={{
+          width: '80px',
+          height: '100px',
+          padding: '4px',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          flexShrink: 0
         }}>
           {track.best_frame_path ? (
             <img
               src={track.best_frame_path}
               alt={`Track #${track.track_id}`}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              className="grayscale group-hover:grayscale-0 transition-all duration-500"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
             />
           ) : (
-            <span style={{ fontSize: '0.65rem', color: '#6E7681' }}>No Crop</span>
+            <span className="status-label">NO DATA</span>
           )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.78rem', color: '#F0F6FC', fontWeight: 600 }}>
-            <Clock size={12} color="#38BDF8" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: 600 }}>
+            <Clock size={14} color="var(--text-muted)" />
             <span>{formatTime(track.best_timestamp_seconds)} ({track.best_timestamp_seconds.toFixed(1)}s)</span>
           </div>
 
           {track.gps_location && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', fontSize: '0.72rem', color: '#10B981' }}>
-              <MapPin size={11} />
-              <span>GPS [{track.gps_location.latitude.toFixed(4)}, {track.gps_location.longitude.toFixed(4)}]</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>
+              <MapPin size={14} />
+              <span>GPS: {track.gps_location.latitude.toFixed(4)}, {track.gps_location.longitude.toFixed(4)}</span>
             </div>
           )}
 
           {/* Ranking Score Bar */}
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.68rem', color: '#8B949E', marginBottom: '0.2rem' }}>
-              <span>Match Confidence</span>
-              <span>{(track.appearance_similarity * 100).toFixed(0)}%</span>
+          <div style={{ marginTop: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+              <span className="status-label">MATCH CONFIDENCE</span>
+              <span className="status-label">{(track.appearance_similarity * 100).toFixed(0)}%</span>
             </div>
-            <div style={{ width: '100%', height: '4px', background: '#222C3E', borderRadius: '2px', overflow: 'hidden' }}>
+            <div className="input-slot" style={{ height: '12px', padding: 0, overflow: 'hidden' }}>
               <div style={{
                 width: `${scorePercent}%`,
                 height: '100%',
-                background: '#38BDF8'
+                background: 'var(--text-primary)',
+                borderRadius: 'var(--radius-md)'
               }} />
             </div>
           </div>
@@ -121,66 +126,29 @@ export const TrackCard: React.FC<TrackCardProps> = ({
       </div>
 
       {/* Operator Review Controls */}
-      <div style={{ display: 'flex', gap: '0.35rem', paddingTop: '0.35rem', borderTop: '1px solid #222C3E' }}>
+      <div style={{ display: 'flex', gap: '12px', paddingTop: '16px', borderTop: '2px dashed var(--shadow-color)', zIndex: 10 }}>
         <button
+          className={`btn-industrial ${track.human_feedback === 'confirmed' ? 'btn-primary' : ''}`}
           onClick={(e) => { e.stopPropagation(); onFeedback(track.track_id, 'confirmed'); }}
-          style={{
-            flex: 1,
-            padding: '0.3rem',
-            borderRadius: '4px',
-            border: track.human_feedback === 'confirmed' ? '1px solid #10B981' : '1px solid #222C3E',
-            background: track.human_feedback === 'confirmed' ? 'rgba(16, 185, 129, 0.15)' : '#0A0D14',
-            color: track.human_feedback === 'confirmed' ? '#10B981' : '#8B949E',
-            fontSize: '0.72rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.2rem'
-          }}
+          style={{ flex: 1, padding: '12px 8px', fontSize: '12px' }}
         >
-          <CheckCircle2 size={11} /> Confirm
+          <CheckCircle2 size={16} /> CONFIRM
         </button>
 
         <button
+          className="btn-industrial"
           onClick={(e) => { e.stopPropagation(); onFeedback(track.track_id, 'rejected'); }}
-          style={{
-            flex: 1,
-            padding: '0.3rem',
-            borderRadius: '4px',
-            border: track.human_feedback === 'rejected' ? '1px solid #EF4444' : '1px solid #222C3E',
-            background: track.human_feedback === 'rejected' ? 'rgba(239, 68, 68, 0.15)' : '#0A0D14',
-            color: track.human_feedback === 'rejected' ? '#EF4444' : '#8B949E',
-            fontSize: '0.72rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.2rem'
-          }}
+          style={{ flex: 1, padding: '12px 8px', fontSize: '12px', color: track.human_feedback === 'rejected' ? 'var(--accent-orange)' : '' }}
         >
-          <XCircle size={11} /> Reject
+          <XCircle size={16} /> REJECT
         </button>
 
         <button
+          className="btn-industrial"
           onClick={(e) => { e.stopPropagation(); onJumpToTime(track.best_timestamp_seconds); }}
-          style={{
-            padding: '0.3rem 0.55rem',
-            borderRadius: '4px',
-            border: '1px solid #222C3E',
-            background: '#0A0D14',
-            color: '#38BDF8',
-            fontSize: '0.72rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.2rem'
-          }}
+          style={{ padding: '12px', flexShrink: 0 }}
         >
-          <Eye size={11} /> Seek
+          <Eye size={18} />
         </button>
       </div>
     </div>

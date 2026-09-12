@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, FileText, RefreshCw, Activity } from 'lucide-react';
+import { Eye, FileText, RefreshCw, Power } from 'lucide-react';
 import { SessionStatus } from '../types';
 
 interface HeaderProps {
@@ -10,58 +10,69 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ status, onNewMission, onOpenReport }) => {
   return (
-    <header style={{
-      background: '#121722',
-      borderBottom: '1px solid #222C3E',
-      padding: '0.75rem 1.5rem',
+    <header className="card-module" style={{ 
+      margin: '24px 24px 0 24px', 
+      padding: '20px 32px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      position: 'sticky',
-      top: 0,
-      zIndex: 100
+      borderBottomLeftRadius: 0,
+      borderBottomRightRadius: 0
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      <div className="screws" />
+      
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
         <div style={{
-          background: '#1A2130',
-          border: '1px solid #2D3A52',
-          width: '36px',
-          height: '36px',
-          borderRadius: '6px',
+          width: '48px',
+          height: '48px',
+          borderRadius: 'var(--radius-full)',
+          background: 'var(--bg-chassis)',
+          boxShadow: 'var(--shadow-floating)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#38BDF8'
+          color: 'var(--accent-orange)'
         }}>
-          <Eye size={20} />
+          <Eye size={24} />
         </div>
         <div>
-          <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#F0F6FC', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            AI(EYE) <span style={{ color: '#38BDF8', fontWeight: 500 }}>in the sky</span>
+          <h1 style={{ fontSize: '1.75rem', margin: 0, display: 'flex', gap: '12px', alignItems: 'center' }}>
+            AI(EYE) IN THE SKY
+            <div className="status-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-recessed)', padding: '6px 12px', borderRadius: 'var(--radius-full)' }}>
+              <span className="led green animate-pulse-led" />
+              SYSTEM ONLINE
+            </div>
           </h1>
-          <p style={{ fontSize: '0.75rem', color: '#8B949E', fontWeight: 400 }}>
-            Post-Flight Drone Search & Rescue Intelligence Platform
+          <p className="status-label" style={{ marginTop: '4px', color: 'var(--text-muted)' }}>
+            POST-FLIGHT SAR INTELLIGENCE TERMINAL V1.0
           </p>
         </div>
       </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+      
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
         {status && (
-          <div className="status-tag status-tag-blue" style={{ padding: '0.35rem 0.75rem' }}>
-            <Activity size={12} />
-            <span>{status.status.replace('_', ' ')} ({status.progress_percent.toFixed(0)}%)</span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+            <span className="status-label">MISSION STATUS</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+              <span className={`led ${status.status === 'completed' ? 'green' : 'yellow animate-pulse-led'}`} />
+              <span style={{ textTransform: 'uppercase' }}>
+                {status.status.replace('_', ' ')} ({status.progress_percent.toFixed(0)}%)
+              </span>
+            </div>
           </div>
         )}
+        
+        <div style={{ display: 'flex', gap: '16px', borderLeft: '2px solid var(--shadow-dark)', paddingLeft: '24px', marginLeft: '8px' }}>
+          {status?.status === 'completed' && (
+            <button className="btn-industrial btn-primary" onClick={onOpenReport}>
+              <FileText size={18} /> SAR REPORT
+            </button>
+          )}
 
-        {status?.status === 'completed' && (
-          <button className="btn-modern-primary" onClick={onOpenReport}>
-            <FileText size={15} /> View SAR Report
+          <button className="btn-industrial" onClick={onNewMission}>
+            <Power size={18} color="var(--accent-orange)" /> RESET
           </button>
-        )}
-
-        <button className="btn-modern-secondary" onClick={onNewMission}>
-          <RefreshCw size={14} /> New Mission
-        </button>
+        </div>
       </div>
     </header>
   );

@@ -135,22 +135,22 @@ export const App: React.FC = () => {
   });
 
   return (
-    <div className="app-layout">
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header
         status={session}
         onNewMission={handleNewMission}
         onOpenReport={() => setShowReportModal(true)}
       />
 
-      <main className="mission-grid">
+      <main className="layout-grid" style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
         {/* Left Column: Target Configuration & Telemetry Map */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           <TargetForm onStartSession={handleStartSession} isProcessing={isProcessing} />
           <TelemetryMap tracks={tracks} onSelectTrack={(t) => { setSelectedTrack(t); setJumpTimestamp(t.best_timestamp_seconds); }} />
         </div>
 
         {/* Center Column: Video Player & Ranked Sightings List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
           <VideoPlayer
             videoUrl={videoUrl}
             tracks={tracks}
@@ -161,44 +161,50 @@ export const App: React.FC = () => {
           />
 
           {/* Ranked Sightings Panel */}
-          <div className="modern-panel" style={{ flex: 1, padding: '1rem' }}>
-            <div className="modern-panel-header" style={{ margin: '-1rem -1rem 1rem -1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <Layers size={16} color="#38BDF8" />
-                <h2 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#F0F6FC' }}>
-                  Ranked Candidate Sightings ({filteredTracks.length})
-                </h2>
-              </div>
+          <div className="card-module" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div className="screws" />
+            
+            <div style={{ padding: '24px', borderBottom: '1px solid var(--shadow-dark)', background: 'rgba(255,255,255,0.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <Layers size={20} color="var(--accent-orange)" />
+                  <span style={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.03em' }}>RANKED SIGHTINGS</span>
+                  <span className="status-label" style={{ background: 'var(--bg-recessed)', padding: '4px 8px', borderRadius: '4px' }}>
+                    {filteredTracks.length} MODULES
+                  </span>
+                </div>
 
-              {/* Classification Filter */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <ListFilter size={13} color="#8B949E" />
-                <select
-                  className="modern-input"
-                  value={filterClassification}
-                  onChange={(e) => setFilterClassification(e.target.value)}
-                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', width: 'auto' }}
-                >
-                  <option value="all">All Candidates</option>
-                  <option value="strong_match">Strong Matches</option>
-                  <option value="possible_match">Possible Matches</option>
-                  <option value="unlikely_match">Unlikely Matches</option>
-                </select>
+                {/* Classification Filter */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ListFilter size={16} color="var(--text-muted)" />
+                  <select
+                    className="input-slot"
+                    value={filterClassification}
+                    onChange={(e) => setFilterClassification(e.target.value)}
+                    style={{ padding: '6px 12px', width: 'auto', background: 'var(--bg-recessed)' }}
+                  >
+                    <option value="all">ALL CANDIDATES</option>
+                    <option value="strong_match">STRONG MATCHES</option>
+                    <option value="possible_match">POSSIBLE MATCHES</option>
+                    <option value="unlikely_match">UNLIKELY MATCHES</option>
+                  </select>
+                </div>
               </div>
             </div>
 
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: '0.75rem',
+              gap: '24px',
+              padding: '24px',
               overflowY: 'auto',
-              maxHeight: '420px',
-              paddingRight: '0.3rem'
+              maxHeight: '480px',
+              background: 'var(--bg-chassis)'
             }}>
               {filteredTracks.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#6E7681' }}>
-                  <p style={{ fontSize: '0.85rem', fontWeight: 500, color: '#8B949E' }}>No Candidate Sightings Flagged</p>
-                  <p style={{ fontSize: '0.75rem', color: '#6E7681', marginTop: '0.2rem' }}>Candidate tracks will appear here in real time as the agent scans footage.</p>
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '64px', color: 'var(--text-muted)' }}>
+                  <p style={{ fontWeight: 700, fontSize: '1.25rem' }}>NO CANDIDATE SIGHTINGS</p>
+                  <p className="status-label" style={{ marginTop: '8px' }}>AWAITING DATA STREAM...</p>
                 </div>
               ) : (
                 filteredTracks.map((t) => (

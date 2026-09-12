@@ -58,26 +58,38 @@ export const TargetForm: React.FC<TargetFormProps> = ({ onStartSession, isProces
   };
 
   return (
-    <div className="modern-panel" style={{ padding: '1rem', gap: '1rem' }}>
-      <div className="modern-panel-header" style={{ margin: '-1rem -1rem 0 -1rem' }}>
-        <span className="modern-panel-title">
-          <Search size={16} color="#38BDF8" /> Target Profile & Video Ingestion
-        </span>
+    <div className="card-module">
+      <div className="screws" />
+      <div className="vent-slots">
+        <div className="vent-slot" />
+        <div className="vent-slot" />
+        <div className="vent-slot" />
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+      <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ padding: '8px', background: 'var(--bg-chassis)', boxShadow: 'var(--shadow-recessed)', borderRadius: 'var(--radius-full)' }}>
+          <Search size={20} color="var(--accent-orange)" />
+        </div>
+        <div>
+          <h2 style={{ fontSize: '1.25rem', margin: 0 }}>TARGET PROFILE</h2>
+          <div className="status-label">DATA INGESTION MODULE</div>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {/* Drone Recording Upload */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.4rem' }}>
-            Flight Video Recording (.MP4, .MOV, .MKV)
+          <label className="status-label" style={{ display: 'block', marginBottom: '8px' }}>
+            FLIGHT VIDEO RECORDING (.MP4, .MOV, .MKV)
           </label>
-          <div style={{
-            border: videoFile ? '1px solid #10B981' : '1px dashed #222C3E',
-            borderRadius: '6px',
-            padding: '0.85rem',
+          <div className="input-slot" style={{
+            padding: '32px',
             textAlign: 'center',
-            background: videoFile ? 'rgba(16, 185, 129, 0.05)' : '#0A0D14',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px'
           }}>
             <input
               type="file"
@@ -86,13 +98,24 @@ export const TargetForm: React.FC<TargetFormProps> = ({ onStartSession, isProces
               style={{ display: 'none' }}
               id="video-upload"
             />
-            <label htmlFor="video-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
-              <FileVideo size={22} color={videoFile ? '#10B981' : '#38BDF8'} />
-              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: videoFile ? '#10B981' : '#F0F6FC' }}>
-                {videoFile ? videoFile.name : 'Select or Drop Drone Flight Video'}
+            <label htmlFor="video-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+              <div style={{ 
+                width: '64px', height: '64px', 
+                borderRadius: 'var(--radius-full)', 
+                background: 'var(--bg-chassis)',
+                boxShadow: videoFile ? 'var(--shadow-pressed)' : 'var(--shadow-floating)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: videoFile ? 'var(--accent-orange)' : 'var(--text-muted)',
+                marginBottom: '16px',
+                transition: 'all 300ms ease'
+              }}>
+                <FileVideo size={28} />
+              </div>
+              <span style={{ fontWeight: 700, fontSize: '16px', color: videoFile ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                {videoFile ? videoFile.name : 'MOUNT MEDIA DRIVE'}
               </span>
-              <span style={{ fontSize: '0.72rem', color: '#6E7681' }}>
-                {videoFile ? `${(videoFile.size / (1024 * 1024)).toFixed(1)} MB` : '1080p / 4K MP4, MOV up to 2GB'}
+              <span className="status-label" style={{ marginTop: '8px' }}>
+                {videoFile ? `${(videoFile.size / (1024 * 1024)).toFixed(1)} MB` : 'MAX CAPACITY: 2GB'}
               </span>
             </label>
           </div>
@@ -100,95 +123,93 @@ export const TargetForm: React.FC<TargetFormProps> = ({ onStartSession, isProces
 
         {/* Optional Telemetry */}
         <div>
-          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.3rem' }}>
-            Optional DJI Telemetry Log (.SRT)
+          <label className="status-label" style={{ display: 'block', marginBottom: '8px' }}>
+            OPTIONAL DJI TELEMETRY LOG (.SRT)
           </label>
           <input
             type="file"
             accept=".srt,.txt,.csv"
-            className="modern-input"
+            className="input-slot"
             onChange={(e) => setSrtFile(e.target.files?.[0] || null)}
           />
           {srtFile && (
-            <span style={{ fontSize: '0.72rem', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem' }}>
-              <ShieldCheck size={12} /> Log attached: {srtFile.name}
+            <span className="status-label" style={{ color: 'var(--accent-orange)', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
+              <ShieldCheck size={14} /> LOG ATTACHED: {srtFile.name}
             </span>
           )}
         </div>
 
+        <div style={{ height: '2px', background: 'var(--shadow-dark)', opacity: 0.2, margin: '8px 0' }} />
+
         {/* Free Text Description & Quick Chips */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#8B949E' }}>
-              Target Description
-            </label>
-          </div>
+          <label className="status-label" style={{ display: 'block', marginBottom: '8px' }}>
+            TARGET DESCRIPTION (NATURAL LANGUAGE)
+          </label>
 
           <textarea
-            className="modern-input"
+            className="input-slot"
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe missing person clothing, accessories, color traits..."
             style={{ resize: 'none' }}
             required
           />
 
           {/* Quick Prompt Chips */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.5rem' }}>
-            <button type="button" className="quick-chip" onClick={() => applyPreset('Locate missing hiker wearing a red hoodie, dark pants, and blue backpack.', 'red', 'black', 'blue backpack')}>
-              Red Hoodie & Blue Backpack
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginTop: '16px' }}>
+            <button type="button" className="btn-industrial" style={{ padding: '8px 12px', fontSize: '11px' }} onClick={() => applyPreset('Locate missing hiker wearing a red hoodie, dark pants, and blue backpack.', 'red', 'black', 'blue backpack')}>
+              PRESET: RED/BLUE
             </button>
-            <button type="button" className="quick-chip" onClick={() => applyPreset('Locate missing skier wearing a yellow jacket and black snow pants.', 'yellow', 'black', 'none')}>
-              Yellow Jacket & Dark Pants
+            <button type="button" className="btn-industrial" style={{ padding: '8px 12px', fontSize: '11px' }} onClick={() => applyPreset('Locate missing skier wearing a yellow jacket and black snow pants.', 'yellow', 'black', 'none')}>
+              PRESET: YELLOW/BLACK
             </button>
-            <button type="button" className="quick-chip" onClick={() => applyPreset('Locate individual in blue coat carrying blue backpack.', 'blue', 'blue', 'blue backpack')}>
-              Blue Coat & Backpack
+            <button type="button" className="btn-industrial" style={{ padding: '8px 12px', fontSize: '11px' }} onClick={() => applyPreset('Locate individual in blue coat carrying blue backpack.', 'blue', 'blue', 'blue backpack')}>
+              PRESET: BLUE/BLUE
             </button>
           </div>
         </div>
 
         {/* Structured Specs Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.25rem' }}>Upper Color</label>
-            <select className="modern-input" value={upperColor} onChange={(e) => setUpperColor(e.target.value)}>
-              <option value="red">Red</option>
-              <option value="blue">Blue</option>
-              <option value="green">Green</option>
-              <option value="yellow">Yellow</option>
-              <option value="dark">Dark / Black</option>
-              <option value="white">White</option>
+            <label className="status-label" style={{ display: 'block', marginBottom: '8px' }}>UPPER COLOR</label>
+            <select className="input-slot" value={upperColor} onChange={(e) => setUpperColor(e.target.value)}>
+              <option value="red">RED</option>
+              <option value="blue">BLUE</option>
+              <option value="green">GREEN</option>
+              <option value="yellow">YELLOW</option>
+              <option value="dark">DARK / BLACK</option>
+              <option value="white">WHITE</option>
             </select>
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.25rem' }}>Lower Color</label>
-            <select className="modern-input" value={lowerColor} onChange={(e) => setLowerColor(e.target.value)}>
-              <option value="black">Black / Dark</option>
-              <option value="blue">Blue Jeans</option>
-              <option value="khaki">Khaki / Beige</option>
-              <option value="red">Red</option>
+            <label className="status-label" style={{ display: 'block', marginBottom: '8px' }}>LOWER COLOR</label>
+            <select className="input-slot" value={lowerColor} onChange={(e) => setLowerColor(e.target.value)}>
+              <option value="black">BLACK / DARK</option>
+              <option value="blue">BLUE JEANS</option>
+              <option value="khaki">KHAKI / BEIGE</option>
+              <option value="red">RED</option>
             </select>
           </div>
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.25rem' }}>Backpack / Accessories</label>
+          <label className="status-label" style={{ display: 'block', marginBottom: '8px' }}>BACKPACK / ACCESSORIES</label>
           <input
             type="text"
-            className="modern-input"
+            className="input-slot"
             value={backpack}
             onChange={(e) => setBackpack(e.target.value)}
-            placeholder="e.g. blue backpack"
           />
         </div>
 
         {/* Confidence Threshold */}
-        <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.25rem' }}>
-            <span>Min Match Confidence</span>
-            <span style={{ color: '#38BDF8', fontWeight: 700 }}>{(minConfidence * 100).toFixed(0)}%</span>
+        <div style={{ background: 'var(--bg-panel)', padding: '16px', borderRadius: 'var(--radius-md)', boxShadow: 'var(--shadow-sharp)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <span className="status-label">MIN MATCH CONFIDENCE</span>
+            <span style={{ color: 'var(--accent-orange)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{(minConfidence * 100).toFixed(0)}%</span>
           </div>
           <input
             type="range"
@@ -197,18 +218,34 @@ export const TargetForm: React.FC<TargetFormProps> = ({ onStartSession, isProces
             step="0.05"
             value={minConfidence}
             onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
-            style={{ width: '100%', accentColor: '#38BDF8', cursor: 'pointer' }}
+            style={{ 
+              width: '100%', 
+              accentColor: 'var(--accent-orange)',
+              height: '8px',
+              borderRadius: 'var(--radius-full)',
+              background: 'var(--bg-recessed)',
+              appearance: 'none',
+              boxShadow: 'var(--shadow-recessed)'
+            }}
           />
         </div>
 
         {/* Start Button */}
         <button
           type="submit"
-          className="btn-modern-primary"
+          className="btn-industrial btn-primary"
           disabled={isProcessing}
-          style={{ width: '100%', padding: '0.75rem', marginTop: '0.3rem' }}
+          style={{ width: '100%', padding: '16px', marginTop: '8px' }}
         >
-          <Cpu size={16} /> {isProcessing ? 'Processing Flight Analysis...' : 'Run SAR Flight Analysis'}
+          {isProcessing ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="led yellow animate-pulse-led" /> PROCESSING FLIGHT DATA...
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Cpu size={20} /> RUN SAR FLIGHT ANALYSIS
+            </div>
+          )}
         </button>
       </form>
     </div>
