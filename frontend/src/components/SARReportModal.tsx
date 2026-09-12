@@ -1,6 +1,6 @@
 import React from 'react';
 import { SessionStatus, TrackResult } from '../types';
-import { X, Download, FileText, CheckCircle2, AlertTriangle, Shield, MapPin } from 'lucide-react';
+import { X, Download, FileText, Shield } from 'lucide-react';
 
 interface SARReportModalProps {
   status: SessionStatus | null;
@@ -18,144 +18,118 @@ export const SARReportModal: React.FC<SARReportModalProps> = ({ status, tracks, 
     <div style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(0,0,0,0.85)',
-      backdropFilter: 'blur(8px)',
+      background: 'rgba(10, 13, 20, 0.85)',
+      backdropFilter: 'blur(10px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000,
-      padding: '1.5rem'
+      padding: '1.25rem'
     }}>
       <div style={{
-        background: '#111827',
-        border: '1px solid #334155',
-        borderRadius: '12px',
-        maxWidth: '900px',
+        background: '#121722',
+        border: '1px solid #222C3E',
+        borderRadius: '6px',
+        maxWidth: '880px',
         width: '100%',
         maxHeight: '90vh',
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.9)'
+        boxShadow: '0 20px 50px rgba(0, 0, 0, 0.6)'
       }}>
         {/* Header */}
         <div style={{
-          padding: '1.2rem 1.5rem',
-          borderBottom: '1px solid #1E293B',
+          padding: '1rem 1.25rem',
+          borderBottom: '1px solid #222C3E',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#0F172A'
+          background: '#1A2130'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
-            <FileText size={24} color="#38BDF8" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <FileText size={20} color="#38BDF8" />
             <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#F8FAFC' }}>
+              <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#F0F6FC' }}>
                 Post-Flight SAR Search Report
               </h2>
-              <p style={{ fontSize: '0.8rem', color: '#94A3B8' }}>
+              <p style={{ fontSize: '0.75rem', color: '#8B949E' }}>
                 Mission Session ID: {status.session_id}
               </p>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.8rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <a
               href={`/reports/report_${status.session_id}.html`}
               target="_blank"
               rel="noreferrer"
-              className="btn btn-primary"
+              className="btn-modern-primary"
               style={{ textDecoration: 'none' }}
             >
-              <Download size={16} /> Download HTML Report
+              <Download size={14} /> Download HTML Report
             </a>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer' }}>
-              <X size={24} />
+            <button onClick={onClose} style={{ background: '#0A0D14', border: '1px solid #222C3E', borderRadius: '4px', color: '#8B949E', cursor: 'pointer', padding: '0.35rem' }}>
+              <X size={18} />
             </button>
           </div>
         </div>
 
         {/* Report Content Body */}
-        <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           {/* Actionable Recommendations Callout */}
           <div style={{
-            background: 'rgba(56, 189, 248, 0.08)',
-            borderLeft: '4px solid #38BDF8',
-            padding: '1.2rem',
-            borderRadius: '6px'
+            background: 'rgba(56, 189, 248, 0.06)',
+            borderLeft: '3px solid #38BDF8',
+            padding: '1rem',
+            borderRadius: '4px',
+            border: '1px solid #222C3E'
           }}>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
-              <Shield size={18} /> Actionable SAR Recommendations for Ground Team
+            <h3 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#38BDF8', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+              <Shield size={16} /> Actionable SAR Recommendations
             </h3>
-            <ul style={{ paddingLeft: '1.2rem', fontSize: '0.88rem', lineHeight: 1.6, color: '#F8FAFC' }}>
+            <ul style={{ paddingLeft: '1.1rem', fontSize: '0.82rem', lineHeight: 1.6, color: '#F0F6FC' }}>
               {strongMatches.length > 0 ? (
                 <li>
-                  <b>Dispatch SAR Team:</b> Immediate ground team dispatch recommended to Track #{strongMatches[0].track_id}
-                  {strongMatches[0].gps_location && ` at GPS (${strongMatches[0].gps_location.latitude}, ${strongMatches[0].gps_location.longitude})`} at timestamp {strongMatches[0].best_timestamp_seconds}s.
+                  <b>Dispatch Ground Team:</b> Immediate ground team dispatch recommended to Track #{strongMatches[0].track_id}
+                  {strongMatches[0].gps_location && ` at GPS (${strongMatches[0].gps_location.latitude.toFixed(5)}, ${strongMatches[0].gps_location.longitude.toFixed(5)})`} at timestamp {strongMatches[0].best_timestamp_seconds}s.
                 </li>
               ) : possibleMatches.length > 0 ? (
                 <li>
-                  <b>Priority Review:</b> Confirm candidate sighting Track #{possibleMatches[0].track_id} at timestamp {possibleMatches[0].best_timestamp_seconds}s. Red upper clothing and blue backpack match missing person target description.
+                  <b>Priority Sighting Review:</b> Confirm candidate sighting Track #{possibleMatches[0].track_id} at timestamp {possibleMatches[0].best_timestamp_seconds}s. Upper clothing and backpack match target profile.
                 </li>
               ) : (
                 <li>
-                  <b>Expand Search Grid:</b> No conclusive match detected in this recording sector. Recommend re-flying adjacent grid or relaxing optional color shade constraints.
+                  <b>Expand Search Radius:</b> No high-confidence target candidates identified in current flight recording. Expand search grid to adjacent sectors.
                 </li>
               )}
-              <li>
-                <b>Re-flight Recommendation:</b> Re-fly dense canopy sector at 30m altitude with 45-degree camera pitch to eliminate vegetation shadow occlusion.
-              </li>
             </ul>
           </div>
 
-          {/* Mission Statistics */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-            <div style={{ background: '#0F172A', padding: '1rem', borderRadius: '8px', border: '1px solid #1E293B', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase' }}>Total Flight Time</span>
-              <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F8FAFC' }}>{status.total_duration_seconds}s</p>
-            </div>
-            <div style={{ background: '#0F172A', padding: '1rem', borderRadius: '8px', border: '1px solid #1E293B', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase' }}>People Detected</span>
-              <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#38BDF8' }}>{status.people_detected_count}</p>
-            </div>
-            <div style={{ background: '#0F172A', padding: '1rem', borderRadius: '8px', border: '1px solid #1E293B', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase' }}>Unique Tracks</span>
-              <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#F8FAFC' }}>{status.unique_tracks_count}</p>
-            </div>
-            <div style={{ background: '#0F172A', padding: '1rem', borderRadius: '8px', border: '1px solid #1E293B', textAlign: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase' }}>Top Rank Score</span>
-              <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#10B981' }}>
-                {tracks.length > 0 ? `${(tracks[0].final_ranking_score * 100).toFixed(0)}%` : '0%'}
-              </p>
-            </div>
-          </div>
-
-          {/* Ranked Sightings List */}
+          {/* Top Ranked Candidates Grid */}
           <div>
-            <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#38BDF8', marginBottom: '0.8rem' }}>
-              Ranked Candidate Sightings Summary
+            <h3 style={{ fontSize: '0.88rem', fontWeight: 600, color: '#F0F6FC', marginBottom: '0.75rem' }}>
+              Top Ranked Candidates ({tracks.length} Total Sighting Tracks)
             </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {tracks.map((t) => (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '0.75rem' }}>
+              {tracks.slice(0, 4).map((t) => (
                 <div key={t.track_id} style={{
-                  background: '#0F172A',
-                  border: '1px solid #1E293B',
-                  borderRadius: '6px',
-                  padding: '0.8rem 1rem',
+                  background: '#0A0D14',
+                  border: '1px solid #222C3E',
+                  borderRadius: '4px',
+                  padding: '0.75rem',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  gap: '0.75rem'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <span className={`badge ${t.classification === 'strong_match' ? 'badge-strong' : (t.classification === 'possible_match' ? 'badge-possible' : 'badge-unlikely')}`}>
-                      {t.classification.replace('_', ' ')}
-                    </span>
-                    <div>
-                      <b style={{ color: '#F8FAFC' }}>Track #{t.track_id}</b> @ {t.best_timestamp_seconds}s
-                      {t.gps_location && <span style={{ color: '#10B981', marginLeft: '8px', fontSize: '0.8rem' }}>GPS: ({t.gps_location.latitude}, {t.gps_location.longitude})</span>}
-                    </div>
+                  <div style={{ width: '50px', height: '72px', borderRadius: '4px', overflow: 'hidden', background: '#000', flexShrink: 0 }}>
+                    {t.best_frame_path ? (
+                      <img src={t.best_frame_path} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : null}
                   </div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#38BDF8' }}>
-                    Score: {(t.final_ranking_score * 100).toFixed(0)}%
+                  <div>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#38BDF8' }}>Track #{t.track_id}</span>
+                    <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F0F6FC' }}>{(t.final_ranking_score * 100).toFixed(0)}%</p>
+                    <span style={{ fontSize: '0.7rem', color: '#8B949E' }}>Timestamp: {t.best_timestamp_seconds.toFixed(1)}s</span>
                   </div>
                 </div>
               ))}

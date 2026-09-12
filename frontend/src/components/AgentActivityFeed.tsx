@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { AgentLogEntry } from '../types';
-import { Terminal, Cpu, CheckCircle, AlertCircle, Info, Activity } from 'lucide-react';
+import { Terminal, Activity, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 
 interface AgentActivityFeedProps {
   logs: AgentLogEntry[];
@@ -14,52 +14,33 @@ export const AgentActivityFeed: React.FC<AgentActivityFeedProps> = ({ logs, curr
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [logs]);
 
-  const getLogIcon = (level: string) => {
-    switch (level) {
-      case 'match': return <CheckCircle size={14} color="#10B981" />;
-      case 'warning': return <AlertCircle size={14} color="#F59E0B" />;
-      case 'action': return <Activity size={14} color="#38BDF8" />;
-      default: return <Info size={14} color="#94A3B8" />;
-    }
-  };
-
-  const getLogLevelColor = (level: string) => {
-    switch (level) {
-      case 'match': return '#10B981';
-      case 'warning': return '#F59E0B';
-      case 'action': return '#38BDF8';
-      default: return '#94A3B8';
-    }
-  };
-
   return (
-    <div className="panel agent-feed-panel" style={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div className="panel-header">
-        <span className="panel-title">
-          <Terminal size={18} /> Autonomous Agent Activity Stream
+    <div className="modern-panel" style={{ height: '100%', overflow: 'hidden' }}>
+      <div className="modern-panel-header">
+        <span className="modern-panel-title">
+          <Terminal size={16} color="#38BDF8" /> Agent Activity & Reasoning Stream
         </span>
-        <span style={{ fontSize: '0.75rem', color: '#38BDF8', fontWeight: 600, textTransform: 'uppercase' }}>
-          {currentStage.replace('_', ' ')}
+        <span className="status-tag status-tag-blue" style={{ fontSize: '0.68rem' }}>
+          {currentStage ? currentStage.replace('_', ' ') : 'Standby'}
         </span>
       </div>
 
-      {/* Log Feed List */}
       <div style={{
         flex: 1,
         overflowY: 'auto',
-        background: '#0B0F19',
-        borderRadius: '6px',
-        padding: '0.8rem',
-        border: '1px solid #1E293B',
+        background: '#0A0D14',
+        padding: '0.75rem',
         display: 'flex',
         flexDirection: 'column',
-        gap: '0.5rem',
+        gap: '0.4rem',
         fontFamily: 'var(--font-mono)',
-        fontSize: '0.8rem'
+        fontSize: '0.78rem'
       }}>
         {logs.length === 0 ? (
-          <div style={{ color: 'var(--text-dim)', textAlign: 'center', paddingTop: '2rem' }}>
-            Agent idle. Waiting for video flight ingestion...
+          <div style={{ color: 'var(--text-muted)', textAlign: 'center', margin: 'auto', padding: '2rem 1rem' }}>
+            <Activity size={28} color="#222C3E" style={{ marginBottom: '0.5rem' }} />
+            <p style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Agent Stream Idle</p>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>Target profile & drone video required to start analysis.</p>
           </div>
         ) : (
           logs.map((log, idx) => (
@@ -67,18 +48,20 @@ export const AgentActivityFeed: React.FC<AgentActivityFeedProps> = ({ logs, curr
               key={idx}
               style={{
                 display: 'flex',
-                gap: '0.5rem',
+                gap: '0.6rem',
                 alignItems: 'flex-start',
-                lineHeight: 1.4,
-                borderBottom: '1px dotted #1E293B',
-                paddingBottom: '0.4rem'
+                lineHeight: '1.4',
+                padding: '0.35rem 0.5rem',
+                borderRadius: '4px',
+                background: log.level === 'match' ? 'rgba(16, 185, 129, 0.08)' : (log.level === 'warning' ? 'rgba(245, 158, 11, 0.08)' : 'rgba(255, 255, 255, 0.02)'),
+                borderLeft: log.level === 'match' ? '2.5px solid #10B981' : (log.level === 'warning' ? '2.5px solid #F59E0B' : '2.5px solid #222C3E')
               }}
             >
-              <span style={{ color: '#64748B', flexShrink: 0 }}>[{log.timestamp}]</span>
-              <span style={{ color: getLogLevelColor(log.level), fontWeight: 700, flexShrink: 0, minWidth: '90px' }}>
+              <span style={{ color: '#6E7681', flexShrink: 0 }}>[{log.timestamp}]</span>
+              <span style={{ color: log.level === 'match' ? '#10B981' : (log.level === 'warning' ? '#F59E0B' : '#38BDF8'), fontWeight: 600, flexShrink: 0, minWidth: '85px' }}>
                 [{log.step}]
               </span>
-              <span style={{ color: '#F8FAFC', flex: 1 }}>{log.message}</span>
+              <span style={{ color: '#F0F6FC', flex: 1 }}>{log.message}</span>
             </div>
           ))
         )}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { TargetConfiguration } from '../types';
-import { Search, Upload, FileVideo, Cpu, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { Search, FileVideo, Cpu, ShieldCheck } from 'lucide-react';
 
 interface TargetFormProps {
   onStartSession: (config: TargetConfiguration, videoFile: File, srtFile?: File) => void;
@@ -19,13 +19,19 @@ export const TargetForm: React.FC<TargetFormProps> = ({ onStartSession, isProces
   const [hairColor, setHairColor] = useState('dark');
   const [minConfidence, setMinConfidence] = useState(0.65);
 
-  const [reqAttrs, setReqAttrs] = useState<string[]>(['red upper clothing']);
-  const [optAttrs, setOptAttrs] = useState<string[]>(['blue backpack', 'black pants']);
-  const [negAttrs, setNegAttrs] = useState<string[]>(['bright green jacket', 'hat']);
+  const [reqAttrs] = useState<string[]>(['red upper clothing']);
+  const [optAttrs] = useState<string[]>(['blue backpack', 'black pants']);
+  const [negAttrs] = useState<string[]>(['bright green jacket', 'hat']);
 
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [srtFile, setSrtFile] = useState<File | null>(null);
-  const [newAttr, setNewAttr] = useState('');
+
+  const applyPreset = (desc: string, upperC: string, lowerC: string, bp: string) => {
+    setDescription(desc);
+    setUpperColor(upperC);
+    setLowerColor(lowerC);
+    setBackpack(bp);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,23 +58,25 @@ export const TargetForm: React.FC<TargetFormProps> = ({ onStartSession, isProces
   };
 
   return (
-    <div className="panel" style={{ height: '100%', overflowY: 'auto' }}>
-      <div className="panel-header">
-        <span className="panel-title">
-          <Search size={18} /> Mission Target Configuration
+    <div className="modern-panel" style={{ padding: '1rem', gap: '1rem' }}>
+      <div className="modern-panel-header" style={{ margin: '-1rem -1rem 0 -1rem' }}>
+        <span className="modern-panel-title">
+          <Search size={16} color="#38BDF8" /> Target Profile & Video Ingestion
         </span>
       </div>
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
         {/* Drone Recording Upload */}
-        <div className="form-group">
-          <label className="form-label">📹 Drone Recording File (.MP4, .MOV, .MKV)</label>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.4rem' }}>
+            Flight Video Recording (.MP4, .MOV, .MKV)
+          </label>
           <div style={{
-            border: '2px dashed var(--border-bright)',
-            borderRadius: '8px',
-            padding: '1rem',
+            border: videoFile ? '1px solid #10B981' : '1px dashed #222C3E',
+            borderRadius: '6px',
+            padding: '0.85rem',
             textAlign: 'center',
-            background: 'var(--bg-dark)',
+            background: videoFile ? 'rgba(16, 185, 129, 0.05)' : '#0A0D14',
             cursor: 'pointer'
           }}>
             <input
@@ -78,96 +86,108 @@ export const TargetForm: React.FC<TargetFormProps> = ({ onStartSession, isProces
               style={{ display: 'none' }}
               id="video-upload"
             />
-            <label htmlFor="video-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem' }}>
-              <FileVideo size={28} color="#38BDF8" />
-              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
+            <label htmlFor="video-upload" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.3rem' }}>
+              <FileVideo size={22} color={videoFile ? '#10B981' : '#38BDF8'} />
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: videoFile ? '#10B981' : '#F0F6FC' }}>
                 {videoFile ? videoFile.name : 'Select or Drop Drone Flight Video'}
               </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {videoFile ? `${(videoFile.size / (1024*1024)).toFixed(1)} MB` : 'MP4, MOV, MKV up to 2 GB'}
+              <span style={{ fontSize: '0.72rem', color: '#6E7681' }}>
+                {videoFile ? `${(videoFile.size / (1024 * 1024)).toFixed(1)} MB` : '1080p / 4K MP4, MOV up to 2GB'}
               </span>
             </label>
           </div>
         </div>
 
         {/* Optional Telemetry */}
-        <div className="form-group">
-          <label className="form-label">📡 Optional Telemetry Log (.SRT)</label>
+        <div>
+          <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.3rem' }}>
+            Optional DJI Telemetry Log (.SRT)
+          </label>
           <input
             type="file"
             accept=".srt,.txt,.csv"
-            className="input"
+            className="modern-input"
             onChange={(e) => setSrtFile(e.target.files?.[0] || null)}
           />
           {srtFile && (
-            <span style={{ fontSize: '0.75rem', color: '#10B981' }}>
-              Attached: {srtFile.name}
+            <span style={{ fontSize: '0.72rem', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.25rem' }}>
+              <ShieldCheck size={12} /> Log attached: {srtFile.name}
             </span>
           )}
         </div>
 
-        {/* Free Text Description */}
-        <div className="form-group">
-          <label className="form-label">Target Appearance Description</label>
+        {/* Free Text Description & Quick Chips */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+            <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#8B949E' }}>
+              Target Description
+            </label>
+          </div>
+
           <textarea
-            className="textarea"
+            className="modern-input"
             rows={3}
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Describe missing person appearance, clothing, accessories..."
+            placeholder="Describe missing person clothing, accessories, color traits..."
+            style={{ resize: 'none' }}
             required
           />
+
+          {/* Quick Prompt Chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.5rem' }}>
+            <button type="button" className="quick-chip" onClick={() => applyPreset('Locate missing hiker wearing a red hoodie, dark pants, and blue backpack.', 'red', 'black', 'blue backpack')}>
+              Red Hoodie & Blue Backpack
+            </button>
+            <button type="button" className="quick-chip" onClick={() => applyPreset('Locate missing skier wearing a yellow jacket and black snow pants.', 'yellow', 'black', 'none')}>
+              Yellow Jacket & Dark Pants
+            </button>
+            <button type="button" className="quick-chip" onClick={() => applyPreset('Locate individual in blue coat carrying blue backpack.', 'blue', 'blue', 'blue backpack')}>
+              Blue Coat & Backpack
+            </button>
+          </div>
         </div>
 
-        {/* Structured Clothing Specs */}
+        {/* Structured Specs Grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
-          <div className="form-group">
-            <label className="form-label">Upper Color</label>
-            <select className="select" value={upperColor} onChange={(e) => setUpperColor(e.target.value)}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.25rem' }}>Upper Color</label>
+            <select className="modern-input" value={upperColor} onChange={(e) => setUpperColor(e.target.value)}>
               <option value="red">Red</option>
               <option value="blue">Blue</option>
               <option value="green">Green</option>
               <option value="yellow">Yellow</option>
-              <option value="dark">Dark/Black</option>
+              <option value="dark">Dark / Black</option>
               <option value="white">White</option>
             </select>
           </div>
-          <div className="form-group">
-            <label className="form-label">Upper Type</label>
-            <select className="select" value={upperType} onChange={(e) => setUpperType(e.target.value)}>
-              <option value="hoodie">Hoodie / Jacket</option>
-              <option value="t-shirt">T-Shirt / Top</option>
-              <option value="coat">Heavy Coat</option>
-            </select>
-          </div>
-        </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
-          <div className="form-group">
-            <label className="form-label">Lower Color</label>
-            <select className="select" value={lowerColor} onChange={(e) => setLowerColor(e.target.value)}>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.25rem' }}>Lower Color</label>
+            <select className="modern-input" value={lowerColor} onChange={(e) => setLowerColor(e.target.value)}>
               <option value="black">Black / Dark</option>
               <option value="blue">Blue Jeans</option>
               <option value="khaki">Khaki / Beige</option>
               <option value="red">Red</option>
             </select>
           </div>
-          <div className="form-group">
-            <label className="form-label">Backpack</label>
-            <input
-              type="text"
-              className="input"
-              value={backpack}
-              onChange={(e) => setBackpack(e.target.value)}
-              placeholder="e.g. blue backpack"
-            />
-          </div>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.25rem' }}>Backpack / Accessories</label>
+          <input
+            type="text"
+            className="modern-input"
+            value={backpack}
+            onChange={(e) => setBackpack(e.target.value)}
+            placeholder="e.g. blue backpack"
+          />
         </div>
 
         {/* Confidence Threshold */}
-        <div className="form-group">
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-            <label className="form-label">Minimum Alert Score</label>
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', fontWeight: 600, color: '#8B949E', marginBottom: '0.25rem' }}>
+            <span>Min Match Confidence</span>
             <span style={{ color: '#38BDF8', fontWeight: 700 }}>{(minConfidence * 100).toFixed(0)}%</span>
           </div>
           <input
@@ -177,17 +197,18 @@ export const TargetForm: React.FC<TargetFormProps> = ({ onStartSession, isProces
             step="0.05"
             value={minConfidence}
             onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
+            style={{ width: '100%', accentColor: '#38BDF8', cursor: 'pointer' }}
           />
         </div>
 
-        {/* Start Analysis Button */}
+        {/* Start Button */}
         <button
           type="submit"
-          className="btn btn-primary"
+          className="btn-modern-primary"
           disabled={isProcessing}
-          style={{ width: '100%', padding: '0.8rem', marginTop: '0.5rem' }}
+          style={{ width: '100%', padding: '0.75rem', marginTop: '0.3rem' }}
         >
-          <Cpu size={18} /> {isProcessing ? 'Analyzing Drone Flight...' : 'Start Agentic Flight Analysis'}
+          <Cpu size={16} /> {isProcessing ? 'Processing Flight Analysis...' : 'Run SAR Flight Analysis'}
         </button>
       </form>
     </div>

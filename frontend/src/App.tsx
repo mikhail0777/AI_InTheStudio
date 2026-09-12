@@ -5,7 +5,6 @@ import {
   uploadVideo,
   uploadTelemetry,
   startAnalysis,
-  getSessionStatus,
   getTracks,
   submitHumanFeedback
 } from './api';
@@ -17,7 +16,7 @@ import { TrackDetailModal } from './components/TrackDetailModal';
 import { AgentActivityFeed } from './components/AgentActivityFeed';
 import { TelemetryMap } from './components/TelemetryMap';
 import { SARReportModal } from './components/SARReportModal';
-import { ListFilter, AlertTriangle, Layers } from 'lucide-react';
+import { ListFilter, Layers } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [session, setSession] = useState<SessionStatus | null>(null);
@@ -93,7 +92,7 @@ export const App: React.FC = () => {
       setSession(newSession);
 
       // 2. Upload Video
-      const vRes = await uploadVideo(newSession.session_id, videoFile);
+      await uploadVideo(newSession.session_id, videoFile);
       setVideoUrl(`/uploads/${newSession.session_id}/${videoFile.name}`);
 
       // 3. Upload Telemetry if present
@@ -136,14 +135,14 @@ export const App: React.FC = () => {
   });
 
   return (
-    <div className="app-container">
+    <div className="app-layout">
       <Header
         status={session}
         onNewMission={handleNewMission}
         onOpenReport={() => setShowReportModal(true)}
       />
 
-      <main className="main-content">
+      <main className="mission-grid">
         {/* Left Column: Target Configuration & Telemetry Map */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <TargetForm onStartSession={handleStartSession} isProcessing={isProcessing} />
@@ -161,23 +160,26 @@ export const App: React.FC = () => {
             jumpTimestamp={jumpTimestamp}
           />
 
-          {/* Ranked Sightings List Panel */}
-          <div className="panel" style={{ flex: 1 }}>
-            <div className="panel-header">
-              <span className="panel-title">
-                <Layers size={18} /> Ranked Candidate Sightings ({filteredTracks.length})
-              </span>
-
-              {/* Classification filter */}
+          {/* Ranked Sightings Panel */}
+          <div className="modern-panel" style={{ flex: 1, padding: '1rem' }}>
+            <div className="modern-panel-header" style={{ margin: '-1rem -1rem 1rem -1rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <ListFilter size={14} color="var(--text-muted)" />
+                <Layers size={16} color="#38BDF8" />
+                <h2 style={{ fontSize: '0.875rem', fontWeight: 600, color: '#F0F6FC' }}>
+                  Ranked Candidate Sightings ({filteredTracks.length})
+                </h2>
+              </div>
+
+              {/* Classification Filter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <ListFilter size={13} color="#8B949E" />
                 <select
-                  className="select"
+                  className="modern-input"
                   value={filterClassification}
                   onChange={(e) => setFilterClassification(e.target.value)}
-                  style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem' }}
+                  style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', width: 'auto' }}
                 >
-                  <option value="all">All Classifications</option>
+                  <option value="all">All Candidates</option>
                   <option value="strong_match">Strong Matches</option>
                   <option value="possible_match">Possible Matches</option>
                   <option value="unlikely_match">Unlikely Matches</option>
@@ -188,14 +190,15 @@ export const App: React.FC = () => {
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: '0.8rem',
+              gap: '0.75rem',
               overflowY: 'auto',
-              maxHeight: '400px',
+              maxHeight: '420px',
               paddingRight: '0.3rem'
             }}>
               {filteredTracks.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                  No candidate sightings matched current filter.
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', color: '#6E7681' }}>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 500, color: '#8B949E' }}>No Candidate Sightings Flagged</p>
+                  <p style={{ fontSize: '0.75rem', color: '#6E7681', marginTop: '0.2rem' }}>Candidate tracks will appear here in real time as the agent scans footage.</p>
                 </div>
               ) : (
                 filteredTracks.map((t) => (
@@ -222,7 +225,7 @@ export const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Track Details Modal */}
+      {/* Deep Evidence Inspection Modal */}
       <TrackDetailModal
         track={selectedTrack}
         onClose={() => setSelectedTrack(null)}
