@@ -157,8 +157,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               boxShadow: 'var(--shadow-glow)'
             }} />
 
-            {duration > 0 && tracks.map((t) => {
-              const posPercent = (t.best_timestamp_seconds / duration) * 100;
+            {(status?.total_duration_seconds || duration) > 0 && tracks.map((t) => {
+              const totalSec = status?.total_duration_seconds || duration;
+              const posPercent = (t.best_timestamp_seconds / totalSec) * 100;
               const isSelected = selectedTrack?.track_id === t.track_id;
               const markerColor = getMarkerColor(t.classification);
 

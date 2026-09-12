@@ -1,0 +1,1197 @@
+1
+00:00:00,000 --> 00:00:00,033
+<font size="28">SrtCnt : 1, DiffTime : 33ms
+2026-09-11 16:05:35.938
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:170 lv:14485 usteb 0 iqeb 550
+peb:-184 ak:196[195 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-184 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5172] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:7355],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+2
+00:00:00,033 --> 00:00:00,066
+<font size="28">SrtCnt : 2, DiffTime : 33ms
+2026-09-11 16:05:35.972
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:170 lv:14485 usteb 0 iqeb 550
+peb:-184 ak:196[195 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-184 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5172] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+3
+00:00:00,066 --> 00:00:00,100
+<font size="28">SrtCnt : 3, DiffTime : 34ms
+2026-09-11 16:05:36.005
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:170 lv:14485 usteb 0 iqeb 550
+peb:-184 ak:196[195 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-184 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5172] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+4
+00:00:00,100 --> 00:00:00,133
+<font size="28">SrtCnt : 4, DiffTime : 33ms
+2026-09-11 16:05:36.038
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:170 lv:14486 usteb 0 iqeb 550
+peb:-184 ak:196[195 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-184 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5172] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+5
+00:00:00,133 --> 00:00:00,166
+<font size="28">SrtCnt : 5, DiffTime : 33ms
+2026-09-11 16:05:36.072
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:170 lv:14486 usteb 0 iqeb 550
+peb:-183 ak:196[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5172] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+6
+00:00:00,166 --> 00:00:00,200
+<font size="28">SrtCnt : 6, DiffTime : 34ms
+2026-09-11 16:05:36.105
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:170 lv:14486 usteb 0 iqeb 550
+peb:-184 ak:195[195 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-184 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5172] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+7
+00:00:00,200 --> 00:00:00,233
+<font size="28">SrtCnt : 7, DiffTime : 33ms
+2026-09-11 16:05:36.142
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14486 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5172] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+8
+00:00:00,233 --> 00:00:00,266
+<font size="28">SrtCnt : 8, DiffTime : 33ms
+2026-09-11 16:05:36.172
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14487 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5172] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+9
+00:00:00,266 --> 00:00:00,300
+<font size="28">SrtCnt : 9, DiffTime : 34ms
+2026-09-11 16:05:36.205
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14487 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5173] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+10
+00:00:00,300 --> 00:00:00,333
+<font size="28">SrtCnt : 10, DiffTime : 33ms
+2026-09-11 16:05:36.239
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14487 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5173] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+11
+00:00:00,333 --> 00:00:00,366
+<font size="28">SrtCnt : 11, DiffTime : 33ms
+2026-09-11 16:05:36.272
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-184 ak:195[195 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-184 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5174] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+12
+00:00:00,366 --> 00:00:00,400
+<font size="28">SrtCnt : 12, DiffTime : 34ms
+2026-09-11 16:05:36.305
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5174] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+13
+00:00:00,400 --> 00:00:00,433
+<font size="28">SrtCnt : 13, DiffTime : 33ms
+2026-09-11 16:05:36.339
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5175] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+14
+00:00:00,433 --> 00:00:00,467
+<font size="28">SrtCnt : 14, DiffTime : 34ms
+2026-09-11 16:05:36.372
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5175] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+15
+00:00:00,467 --> 00:00:00,500
+<font size="28">SrtCnt : 15, DiffTime : 33ms
+2026-09-11 16:05:36.405
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5175] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+16
+00:00:00,500 --> 00:00:00,533
+<font size="28">SrtCnt : 16, DiffTime : 33ms
+2026-09-11 16:05:36.439
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5175] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+17
+00:00:00,533 --> 00:00:00,567
+<font size="28">SrtCnt : 17, DiffTime : 34ms
+2026-09-11 16:05:36.472
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5176] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+18
+00:00:00,567 --> 00:00:00,600
+<font size="28">SrtCnt : 18, DiffTime : 33ms
+2026-09-11 16:05:36.505
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5176] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+19
+00:00:00,600 --> 00:00:00,633
+<font size="28">SrtCnt : 19, DiffTime : 33ms
+2026-09-11 16:05:36.539
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5176] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+20
+00:00:00,633 --> 00:00:00,667
+<font size="28">SrtCnt : 20, DiffTime : 34ms
+2026-09-11 16:05:36.572
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5176] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+21
+00:00:00,667 --> 00:00:00,700
+<font size="28">SrtCnt : 21, DiffTime : 33ms
+2026-09-11 16:05:36.606
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5176] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+22
+00:00:00,700 --> 00:00:00,733
+<font size="28">SrtCnt : 22, DiffTime : 33ms
+2026-09-11 16:05:36.639
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5176] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+23
+00:00:00,733 --> 00:00:00,767
+<font size="28">SrtCnt : 23, DiffTime : 34ms
+2026-09-11 16:05:36.672
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5176] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+24
+00:00:00,767 --> 00:00:00,800
+<font size="28">SrtCnt : 24, DiffTime : 33ms
+2026-09-11 16:05:36.705
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2132,1000,1566)] [ct : 5176] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+25
+00:00:00,800 --> 00:00:00,834
+<font size="28">SrtCnt : 25, DiffTime : 34ms
+2026-09-11 16:05:36.739
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+26
+00:00:00,834 --> 00:00:00,867
+<font size="28">SrtCnt : 26, DiffTime : 33ms
+2026-09-11 16:05:36.772
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+27
+00:00:00,867 --> 00:00:00,900
+<font size="28">SrtCnt : 27, DiffTime : 33ms
+2026-09-11 16:05:36.806
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+28
+00:00:00,900 --> 00:00:00,934
+<font size="28">SrtCnt : 28, DiffTime : 34ms
+2026-09-11 16:05:36.839
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:195[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+29
+00:00:00,934 --> 00:00:00,967
+<font size="28">SrtCnt : 29, DiffTime : 33ms
+2026-09-11 16:05:36.872
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-182 ak:195[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+30
+00:00:00,967 --> 00:00:01,000
+<font size="28">SrtCnt : 30, DiffTime : 33ms
+2026-09-11 16:05:36.906
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-183 ak:195[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+31
+00:00:01,000 --> 00:00:01,034
+<font size="28">SrtCnt : 31, DiffTime : 34ms
+2026-09-11 16:05:36.939
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+32
+00:00:01,034 --> 00:00:01,067
+<font size="28">SrtCnt : 32, DiffTime : 33ms
+2026-09-11 16:05:36.972
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-183 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+33
+00:00:01,067 --> 00:00:01,100
+<font size="28">SrtCnt : 33, DiffTime : 33ms
+2026-09-11 16:05:37.006
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-183 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+34
+00:00:01,100 --> 00:00:01,134
+<font size="28">SrtCnt : 34, DiffTime : 34ms
+2026-09-11 16:05:37.039
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+35
+00:00:01,134 --> 00:00:01,167
+<font size="28">SrtCnt : 35, DiffTime : 33ms
+2026-09-11 16:05:37.072
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+36
+00:00:01,167 --> 00:00:01,201
+<font size="28">SrtCnt : 36, DiffTime : 34ms
+2026-09-11 16:05:37.106
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+37
+00:00:01,201 --> 00:00:01,234
+<font size="28">SrtCnt : 37, DiffTime : 33ms
+2026-09-11 16:05:37.139
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+38
+00:00:01,234 --> 00:00:01,267
+<font size="28">SrtCnt : 38, DiffTime : 33ms
+2026-09-11 16:05:37.173
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+39
+00:00:01,267 --> 00:00:01,301
+<font size="28">SrtCnt : 39, DiffTime : 34ms
+2026-09-11 16:05:37.206
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+40
+00:00:01,301 --> 00:00:01,334
+<font size="28">SrtCnt : 40, DiffTime : 33ms
+2026-09-11 16:05:37.239
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+41
+00:00:01,334 --> 00:00:01,367
+<font size="28">SrtCnt : 41, DiffTime : 33ms
+2026-09-11 16:05:37.273
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+42
+00:00:01,367 --> 00:00:01,401
+<font size="28">SrtCnt : 42, DiffTime : 34ms
+2026-09-11 16:05:37.306
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14490 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+43
+00:00:01,401 --> 00:00:01,434
+<font size="28">SrtCnt : 43, DiffTime : 33ms
+2026-09-11 16:05:37.340
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+44
+00:00:01,434 --> 00:00:01,467
+<font size="28">SrtCnt : 44, DiffTime : 33ms
+2026-09-11 16:05:37.373
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+45
+00:00:01,467 --> 00:00:01,501
+<font size="28">SrtCnt : 45, DiffTime : 34ms
+2026-09-11 16:05:37.406
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+46
+00:00:01,501 --> 00:00:01,534
+<font size="28">SrtCnt : 46, DiffTime : 33ms
+2026-09-11 16:05:37.440
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+47
+00:00:01,534 --> 00:00:01,568
+<font size="28">SrtCnt : 47, DiffTime : 34ms
+2026-09-11 16:05:37.473
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+48
+00:00:01,568 --> 00:00:01,601
+<font size="28">SrtCnt : 48, DiffTime : 33ms
+2026-09-11 16:05:37.506
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+49
+00:00:01,601 --> 00:00:01,634
+<font size="28">SrtCnt : 49, DiffTime : 33ms
+2026-09-11 16:05:37.540
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-182 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+50
+00:00:01,634 --> 00:00:01,668
+<font size="28">SrtCnt : 50, DiffTime : 34ms
+2026-09-11 16:05:37.573
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+51
+00:00:01,668 --> 00:00:01,701
+<font size="28">SrtCnt : 51, DiffTime : 33ms
+2026-09-11 16:05:37.607
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+52
+00:00:01,701 --> 00:00:01,734
+<font size="28">SrtCnt : 52, DiffTime : 33ms
+2026-09-11 16:05:37.640
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14489 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+53
+00:00:01,734 --> 00:00:01,768
+<font size="28">SrtCnt : 53, DiffTime : 34ms
+2026-09-11 16:05:37.673
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+54
+00:00:01,768 --> 00:00:01,801
+<font size="28">SrtCnt : 54, DiffTime : 33ms
+2026-09-11 16:05:37.706
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+55
+00:00:01,801 --> 00:00:01,834
+<font size="28">SrtCnt : 55, DiffTime : 33ms
+2026-09-11 16:05:37.740
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+56
+00:00:01,834 --> 00:00:01,868
+<font size="28">SrtCnt : 56, DiffTime : 34ms
+2026-09-11 16:05:37.773
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+57
+00:00:01,868 --> 00:00:01,901
+<font size="28">SrtCnt : 57, DiffTime : 33ms
+2026-09-11 16:05:37.807
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+58
+00:00:01,901 --> 00:00:01,935
+<font size="28">SrtCnt : 58, DiffTime : 34ms
+2026-09-11 16:05:37.843
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-182 ak:194[193 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-182 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+59
+00:00:01,935 --> 00:00:01,968
+<font size="28">SrtCnt : 59, DiffTime : 33ms
+2026-09-11 16:05:37.874
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+60
+00:00:01,968 --> 00:00:02,001
+<font size="28">SrtCnt : 60, DiffTime : 33ms
+2026-09-11 16:05:37.907
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+61
+00:00:02,001 --> 00:00:02,035
+<font size="28">SrtCnt : 61, DiffTime : 34ms
+2026-09-11 16:05:37.940
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428198] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+62
+00:00:02,035 --> 00:00:02,068
+<font size="28">SrtCnt : 62, DiffTime : 33ms
+2026-09-11 16:05:37.973
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428197] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+
+63
+00:00:02,068 --> 00:00:02,101
+<font size="28">SrtCnt : 63, DiffTime : 33ms
+2026-09-11 16:05:38.007
+[iso : 120] [shutter : 1/2500.0] [fnum : 170] [ev : 0] 
+ag:1000 sdg:1000 idg:4096 1/2357.656] xhs:42 ag_reg:256
+worked[ag:1000 sdg:1000 idg:4131 shu:1/2349.845]
+tar:171 luma:171 lv:14488 usteb 0 iqeb 550
+peb:-183 ak:194[194 0 0]*r_ll:1000
+alg:194[107 141]>82*0 [107 141]>171
+gr:0 geb:0 reb:0 lvr:1000 peb_range[-183 500 lvr:1000]
+anti-flk[mode:0 frq:0]
+[RGBGain : (2136,1000,1566)] [ct : 5177] 
+[adj_dbg_info :[CCM:365, 32855,  32793, 32794, 341, 32831, 5, 32896, 377]
+[color_temperature:5216]
+[iridix_strength:13] [dmsc_sharp_alt_ld:30] [dmsc_sharp_alt_ldu:22] [dmsc_sharp_alt_lu:7]
+[sinter_strength_1:5] [sinter_strength_4:5]
+[color_md : default] [focal_len : 240] [dzoom_ratio: 17355, delta:0],[latitude: 45.428197] [longitude: -75.695117] [rel_alt: 5.600 abs_alt: 52.467] [cmpr: lens pos=32(stat 18), point(49,49), window:(10,10),(10,10) of(30,30),temp:3800,inf:35][sensor_temperature : 40] </font>
+

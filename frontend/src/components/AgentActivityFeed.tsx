@@ -68,7 +68,7 @@ export const AgentActivityFeed: React.FC<AgentActivityFeedProps> = ({ logs, curr
               <span style={{ fontWeight: 700, flexShrink: 0, minWidth: '95px' }}>
                 [{log.step}]
               </span>
-              <span style={{ flex: 1 }}>{log.message}</span>
+              <span style={{ flex: 1, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>{log.message}</span>
             </div>
           ))
         )}

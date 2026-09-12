@@ -28,10 +28,7 @@ class AppearanceAnalyzer:
         """
         Analyzes upper-body (top 45%) and lower-body (bottom 45%) color proportions.
         """
-        results = {
-            "upper_red": 0.0, "upper_blue": 0.0, "upper_green": 0.0, "upper_yellow": 0.0, "upper_dark": 0.0,
-            "lower_black": 0.0, "lower_blue": 0.0, "lower_dark": 0.0, "lower_red": 0.0, "backpack_blue": 0.0
-        }
+        results = {}
         if not os.path.exists(crop_path_full):
             return results
 
@@ -42,45 +39,80 @@ class AppearanceAnalyzer:
         h, w = img.shape[:2]
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-        # Upper body region: y from 0.1 to 0.55
-        upper_hsv = hsv[int(h * 0.1):int(h * 0.55), :]
-        # Lower body region: y from 0.50 to 0.90
+        # Backpack region (upper-back/center)
+        bp_y1, bp_y2 = int(h * 0.15), int(h * 0.6)
+        bp_x1, bp_x2 = int(w * 0.2), int(w * 0.8)
+        backpack_hsv = hsv[bp_y1:bp_y2, bp_x1:bp_x2]
+
+        # Upper body region
+        up_y1, up_y2 = int(h * 0.1), int(h * 0.55)
+        upper_hsv = hsv[up_y1:up_y2, :]
+
+        # Create a mask for the upper body that EXCLUDES the backpack
+        upper_mask = np.ones(upper_hsv.shape[:2], dtype=np.uint8) * 255
+        rel_bp_y1 = max(0, bp_y1 - up_y1)
+        rel_bp_y2 = min(up_y2 - up_y1, bp_y2 - up_y1)
+        if rel_bp_y1 < rel_bp_y2:
+            upper_mask[rel_bp_y1:rel_bp_y2, bp_x1:bp_x2] = 0
+
+        # Lower body region
         lower_hsv = hsv[int(h * 0.50):int(h * 0.90), :]
-        # Backpack region (upper-back/center): y 0.15 to 0.6, x 0.2 to 0.8
-        backpack_hsv = hsv[int(h * 0.15):int(h * 0.6), int(w * 0.2):int(w * 0.8)]
 
-        # Analyze upper body colors
-        if upper_hsv.size > 0:
-            upper_pixels = upper_hsv.shape[0] * upper_hsv.shape[1]
-            for color_name in ["red", "blue", "green", "yellow", "dark"]:
-                ranges = COLOR_HSV_RANGES[color_name]
-                mask = np.zeros(upper_hsv.shape[:2], dtype=np.uint8)
+        # Helper to analyze a region
+        def analyze_region(region_hsv, prefix, multiplier, mask_roi=None):
+            if region_hsv.size == 0:
+                return
+            if mask_roi is not None:
+                pixels = cv2.countNonZero(mask_roi)
+            else:
+                pixels = region_hsv.shape[0] * region_hsv.shape[1]
+                
+            if pixels == 0:
+                return
+
+            for color_name, ranges in COLOR_HSV_RANGES.items():
+                mask = np.zeros(region_hsv.shape[:2], dtype=np.uint8)
                 for lower, upper in ranges:
-                    mask |= cv2.inRange(upper_hsv, np.array(lower), np.array(upper))
-                match_pct = float(np.sum(mask > 0)) / float(max(1, upper_pixels))
-                results[f"upper_{color_name}"] = min(1.0, match_pct * 2.2)
+                    mask |= cv2.inRange(region_hsv, np.array(lower), np.array(upper))
+                
+                if mask_roi is not None:
+                    mask = cv2.bitwise_and(mask, mask, mask=mask_roi)
 
-        # Analyze lower body colors
-        if lower_hsv.size > 0:
-            lower_pixels = lower_hsv.shape[0] * lower_hsv.shape[1]
-            for color_name in ["black", "dark", "blue", "red"]:
-                ranges = COLOR_HSV_RANGES[color_name]
-                mask = np.zeros(lower_hsv.shape[:2], dtype=np.uint8)
-                for lower, upper in ranges:
-                    mask |= cv2.inRange(lower_hsv, np.array(lower), np.array(upper))
-                match_pct = float(np.sum(mask > 0)) / float(max(1, lower_pixels))
-                results[f"lower_{color_name}"] = min(1.0, match_pct * 2.2)
+                match_pct = float(np.sum(mask > 0)) / float(max(1, pixels))
+                results[f"{prefix}_{color_name}"] = min(1.0, match_pct * multiplier)
 
-        # Analyze backpack region
-        if backpack_hsv.size > 0:
-            bp_pixels = backpack_hsv.shape[0] * backpack_hsv.shape[1]
-            ranges = COLOR_HSV_RANGES["blue"]
-            mask = np.zeros(backpack_hsv.shape[:2], dtype=np.uint8)
-            for lower, upper in ranges:
-                mask |= cv2.inRange(backpack_hsv, np.array(lower), np.array(upper))
-            results["backpack_blue"] = min(1.0, (float(np.sum(mask > 0)) / float(max(1, bp_pixels))) * 2.5)
+        analyze_region(upper_hsv, "upper", 2.2, mask_roi=upper_mask)
+        analyze_region(lower_hsv, "lower", 2.2)
+        analyze_region(backpack_hsv, "backpack", 2.5)
 
         return results
+
+    @staticmethod
+    def get_color_score(target_text: str, region_prefix: str, color_feats: Dict[str, float]) -> float:
+        if not target_text:
+            return 0.5
+        target_text = target_text.lower()
+        best_score = 0.0
+        found_color = False
+        for color in COLOR_HSV_RANGES.keys():
+            if color in target_text:
+                found_color = True
+                best_score = max(best_score, color_feats.get(f"{region_prefix}_{color}", 0.0))
+        if "dark" in target_text or "black" in target_text:
+            found_color = True
+            best_score = max(best_score, color_feats.get(f"{region_prefix}_dark", 0.0), color_feats.get(f"{region_prefix}_black", 0.0))
+        return best_score if found_color else 0.5
+
+    @staticmethod
+    def get_dominant_color(region_prefix: str, color_feats: Dict[str, float]) -> str:
+        best_c = "mixed"
+        best_s = 0.0
+        for color in COLOR_HSV_RANGES.keys():
+            s = color_feats.get(f"{region_prefix}_{color}", 0.0)
+            if s > best_s:
+                best_s = s
+                best_c = color
+        return best_c if best_s > 0.3 else "mixed/dark"
 
     @classmethod
     def evaluate_track(
@@ -112,6 +144,8 @@ class AppearanceAnalyzer:
         qualities = []
         confidences = []
         crop_samples = []
+        
+        color_feats = {}
 
         for det in detections:
             confidences.append(det.confidence)
@@ -123,33 +157,18 @@ class AppearanceAnalyzer:
                     analyzed_count += 1
                     color_feats = cls.analyze_crop_colors(full_path)
 
-                    # Upper clothing evaluation
-                    target_upper_color = (target_config.upper_clothing_color or "").lower()
-                    if target_upper_color in color_feats:
-                        upper_scores.append(color_feats[target_upper_color])
-                    elif "red" in target_upper_color:
-                        upper_scores.append(color_feats["upper_red"])
-                    elif "blue" in target_upper_color:
-                        upper_scores.append(color_feats["upper_blue"])
-                    elif "green" in target_upper_color:
-                        upper_scores.append(color_feats["upper_green"])
-                    elif "yellow" in target_upper_color:
-                        upper_scores.append(color_feats["upper_yellow"])
+                    if target_config.upper_clothing_color:
+                        upper_scores.append(cls.get_color_score(target_config.upper_clothing_color, "upper", color_feats))
                     else:
                         upper_scores.append(0.5)
 
-                    # Lower clothing evaluation
-                    target_lower_color = (target_config.lower_clothing_color or "").lower()
-                    if "black" in target_lower_color or "dark" in target_lower_color:
-                        lower_scores.append(max(color_feats["lower_black"], color_feats["lower_dark"]))
-                    elif "blue" in target_lower_color:
-                        lower_scores.append(color_feats["lower_blue"])
+                    if target_config.lower_clothing_color:
+                        lower_scores.append(cls.get_color_score(target_config.lower_clothing_color, "lower", color_feats))
                     else:
                         lower_scores.append(0.5)
 
-                    # Backpack evaluation
-                    if target_config.backpack and "blue" in target_config.backpack.lower():
-                        backpack_scores.append(color_feats["backpack_blue"])
+                    if target_config.backpack:
+                        backpack_scores.append(cls.get_color_score(target_config.backpack, "backpack", color_feats))
 
         avg_det_conf = float(np.mean(confidences)) if confidences else 0.5
         avg_quality = float(np.mean(qualities)) if qualities else 0.5
@@ -196,7 +215,7 @@ class AppearanceAnalyzer:
 
         # Upper clothing attribute
         exp_upper = f"{target_config.upper_clothing_color or ''} {target_config.upper_clothing_type or ''}".strip()
-        obs_upper_color = "red" if avg_upper > 0.6 else ("blue" if color_feats.get("upper_blue",0) > 0.6 else "dark/mixed")
+        obs_upper_color = cls.get_dominant_color("upper", color_feats) if color_feats else "unknown"
         attributes["upper_clothing"] = AttributeDetail(
             expected=exp_upper or "Target upper clothing",
             observed=f"{obs_upper_color} upper clothing",
@@ -206,7 +225,7 @@ class AppearanceAnalyzer:
 
         # Lower clothing attribute
         exp_lower = f"{target_config.lower_clothing_color or ''} {target_config.lower_clothing_type or ''}".strip()
-        obs_lower_color = "dark/black" if avg_lower > 0.5 else "light/mixed"
+        obs_lower_color = cls.get_dominant_color("lower", color_feats) if color_feats else "unknown"
         attributes["lower_clothing"] = AttributeDetail(
             expected=exp_lower or "Target lower clothing",
             observed=f"{obs_lower_color} lower clothing",
@@ -216,9 +235,10 @@ class AppearanceAnalyzer:
 
         # Backpack attribute
         if target_config.backpack:
+            obs_bp_color = cls.get_dominant_color("backpack", color_feats) if color_feats else "unknown"
             attributes["backpack"] = AttributeDetail(
                 expected=target_config.backpack,
-                observed="blue backpack-like object" if avg_backpack > 0.4 else "unclear rear object",
+                observed=f"{obs_bp_color} backpack-like object" if avg_backpack > 0.4 else "unclear rear object",
                 score=round(avg_backpack, 2),
                 visibility="clear" if avg_backpack > 0.4 else "obscured"
             )
@@ -251,7 +271,7 @@ class AppearanceAnalyzer:
             matching_evidence.append(f"Matching {attributes['lower_clothing'].observed}")
 
         if target_config.backpack and avg_backpack >= 0.45:
-            matching_evidence.append("Distinct blue backpack-like object visible across multiple frames")
+            matching_evidence.append(f"Distinct {attributes['backpack'].observed} visible across multiple frames")
 
         # Track classification decision
         if final_ranking_score >= 0.78 and not conflicting_evidence:
@@ -261,7 +281,7 @@ class AppearanceAnalyzer:
         elif final_ranking_score >= 0.55:
             classification = "possible_match"
             requires_review = True
-            explanation = f"Possible appearance match at {int(best_timestamp//60):02d}:{int(best_timestamp%60):02d}. Upper clothing & backpack match target. Human confirmation required."
+            explanation = f"Possible appearance match at {int(best_timestamp//60):02d}:{int(best_timestamp%60):02d}. Human confirmation required."
         elif evidence_quality < 0.30:
             classification = "insufficient_visibility"
             requires_review = True

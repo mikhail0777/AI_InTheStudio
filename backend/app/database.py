@@ -8,7 +8,7 @@ DB_PATH = os.path.join(DB_DIR, "aerofind.db")
 
 def init_db():
     os.makedirs(DB_DIR, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20.0, check_same_thread=False)
     cursor = conn.cursor()
 
     cursor.execute("""
@@ -98,6 +98,6 @@ def init_db():
 
 def get_db_connection():
     os.makedirs(DB_DIR, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=20.0, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     return conn

@@ -95,7 +95,7 @@ async def upload_telemetry(session_id: str, file: UploadFile = File(...)):
     conn.execute("DELETE FROM telemetry WHERE session_id=?", (session_id,))
     for pt in gps_points:
         conn.execute(
-            "INSERT INTO telemetry (session_id, timestamp_seconds, latitude, longitude, altitude_m, relative_altitude_m) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO telemetry (session_id, timestamp_seconds, latitude, longitude, altitude_m, relative_altitude_m) VALUES (?, ?, ?, ?, ?, ?)",
             (session_id, pt.timestamp_seconds, pt.latitude, pt.longitude, pt.altitude_m, pt.relative_altitude_m)
         )
     conn.execute("UPDATE sessions SET has_telemetry=1 WHERE session_id=?", (session_id,))
