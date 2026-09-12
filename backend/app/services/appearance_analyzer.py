@@ -41,24 +41,33 @@ class AppearanceAnalyzer:
         h, w = img.shape[:2]
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-        # Backpack region (upper-back/center)
+        # Crop the analysis exclusively to the center 50% of the bounding box
+        # This completely eliminates concrete/background colors on the left and right sides
+        center_x1, center_x2 = int(w * 0.25), int(w * 0.75)
+        
+        # Backpack region (center spine of the person)
         bp_y1, bp_y2 = int(h * 0.15), int(h * 0.6)
-        bp_x1, bp_x2 = int(w * 0.2), int(w * 0.8)
+        bp_x1, bp_x2 = int(w * 0.35), int(w * 0.65)
         backpack_hsv = hsv[bp_y1:bp_y2, bp_x1:bp_x2]
 
-        # Upper body region
+        # Upper body region (cropped to center 50%)
         up_y1, up_y2 = int(h * 0.1), int(h * 0.55)
-        upper_hsv = hsv[up_y1:up_y2, :]
+        upper_hsv = hsv[up_y1:up_y2, center_x1:center_x2]
 
         # Create a mask for the upper body that EXCLUDES the backpack
+        # Because upper_hsv is already cropped to center_x1:center_x2, the relative x coordinates are:
         upper_mask = np.ones(upper_hsv.shape[:2], dtype=np.uint8) * 255
         rel_bp_y1 = max(0, bp_y1 - up_y1)
         rel_bp_y2 = min(up_y2 - up_y1, bp_y2 - up_y1)
-        if rel_bp_y1 < rel_bp_y2:
-            upper_mask[rel_bp_y1:rel_bp_y2, bp_x1:bp_x2] = 0
+        
+        rel_bp_x1 = max(0, bp_x1 - center_x1)
+        rel_bp_x2 = min(center_x2 - center_x1, bp_x2 - center_x1)
+        
+        if rel_bp_y1 < rel_bp_y2 and rel_bp_x1 < rel_bp_x2:
+            upper_mask[rel_bp_y1:rel_bp_y2, rel_bp_x1:rel_bp_x2] = 0
 
-        # Lower body region
-        lower_hsv = hsv[int(h * 0.50):int(h * 0.90), :]
+        # Lower body region (cropped to center 50%)
+        lower_hsv = hsv[int(h * 0.50):int(h * 0.90), center_x1:center_x2]
 
         # Helper to analyze a region
         def analyze_region(region_hsv, prefix, multiplier, mask_roi=None):

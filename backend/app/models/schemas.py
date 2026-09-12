@@ -7,9 +7,9 @@ class TargetConfiguration(BaseModel):
     upper_clothing_color: Optional[str] = "red"
     lower_clothing_type: Optional[str] = "pants"
     lower_clothing_color: Optional[str] = "black"
-    shoe_color: Optional[str] = "white"
-    hair_color: Optional[str] = "dark"
-    hair_length: Optional[str] = "short"
+    shoe_color: Optional[str] = None
+    hair_color: Optional[str] = None
+    hair_length: Optional[str] = None
     body_build: Optional[str] = "average"
     backpack: Optional[str] = "blue backpack"
     hat: Optional[str] = None

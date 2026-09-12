@@ -134,31 +134,5 @@ class PersonDetector:
             if conf >= min_confidence:
                 boxes_conf.append(([float(x), float(y), float(x + bw), float(y + bh)], conf))
 
-        # Color/contour blob detection fallback if HOG yields no detections (for synthetic demo drawings)
-        if not boxes_conf:
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            # Distinct clothing color ranges (Red, Blue, Yellow, Green jacket)
-            r_mask = cv2.inRange(hsv, np.array([0, 70, 70]), np.array([10, 255, 255])) | cv2.inRange(hsv, np.array([170, 70, 70]), np.array([180, 255, 255]))
-            b_mask = cv2.inRange(hsv, np.array([100, 70, 70]), np.array([135, 255, 255]))
-            y_mask = cv2.inRange(hsv, np.array([20, 90, 90]), np.array([35, 255, 255]))
-            g_mask = cv2.inRange(hsv, np.array([45, 110, 90]), np.array([80, 255, 255]))
-
-            combined = r_mask | b_mask | y_mask | g_mask
-            kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
-            combined = cv2.morphologyEx(combined, cv2.MORPH_CLOSE, kernel)
-
-            contours, _ = cv2.findContours(combined, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            for c in contours:
-                area = cv2.contourArea(c)
-                if 100 <= area <= 20000:
-                    x, y, bw, bh = cv2.boundingRect(c)
-                    # Expand bounding box slightly for full person body
-                    margin_x = int(bw * 0.35)
-                    margin_y = int(bh * 0.35)
-                    fx1 = max(0, float(x - margin_x))
-                    fy1 = max(0, float(y - margin_y))
-                    fx2 = min(w, float(x + bw + margin_x))
-                    fy2 = min(h, float(y + bh + margin_y))
-                    boxes_conf.append(([fx1, fy1, fx2, fy2], 0.88))
-
+        # Removed color blob detection fallback to prevent tracking inanimate objects (blue bins, etc)
         return boxes_conf
