@@ -18,7 +18,7 @@ export const SARReportModal: React.FC<SARReportModalProps> = ({ status, tracks, 
     <div className="modal-overlay">
       <div className="modal-content">
         <div className="screws" />
-        
+
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '32px' }}>
           <div>
@@ -32,7 +32,7 @@ export const SARReportModal: React.FC<SARReportModalProps> = ({ status, tracks, 
               MISSION SESSION ID: {status.session_id}
             </p>
           </div>
-          
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <a
               href={`/reports/report_${status.session_id}.html`}
@@ -51,7 +51,7 @@ export const SARReportModal: React.FC<SARReportModalProps> = ({ status, tracks, 
 
         {/* Report Content Body */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          
+
           {/* Actionable Recommendations Callout */}
           <div className="card-module" style={{ padding: '24px', background: 'var(--bg-panel)' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--accent-orange)' }}>
