@@ -48,7 +48,12 @@ models or switch detectors. Missing weights or inference failures stop the job e
 - SRT coordinates locate the aircraft, not the person's ground position. Missing altitude
   is preserved as unknown. Existing flights and review decisions are retained.
 
+Large frames are analyzed once in full and again as overlapping native-resolution tiles.
+This preserves scene context while improving recall for distant people without lowering the
+person-confidence gate. Duplicate detections from overlapping views are removed class-wise.
+
 Configuration: `AIEYE_MODEL_PATH`, `AIEYE_IMAGE_SIZE` (default 1280),
+`AIEYE_ENABLE_TILING` (default true), `AIEYE_TILE_OVERLAP` (default 0.20),
 `AIEYE_CPU_THREADS` (default 4), and `AIEYE_DATA_DIR` (default backend/data).
 The application is intended for a local workstation and has no account login system.
 

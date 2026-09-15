@@ -6,7 +6,7 @@ import numpy as np
 from app.models.schemas import DetectionItem, TargetConfiguration
 from app.services.appearance_analyzer import AppearanceAnalyzer
 from app.services.search_agent import SearchPlanAgent
-from app.services.detector import PersonDetector, _bag_owner
+from app.services.detector import PersonDetector, _bag_owner, _deduplicate
 from app.services.tracker import compute_iou, PersonTracker
 from app.services.visual_features import masked_regions
 from app.services.visual_features import color_match_score
@@ -49,6 +49,30 @@ class PipelineTests(unittest.TestCase):
             detector.yolo_model.predict.side_effect = ValueError('bad inference')
             with self.assertRaisesRegex(RuntimeError, 'without a fallback'):
                 detector.detect_in_frame(np.zeros((100,100,3), np.uint8), 'test', 0, 0)
+
+    def test_overlapping_tile_detections_are_deduplicated(self):
+        records = [
+            {'class': 0, 'confidence': .91, 'bbox': [10, 10, 50, 90], 'polygon': None},
+            {'class': 0, 'confidence': .82, 'bbox': [11, 10, 51, 90], 'polygon': None},
+            {'class': 24, 'confidence': .80, 'bbox': [11, 10, 51, 90], 'polygon': None},
+        ]
+        kept = _deduplicate(records)
+        self.assertEqual(len(kept), 2)
+        self.assertEqual([item['class'] for item in kept], [0, 24])
+
+    def test_large_frames_receive_full_and_tiled_inference(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(PersonDetector, '_init_yolo'):
+                detector = PersonDetector(directory)
+            detector.image_size = 640
+            calls = []
+            def predict(frame, _size, _threshold):
+                calls.append(frame.shape[:2])
+                return []
+            detector._predict = predict
+            detector._predict_with_tiles(np.zeros((1080, 1920, 3), np.uint8), .4)
+            self.assertGreater(len(calls), 2)
+            self.assertEqual(calls[0], (1080, 1920))
 
     def test_black_bag_excluded_from_green_clothing(self):
         image = np.zeros((200,100,3), np.uint8)

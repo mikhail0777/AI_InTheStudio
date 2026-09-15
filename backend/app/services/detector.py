@@ -37,6 +37,22 @@ def _bag_owner(bag, people):
     return scores[0][1]
 
 
+def _box_iou(a, b):
+    intersection = max(0.0, min(a[2], b[2]) - max(a[0], b[0])) * max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    area_a = max(0.0, a[2] - a[0]) * max(0.0, a[3] - a[1])
+    area_b = max(0.0, b[2] - b[0]) * max(0.0, b[3] - b[1])
+    return intersection / max(1.0, area_a + area_b - intersection)
+
+
+def _deduplicate(records, threshold=.55):
+    """Class-aware NMS for detections repeated by full-frame and overlapping tiles."""
+    kept = []
+    for candidate in sorted(records, key=lambda item: item['confidence'], reverse=True):
+        if all(candidate['class'] != item['class'] or _box_iou(candidate['bbox'], item['bbox']) < threshold for item in kept):
+            kept.append(candidate)
+    return kept
+
+
 class PersonDetector:
     def __init__(self, crop_dir: str, model_path=None):
         self.crop_dir = Path(crop_dir).resolve()
@@ -45,6 +61,10 @@ class PersonDetector:
         self.image_size = int(os.getenv('AIEYE_IMAGE_SIZE', '1280'))
         if self.image_size < 320 or self.image_size > 2048:
             raise ValueError('AIEYE_IMAGE_SIZE must be between 320 and 2048.')
+        self.enable_tiling = os.getenv('AIEYE_ENABLE_TILING', 'true').lower() not in ('0', 'false', 'no')
+        self.tile_overlap = float(os.getenv('AIEYE_TILE_OVERLAP', '.20'))
+        if not 0 <= self.tile_overlap <= .5:
+            raise ValueError('AIEYE_TILE_OVERLAP must be between 0 and .5.')
         self._init_yolo()
 
     def _init_yolo(self):
@@ -85,6 +105,29 @@ class PersonDetector:
                             'polygon': polygons[i] if i < len(polygons) else None})
         return records
 
+    def _predict_with_tiles(self, frame, threshold):
+        """Preserve full-frame context and recover small people at native resolution."""
+        records = self._predict(frame, self.image_size, threshold)
+        height, width = frame.shape[:2]
+        if not self.enable_tiling or max(height, width) <= int(self.image_size * 1.25):
+            return records
+        tile = self.image_size
+        stride = max(1, int(tile * (1 - self.tile_overlap)))
+        xs = list(range(0, max(1, width - tile + 1), stride))
+        ys = list(range(0, max(1, height - tile + 1), stride))
+        xs.append(max(0, width - tile)); ys.append(max(0, height - tile))
+        for y in sorted(set(ys)):
+            for x in sorted(set(xs)):
+                patch = frame[y:min(height, y + tile), x:min(width, x + tile)]
+                for item in self._predict(patch, self.image_size, threshold):
+                    translated = dict(item)
+                    translated['bbox'] = [item['bbox'][0] + x, item['bbox'][1] + y,
+                                          item['bbox'][2] + x, item['bbox'][3] + y]
+                    if item['polygon'] is not None:
+                        translated['polygon'] = np.asarray(item['polygon']) + np.array([x, y])
+                    records.append(translated)
+        return _deduplicate(records)
+
     @staticmethod
     def estimate_crop_quality(crop):
         if crop is None or crop.size == 0:
@@ -96,7 +139,7 @@ class PersonDetector:
     def detect_in_frame(self, frame, session_id, frame_idx, timestamp_seconds, min_confidence=.4, crop_margin=.12):
         if frame is None or frame.size == 0:
             return []
-        records = self._predict(frame, self.image_size, min_confidence)
+        records = self._predict_with_tiles(frame, min_confidence)
         people = [r for r in records if r['class'] == 0]
         bags = [r for r in records if r['class'] == 24]
         assignments = [(bag, _bag_owner(bag, people)) for bag in bags]
