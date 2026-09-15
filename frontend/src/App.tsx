@@ -1,13 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { TargetConfiguration, SessionStatus, TrackResult } from './types';
-import {
-  createSession,
-  uploadVideo,
-  uploadTelemetry,
-  startAnalysis,
-  getTracks,
-  submitHumanFeedback
-} from './api';
+import React, { useEffect, useRef, useState } from 'react';
+import { GPSPoint, TargetConfiguration, SessionStatus, TrackResult } from './types';
+import { createSession, uploadVideo, uploadTelemetry, startAnalysis, getSessionStatus, getTelemetry, getTracks, submitHumanFeedback, pauseAnalysis, resumeAnalysis, cancelAnalysis } from './api';
 import { Header } from './components/Header';
 import { TargetForm } from './components/TargetForm';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -16,236 +9,155 @@ import { TrackDetailModal } from './components/TrackDetailModal';
 import { AgentActivityFeed } from './components/AgentActivityFeed';
 import { TelemetryMap } from './components/TelemetryMap';
 import { SARReportModal } from './components/SARReportModal';
-import { ListFilter, Layers } from 'lucide-react';
+import { candidateLabels, isReviewCandidate } from './review';
+
+const activeStatuses = ['queued', 'analyzing', 'paused'];
+const messageOf = (error: unknown) => error instanceof Error ? error.message : 'Unexpected error. Please try again.';
 
 export const App: React.FC = () => {
   const [session, setSession] = useState<SessionStatus | null>(null);
+  const [monitoredSessionId, setMonitoredSessionId] = useState<string | null>(null);
   const [tracks, setTracks] = useState<TrackResult[]>([]);
+  const [telemetry, setTelemetry] = useState<GPSPoint[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<TrackResult | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [jumpTimestamp, setJumpTimestamp] = useState<number | null>(null);
-
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [jumpTimestamp, setJumpTimestamp] = useState<{ seconds: number; key: number } | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState('');
+  const [controlPending, setControlPending] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [filterClassification, setFilterClassification] = useState<string>('all');
+  const [filterClassification, setFilterClassification] = useState('review');
+  const [error, setError] = useState('');
+  const [connectionError, setConnectionError] = useState('');
+  const generation = useRef(0);
+  const isProcessing = isUploading || !!(session && activeStatuses.includes(session.status));
 
-  // SSE Stream Listener for real-time Agent Activity Feed
+  // One status source also recovers from dropped connections; avoid duplicate SSE logs.
   useEffect(() => {
-    if (!session?.session_id || session.status === 'completed' || session.status === 'error') return;
-
-    const eventSource = new EventSource(`/api/sessions/${session.session_id}/events`);
-
-    eventSource.onmessage = (event) => {
+    if (!monitoredSessionId) return;
+    let disposed = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = async () => {
       try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'log') {
-          setSession((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              agent_logs: [...prev.agent_logs, data.log]
-            };
-          });
-        } else if (data.type === 'status') {
-          setSession((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              status: data.status,
-              progress_percent: data.progress_percent,
-              current_stage: data.current_stage
-            };
-          });
-
-          if (data.status === 'completed') {
-            setIsProcessing(false);
-            refreshTracks(session.session_id);
-          }
+        const latest = await getSessionStatus(monitoredSessionId);
+        if (disposed) return;
+        const finished = ['completed', 'error', 'cancelled'].includes(latest.status);
+        if (finished) {
+          const [results, points] = await Promise.all([getTracks(monitoredSessionId), getTelemetry(monitoredSessionId)]);
+          if (disposed) return;
+          setTracks(results);
+          setTelemetry(points);
         }
-      } catch (err) {
-        console.error('SSE JSON error:', err);
+        setSession(latest);
+        setConnectionError('');
+        if (finished) return;
+      } catch (failure) {
+        if (disposed) return;
+        setConnectionError(`Connection interrupted; retrying. ${messageOf(failure)}`);
       }
+      timer = setTimeout(poll, 1500);
     };
-
-    return () => {
-      eventSource.close();
-    };
-  }, [session?.session_id, session?.status]);
-
-  const refreshTracks = async (sessionId: string) => {
-    try {
-      const fetchedTracks = await getTracks(sessionId);
-      setTracks(fetchedTracks);
-    } catch (e) {
-      console.error('Error fetching tracks:', e);
-    }
-  };
+    void poll();
+    return () => { disposed = true; clearTimeout(timer); };
+  }, [monitoredSessionId]);
 
   const handleStartSession = async (config: TargetConfiguration, videoFile: File, srtFile?: File) => {
-    setIsProcessing(true);
-    setTracks([]);
-    setSelectedTrack(null);
-
+    if (isProcessing) return;
+    generation.current += 1;
+    setIsUploading(true); setError(''); setConnectionError(''); setMonitoredSessionId(null);
+    setTracks([]); setTelemetry([]); setSelectedTrack(null); setVideoUrl(null); setJumpTimestamp(null);
+    setShowReportModal(false); setFilterClassification('review');
     try {
-      // 1. Create Session
-      const newSession = await createSession(config);
-      setSession(newSession);
-
-      // 2. Upload Video
-      await uploadVideo(newSession.session_id, videoFile);
-      setVideoUrl(`/uploads/${newSession.session_id}/${videoFile.name}`);
-
-      // 3. Upload Telemetry if present
+      setUploadStage('Creating session');
+      const created = await createSession(config);
+      setSession(created);
+      setUploadStage('Uploading recording');
+      const uploaded = await uploadVideo(created.session_id, videoFile);
+      if (uploaded.video_url) setVideoUrl(uploaded.video_url);
       if (srtFile) {
-        await uploadTelemetry(newSession.session_id, srtFile);
+        setUploadStage('Reading drone telemetry');
+        await uploadTelemetry(created.session_id, srtFile);
+        setTelemetry(await getTelemetry(created.session_id));
       }
-
-      // 4. Start Agentic Analysis
-      await startAnalysis(newSession.session_id, config);
-    } catch (err: any) {
-      alert(`Error starting analysis: ${err.message}`);
-      setIsProcessing(false);
-    }
+      setUploadStage('Starting analysis');
+      await startAnalysis(created.session_id, config);
+      setSession(await getSessionStatus(created.session_id));
+      setMonitoredSessionId(created.session_id);
+    } catch (failure) {
+      setError(`Unable to start analysis. ${messageOf(failure)}`);
+    } finally { setIsUploading(false); setUploadStage(''); }
   };
 
   const handleFeedback = async (trackId: number, status: 'confirmed' | 'rejected' | 'needs_research', notes?: string) => {
     if (!session) return;
+    const requestGeneration = generation.current;
     try {
-      const updatedTrack = await submitHumanFeedback(session.session_id, trackId, status, notes);
-      setTracks((prev) => prev.map((t) => (t.track_id === trackId ? updatedTrack : t)));
-      if (selectedTrack?.track_id === trackId) {
-        setSelectedTrack(updatedTrack);
-      }
-    } catch (e: any) {
-      alert(`Error submitting feedback: ${e.message}`);
-    }
+      const updated = await submitHumanFeedback(session.session_id, trackId, status, notes);
+      if (requestGeneration !== generation.current) return;
+      setTracks(previous => previous.map(track => track.track_id === trackId ? updated : track));
+      setSelectedTrack(previous => previous?.track_id === trackId ? updated : previous);
+      setError('');
+    } catch (failure) { if (requestGeneration === generation.current) setError(`Review could not be saved. ${messageOf(failure)}`); }
+  };
+
+  const handleControl = async (action: 'pause' | 'resume' | 'cancel') => {
+    if (!session || controlPending) return;
+    setControlPending(true);
+    try {
+      const perform = { pause: pauseAnalysis, resume: resumeAnalysis, cancel: cancelAnalysis }[action];
+      await perform(session.session_id);
+      setSession(await getSessionStatus(session.session_id));
+      setError('');
+    } catch (failure) { setError(`Unable to ${action} analysis. ${messageOf(failure)}`); }
+    finally { setControlPending(false); }
   };
 
   const handleNewMission = () => {
-    setSession(null);
-    setTracks([]);
-    setSelectedTrack(null);
-    setVideoUrl(null);
-    setIsProcessing(false);
+    if (isProcessing) return;
+    generation.current += 1;
+    setMonitoredSessionId(null); setSession(null); setTracks([]); setTelemetry([]); setSelectedTrack(null);
+    setVideoUrl(null); setJumpTimestamp(null); setError(''); setConnectionError(''); setShowReportModal(false);
+    setFilterClassification('review');
   };
-
-  const filteredTracks = tracks.filter((t) => {
+  const jumpTo = (seconds: number) => setJumpTimestamp({ seconds, key: Date.now() });
+  const filteredTracks = tracks.filter(track => {
     if (filterClassification === 'all') return true;
-    return t.classification === filterClassification;
+    if (filterClassification === 'review') return isReviewCandidate(track);
+    if (filterClassification === 'confirmed' || filterClassification === 'rejected') return track.human_feedback === filterClassification;
+    return track.classification === filterClassification;
   });
+  const emptyDetail = isProcessing ? 'Candidates will appear when processing finishes.'
+    : session?.status === 'completed' ? tracks.length ? 'No tracks match this filter. Select All tracks to inspect other detections.' : 'No person tracks were returned. This does not establish that no person was present.'
+    : session?.status === 'error' ? 'Processing stopped. Review the error above and retry with a new analysis.'
+    : session?.status === 'cancelled' ? 'Analysis was cancelled. Start a new analysis to process the recording.'
+    : 'Upload a recording and choose the visible attributes to compare.';
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Header
-        status={session}
-        onNewMission={handleNewMission}
-        onOpenReport={() => setShowReportModal(true)}
-      />
-
-      <main className="layout-grid" style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto', width: '100%' }}>
-        {/* Left Column: Target Configuration & Telemetry Map */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          <TargetForm onStartSession={handleStartSession} isProcessing={isProcessing} />
-          <TelemetryMap tracks={tracks} onSelectTrack={(t) => { setSelectedTrack(t); setJumpTimestamp(t.best_timestamp_seconds); }} />
-        </div>
-
-        {/* Center Column: Video Player & Ranked Sightings List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          <VideoPlayer
-            videoUrl={videoUrl}
-            tracks={tracks}
-            status={session}
-            selectedTrack={selectedTrack}
-            onSelectTrack={(t) => setSelectedTrack(t)}
-            jumpTimestamp={jumpTimestamp}
-          />
-
-          {/* Ranked Sightings Panel */}
-          <div className="card-module" style={{ flex: 1, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div className="screws" />
-            
-            <div style={{ padding: '24px', borderBottom: '1px solid var(--shadow-dark)', background: 'rgba(255,255,255,0.2)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <Layers size={20} color="var(--accent-orange)" />
-                  <span style={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.03em' }}>RANKED SIGHTINGS</span>
-                  <span className="status-label" style={{ background: 'var(--bg-recessed)', padding: '4px 8px', borderRadius: '4px' }}>
-                    {filteredTracks.length} MODULES
-                  </span>
-                </div>
-
-                {/* Classification Filter */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <ListFilter size={16} color="var(--text-muted)" />
-                  <select
-                    className="input-slot"
-                    value={filterClassification}
-                    onChange={(e) => setFilterClassification(e.target.value)}
-                    style={{ padding: '6px 12px', width: 'auto', background: 'var(--bg-recessed)' }}
-                  >
-                    <option value="all">ALL CANDIDATES</option>
-                    <option value="strong_match">STRONG MATCHES</option>
-                    <option value="possible_match">POSSIBLE MATCHES</option>
-                    <option value="unlikely_match">UNLIKELY MATCHES</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-              gap: '24px',
-              padding: '24px',
-              overflowY: 'auto',
-              maxHeight: '480px',
-              background: 'var(--bg-chassis)'
-            }}>
-              {filteredTracks.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '64px', color: 'var(--text-muted)' }}>
-                  <p style={{ fontWeight: 700, fontSize: '1.25rem' }}>NO CANDIDATE SIGHTINGS</p>
-                  <p className="status-label" style={{ marginTop: '8px' }}>AWAITING DATA STREAM...</p>
-                </div>
-              ) : (
-                filteredTracks.map((t) => (
-                  <TrackCard
-                    key={t.track_id}
-                    track={t}
-                    isSelected={selectedTrack?.track_id === t.track_id}
-                    onSelect={() => setSelectedTrack(t)}
-                    onJumpToTime={(sec) => setJumpTimestamp(sec)}
-                    onFeedback={handleFeedback}
-                  />
-                ))
-              )}
-            </div>
+  return <div className="app-shell">
+    <Header status={session} onNewMission={handleNewMission} onOpenReport={() => setShowReportModal(true)} isProcessing={isProcessing} isUploading={isUploading} controlPending={controlPending} onControl={handleControl} />
+    {(error || connectionError || session?.error_message) && <div className="app-notice error-message" role="alert">{error || connectionError || session?.error_message}</div>}
+    {isUploading && <div className="app-notice" role="status">{uploadStage}…</div>}
+    <main className="layout-grid">
+      <div className="layout-column">
+        <TargetForm onStartSession={handleStartSession} isProcessing={isProcessing} />
+        <TelemetryMap points={telemetry} tracks={filteredTracks} onSelectTrack={track => { setSelectedTrack(track); jumpTo(track.best_timestamp_seconds); }} />
+      </div>
+      <div className="layout-column">
+        <VideoPlayer videoUrl={videoUrl} tracks={filteredTracks} status={session} selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack} jumpTimestamp={jumpTimestamp?.seconds} jumpKey={jumpTimestamp?.key} />
+        <section className="card-module sightings-panel">
+          <div className="row-between sightings-heading"><div><h2>Candidate review</h2><p className="muted">{filteredTracks.length} shown · {tracks.length} total tracks</p></div>
+            <label className="filter-label">Show<select className="input-slot" value={filterClassification} onChange={event => setFilterClassification(event.target.value)}>
+              <option value="review">Review queue</option><option value="all">All tracks</option>
+              {Object.entries(candidateLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+              <option value="confirmed">Confirmed by reviewer</option><option value="rejected">Rejected by reviewer</option>
+            </select></label>
           </div>
-        </div>
-
-        {/* Right Column: Agent Activity Feed */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <AgentActivityFeed
-            logs={session?.agent_logs || []}
-            currentStage={session?.current_stage || 'idle'}
-          />
-        </div>
-      </main>
-
-      {/* Deep Evidence Inspection Modal */}
-      <TrackDetailModal
-        track={selectedTrack}
-        onClose={() => setSelectedTrack(null)}
-        onFeedback={handleFeedback}
-      />
-
-      {/* Post-Flight SAR Report Modal */}
-      {showReportModal && (
-        <SARReportModal
-          status={session}
-          tracks={tracks}
-          onClose={() => setShowReportModal(false)}
-        />
-      )}
-    </div>
-  );
+          <div className="sightings-grid">{filteredTracks.length ? filteredTracks.map(track => <TrackCard key={track.track_id} track={track} isSelected={selectedTrack?.track_id === track.track_id} onSelect={() => setSelectedTrack(track)} onJumpToTime={jumpTo} onFeedback={handleFeedback} />)
+            : <div className="empty-state"><strong>{isProcessing ? 'Processing recording' : 'No candidate sightings'}</strong><p>{emptyDetail}</p></div>}</div>
+        </section>
+      </div>
+      <div className="layout-column activity-column"><AgentActivityFeed logs={session?.agent_logs || []} currentStage={uploadStage || session?.current_stage || 'idle'} /></div>
+    </main>
+    <TrackDetailModal track={selectedTrack} onClose={() => setSelectedTrack(null)} onFeedback={handleFeedback} />
+    {showReportModal && <SARReportModal status={session} tracks={tracks} onClose={() => setShowReportModal(false)} />}
+  </div>;
 };

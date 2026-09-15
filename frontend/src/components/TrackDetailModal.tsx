@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { TrackResult } from '../types';
 import { X, CheckCircle2, XCircle, AlertTriangle, MapPin } from 'lucide-react';
+import { attributeLabel, candidateLabels, formatTime, reviewLabel } from '../review';
 
 interface TrackDetailModalProps {
   track: TrackResult | null;
@@ -9,155 +10,70 @@ interface TrackDetailModalProps {
 }
 
 export const TrackDetailModal: React.FC<TrackDetailModalProps> = ({ track, onClose, onFeedback }) => {
-  const [notes, setNotes] = useState(track?.human_notes || '');
-
+  const [notes, setNotes] = useState('');
+  useEffect(() => { setNotes(track?.human_notes || ''); }, [track?.session_id, track?.track_id, track?.human_notes]);
+  useEffect(() => {
+    if (!track) return;
+    const handleKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [track, onClose]);
   if (!track) return null;
+  const crops = track.cropped_samples.length ? track.cropped_samples : track.best_frame_path ? [track.best_frame_path] : [];
 
-  const getLedColor = (classification: string) => {
-    switch (classification) {
-      case 'strong_match': return 'green';
-      case 'possible_match': return 'yellow';
-      case 'unlikely_match': return 'red';
-      default: return 'yellow';
-    }
-  };
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="screws" />
-        
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '32px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
-              <h2 style={{ fontSize: '1.5rem', margin: 0 }}>MODULE DEEP INSPECTION</h2>
-              <div className="status-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-panel)', padding: '6px 12px', borderRadius: 'var(--radius-sm)', boxShadow: 'var(--shadow-sharp)' }}>
-                <span className={`led ${getLedColor(track.classification)}`} />
-                {track.classification.replace('_', ' ')}
-              </div>
-            </div>
-            <p className="status-label" style={{ color: 'var(--text-muted)' }}>
-              TRACK #{track.track_id} | {track.first_seen_seconds.toFixed(1)}S TO {track.last_seen_seconds.toFixed(1)}S
-            </p>
-          </div>
-          
-          <button onClick={onClose} className="btn-industrial" style={{ padding: '12px', borderRadius: 'var(--radius-full)' }}>
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Content Body */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
-            {/* Multi-frame Crops */}
-            <div className="card-module" style={{ padding: '16px' }}>
-              <h4 className="status-label" style={{ marginBottom: '16px' }}>TEMPORAL CROPS ({track.cropped_samples.length})</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                {track.cropped_samples.map((cropPath, idx) => (
-                  <div key={idx} className="screen-panel" style={{
-                    aspectRatio: '2/3',
-                    border: cropPath === track.best_frame_path ? '2px solid var(--accent-orange)' : 'none',
-                    boxShadow: cropPath === track.best_frame_path ? 'var(--shadow-glow)' : 'var(--shadow-recessed)'
-                  }}>
-                    <img src={cropPath} alt={`Crop ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Score Metrics */}
-            <div className="card-module" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <h4 className="status-label">CONFIDENCE BREAKDOWN</h4>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div className="input-slot" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', textAlign: 'center' }}>
-                  <span className="status-label">FINAL SCORE</span>
-                  <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>{(track.final_ranking_score * 100).toFixed(0)}%</span>
-                </div>
-                <div className="input-slot" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', textAlign: 'center' }}>
-                  <span className="status-label">APPEARANCE</span>
-                  <span style={{ fontSize: '24px', fontWeight: 800, color: '#22c55e' }}>{(track.appearance_similarity * 100).toFixed(0)}%</span>
-                </div>
-                <div className="input-slot" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', textAlign: 'center' }}>
-                  <span className="status-label">DETECTOR CONF</span>
-                  <span style={{ fontSize: '18px', fontWeight: 700 }}>{(track.person_detection_confidence * 100).toFixed(0)}%</span>
-                </div>
-                <div className="input-slot" style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center', textAlign: 'center' }}>
-                  <span className="status-label">EVIDENCE QUALITY</span>
-                  <span style={{ fontSize: '18px', fontWeight: 700 }}>{(track.evidence_quality * 100).toFixed(0)}%</span>
-                </div>
-              </div>
-
-              {track.gps_location && (
-                <div className="input-slot" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <MapPin size={16} color="var(--accent-orange)" />
-                  <span style={{ fontSize: '13px', fontWeight: 600 }}>{track.gps_location.latitude.toFixed(5)}, {track.gps_location.longitude.toFixed(5)} ({track.gps_location.altitude_m.toFixed(0)}M)</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Attribute Table */}
-          <div className="card-module" style={{ padding: '24px' }}>
-            <h4 className="status-label" style={{ marginBottom: '16px' }}>ATTRIBUTE MATRIX</h4>
-            <div className="input-slot" style={{ padding: '0', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left', fontFamily: 'var(--font-mono)' }}>
-                <thead>
-                  <tr style={{ borderBottom: '2px solid rgba(0,0,0,0.1)' }}>
-                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>ATTRIBUTE</th>
-                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>EXPECTED</th>
-                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>OBSERVED</th>
-                    <th style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>MATCH</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(track.attributes).map(([attrKey, detail], idx) => (
-                    <tr key={attrKey} style={{ borderBottom: idx !== Object.entries(track.attributes).length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 700 }}>{attrKey.replace('_', ' ').toUpperCase()}</td>
-                      <td style={{ padding: '12px 16px' }}>{detail.expected.toUpperCase()}</td>
-                      <td style={{ padding: '12px 16px' }}>{detail.observed.toUpperCase()}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: detail.score ? '#22c55e' : 'var(--text-muted)' }}>
-                        {detail.score !== null && detail.score !== undefined ? `${(detail.score * 100).toFixed(0)}%` : 'N/A'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Operator Decision */}
-          <div className="card-module" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h4 className="status-label">SAR OPERATOR VERIFICATION</h4>
-            
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <button className="btn-industrial" onClick={() => onFeedback(track.track_id, 'confirmed', notes)} style={{ flex: 1 }}>
-                <CheckCircle2 size={18} color="#22c55e" /> CONFIRM SIGHTING
-              </button>
-
-              <button className="btn-industrial" onClick={() => onFeedback(track.track_id, 'rejected', notes)} style={{ flex: 1 }}>
-                <XCircle size={18} color="var(--accent-orange)" /> REJECT SIGHTING
-              </button>
-
-              <button className="btn-industrial" onClick={() => onFeedback(track.track_id, 'needs_research', notes)} style={{ flex: 1 }}>
-                <AlertTriangle size={18} color="#eab308" /> FLAG RE-SEARCH
-              </button>
-            </div>
-
-            <textarea
-              className="input-slot"
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="APPEND MISSION NOTES..."
-              style={{ resize: 'none', marginTop: '8px' }}
-            />
-          </div>
-
-        </div>
+  return <div className="modal-overlay">
+    <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="evidence-title">
+      <div className="row-between modal-heading">
+        <div><h2 id="evidence-title">Review evidence</h2><p className="muted">Track #{track.track_id} · {formatTime(track.first_seen_seconds)}–{formatTime(track.last_seen_seconds)}</p></div>
+        <button onClick={onClose} className="btn-industrial" aria-label="Close evidence review"><X size={20} /></button>
       </div>
+      <div className="evidence-layout">
+        <section>
+          <h3 className="status-label section-label">Original crops ({crops.length})</h3>
+          <div className="crop-grid">{crops.map((path, index) => <a key={`${path}-${index}`} href={path} target="_blank" rel="noreferrer" className={`evidence-crop ${path === track.best_frame_path ? 'best' : ''}`} title="Open original image">
+            <img src={path} alt={`Track ${track.track_id}, sample ${index + 1}`} />
+            {path === track.best_frame_path && <span>Selected view</span>}
+          </a>)}</div>
+          {!crops.length && <p className="muted">No evidence images available.</p>}
+        </section>
+        <section className="evidence-summary">
+          <span className={`candidate-badge ${track.classification}`}>{candidateLabels[track.classification]}</span>
+          <strong>{reviewLabel(track)}</strong><p>{track.explanation}</p>
+          <p className="muted">Automated visual comparison. Review the original footage before confirming a sighting.</p>
+          {track.gps_location ? <div className="telemetry-reading">
+            <strong className="icon-line"><MapPin size={16} />Drone position at capture</strong>
+            <span>{track.gps_location.latitude.toFixed(5)}, {track.gps_location.longitude.toFixed(5)}</span>
+            <span>SRT time: {track.gps_location.timestamp_seconds.toFixed(3)} s</span>
+            {track.gps_location.relative_altitude_m != null && <span>Relative altitude: {track.gps_location.relative_altitude_m.toFixed(1)} m</span>}
+            {track.gps_location.altitude_m != null && <span>Recorded altitude: {track.gps_location.altitude_m.toFixed(1)} m</span>}
+            <small className="muted">The person's ground location has not been calculated.</small>
+          </div> : <p className="muted">No aligned SRT position for this capture.</p>}
+        </section>
+      </div>
+      <section className="review-section">
+        <h3 className="status-label section-label">Visible attributes</h3>
+        <div className="table-scroll"><table className="attribute-table">
+          <thead><tr><th>Attribute</th><th>Description</th><th>Observed</th><th>Assessment</th></tr></thead>
+          <tbody>{Object.entries(track.attributes).map(([key, detail]) => <tr key={key}>
+            <th scope="row">{key.replace(/_/g, ' ')}</th><td>{detail.expected || 'Not specified'}</td><td>{detail.observed}<small className="muted">{detail.visibility.replace(/_/g, ' ')}</small></td>
+            <td className={`assessment-${detail.assessment || 'unknown'}`}>{attributeLabel(detail)}
+              {detail.evidence_paths?.map((path, i) => <small key={path}><a href={path} target="_blank" rel="noreferrer">View at {(detail.evidence_timestamps?.[i] ?? 0).toFixed(2)} s</a></small>)}
+            </td>
+          </tr>)}</tbody>
+        </table></div>
+      </section>
+      {track.conflicting_evidence.length > 0 && <section className="review-section"><h3 className="status-label section-label">Conflicting evidence</h3><ul className="evidence-list">{track.conflicting_evidence.map((item, i) => <li key={i}>{item}</li>)}</ul></section>}
+      {track.unknown_attributes.length > 0 && <p className="muted review-section">Not established: {track.unknown_attributes.map(a => a.replace(/_/g, ' ')).join(', ')}.</p>}
+      <section className="review-section">
+        <h3 className="status-label section-label">Reviewer decision</h3>
+        <label className="field-label" htmlFor="review-notes">Review notes</label>
+        <textarea id="review-notes" className="input-slot" rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder="What did you verify in the original footage?" />
+        <div className="review-actions">
+          <button className="btn-industrial" aria-pressed={track.human_feedback === 'confirmed'} onClick={() => onFeedback(track.track_id, 'confirmed', notes)}><CheckCircle2 size={18} />Confirm sighting</button>
+          <button className="btn-industrial" aria-pressed={track.human_feedback === 'rejected'} onClick={() => onFeedback(track.track_id, 'rejected', notes)}><XCircle size={18} />Reject sighting</button>
+          <button className="btn-industrial" aria-pressed={track.human_feedback === 'needs_research'} onClick={() => onFeedback(track.track_id, 'needs_research', notes)}><AlertTriangle size={18} />Needs review</button>
+        </div>
+      </section>
     </div>
-  );
+  </div>;
 };

@@ -1,79 +1,26 @@
 import React from 'react';
-import { Eye, FileText, RefreshCw, Power } from 'lucide-react';
+import { Eye, FileText, Plus, Pause, Play, Square } from 'lucide-react';
 import { SessionStatus } from '../types';
 
 interface HeaderProps {
   status: SessionStatus | null;
   onNewMission: () => void;
   onOpenReport: () => void;
+  isProcessing: boolean;
+  isUploading: boolean;
+  controlPending: boolean;
+  onControl: (action: 'pause' | 'resume' | 'cancel') => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ status, onNewMission, onOpenReport }) => {
-  return (
-    <header className="card-module" style={{ 
-      margin: '24px 24px 0 24px', 
-      padding: '20px 32px',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      borderBottomLeftRadius: 0,
-      borderBottomRightRadius: 0
-    }}>
-      <div className="screws" />
-      
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-        <div style={{
-          width: '48px',
-          height: '48px',
-          borderRadius: 'var(--radius-full)',
-          background: 'var(--bg-chassis)',
-          boxShadow: 'var(--shadow-floating)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'var(--accent-orange)'
-        }}>
-          <Eye size={24} />
-        </div>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', margin: 0, display: 'flex', gap: '12px', alignItems: 'center' }}>
-            AI(EYE) IN THE SKY
-            <div className="status-label" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-recessed)', padding: '6px 12px', borderRadius: 'var(--radius-full)' }}>
-              <span className="led green animate-pulse-led" />
-              SYSTEM ONLINE
-            </div>
-          </h1>
-          <p className="status-label" style={{ marginTop: '4px', color: 'var(--text-muted)' }}>
-            POST-FLIGHT SAR INTELLIGENCE TERMINAL V1.0
-          </p>
-        </div>
-      </div>
-      
-      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-        {status && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-            <span className="status-label">MISSION STATUS</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
-              <span className={`led ${status.status === 'completed' ? 'green' : 'yellow animate-pulse-led'}`} />
-              <span style={{ textTransform: 'uppercase' }}>
-                {status.status.replace('_', ' ')} ({status.progress_percent.toFixed(0)}%)
-              </span>
-            </div>
-          </div>
-        )}
-        
-        <div style={{ display: 'flex', gap: '16px', borderLeft: '2px solid var(--shadow-dark)', paddingLeft: '24px', marginLeft: '8px' }}>
-          {status?.status === 'completed' && (
-            <button className="btn-industrial btn-primary" onClick={onOpenReport}>
-              <FileText size={18} /> SAR REPORT
-            </button>
-          )}
-
-          <button className="btn-industrial" onClick={onNewMission}>
-            <Power size={18} color="var(--accent-orange)" /> RESET
-          </button>
-        </div>
-      </div>
-    </header>
-  );
-};
+export const Header: React.FC<HeaderProps> = ({ status, onNewMission, onOpenReport, isProcessing, isUploading, controlPending, onControl }) => <header className="app-header">
+  <div className="icon-line"><Eye size={30} color="var(--accent-orange)" /><div><h1>AI in the Sky</h1><p className="muted">Flight footage · Evidence review</p></div></div>
+  <div className="header-actions">
+    {status && <div className="session-progress" role="status"><strong>{isUploading ? 'Uploading' : status.status}</strong><span>{isUploading ? 'Preparing recording' : `${status.progress_percent.toFixed(0)}% processed`}</span></div>}
+    {status && !isUploading && ['queued', 'analyzing', 'paused'].includes(status.status) && <>
+      <button className="btn-industrial" disabled={controlPending || status.status === 'queued'} onClick={() => onControl(status.status === 'paused' ? 'resume' : 'pause')}>{status.status === 'paused' ? <Play size={16} /> : <Pause size={16} />}{status.status === 'paused' ? 'Resume' : 'Pause'}</button>
+      <button className="btn-industrial" disabled={controlPending} onClick={() => onControl('cancel')}><Square size={16} />Cancel</button>
+    </>}
+    {status?.status === 'completed' && <button className="btn-industrial" onClick={onOpenReport}><FileText size={17} />Report</button>}
+    <button className="btn-industrial" disabled={isProcessing} onClick={onNewMission}><Plus size={17} />New analysis</button>
+  </div>
+</header>;

@@ -1,8 +1,31 @@
+"""Evidence reports: observed coverage, human decisions, and explicit limits."""
+
+import base64
+import math
 import os
-import json
-from datetime import datetime
-from typing import List, Dict, Any, Tuple
+import re
+import tempfile
+from datetime import datetime, timezone
+from html import escape
+from pathlib import Path
+from typing import List, Optional, Tuple
+from uuid import uuid4
+
 from app.models.schemas import SARReport, TrackResult, TargetConfiguration, SearchPlan, VideoMetadata
+
+
+def _text(value) -> str:
+    return escape(str(value), quote=True)
+
+
+def _time(seconds: float) -> str:
+    minutes, remainder = divmod(max(0.0, seconds), 60)
+    return f"{int(minutes):02d}:{remainder:06.3f}"
+
+
+def _sample_times(values: Optional[List[float]], duration: float) -> List[float]:
+    return sorted({float(value) for value in (values or []) if math.isfinite(value) and 0 <= value <= duration})
+
 
 class ReportGenerator:
     @staticmethod
@@ -14,157 +37,190 @@ class ReportGenerator:
         total_sampled_frames: int,
         tracks: List[TrackResult],
         has_telemetry: bool,
-        reports_dir: str
+        reports_dir: str,
+        *,
+        sampled_timestamps: Optional[List[float]] = None,
+        total_people_detected: Optional[int] = None,
+        run_id: Optional[str] = None,
+        failed_timestamps: Optional[List[float]] = None,
     ) -> Tuple[SARReport, str]:
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", session_id):
+            raise ValueError("Invalid session identifier for report generation.")
+        if total_sampled_frames < 0:
+            raise ValueError("Analyzed frame count cannot be negative.")
         os.makedirs(reports_dir, exist_ok=True)
-        generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        ranked_tracks = sorted(tracks, key=lambda track: track.final_ranking_score, reverse=True)
+        times = _sample_times(sampled_timestamps, video_info.duration_seconds)
+        failed_times = _sample_times(failed_timestamps, video_info.duration_seconds)
+        limitations = [
+            "Automated detections and attribute comparisons are candidates for human review; internal ranking values are not identity probabilities.",
+            "Sampling does not inspect every video frame. A missing detection does not establish that a person was absent.",
+            "SRT positions describe the aircraft at capture time, not the ground location of a person. No target geolocation is calculated.",
+            "An obscured or unreadable attribute is unknown, not a confirmed match or conflict.",
+        ]
+        if not has_telemetry:
+            limitations.append("No usable aircraft telemetry is attached to this analysis.")
+        if sampled_timestamps is None:
+            coverage = f"{total_sampled_frames} frames recorded as analyzed. Per-frame sampling history is unavailable for this historical run."
+        elif times:
+            coverage = f"{total_sampled_frames} frames analyzed; recorded sample times span {_time(times[0])} to {_time(times[-1])}. This span is not continuous coverage."
+        else:
+            coverage = f"{total_sampled_frames} frames recorded as analyzed; no valid sample timestamps are recorded."
+        if failed_times:
+            limitations.append(f"{len(failed_times)} requested sample frames could not be decoded. These failures do not establish visibility in neighboring frames.")
+        if total_people_detected is None:
+            total_people_detected = sum(track.observations_analyzed for track in tracks)
+            limitations.append("Historical detection count includes retained track observations only; full detector totals are unavailable.")
 
-        # Sort tracks by final ranking score descending
-        ranked_tracks = sorted(tracks, key=lambda t: t.final_ranking_score, reverse=True)
-        people_detected = sum(t.observations_analyzed for t in tracks)
-
-        # Generate Actionable Recommendations
+        review_pending = [track for track in ranked_tracks if track.requires_human_review and track.human_feedback != "rejected"]
         recommendations = []
-        strong_matches = [t for t in ranked_tracks if t.classification == "strong_match"]
-        possible_matches = [t for t in ranked_tracks if t.classification == "possible_match"]
-        unclear_tracks = [t for t in ranked_tracks if t.classification == "insufficient_visibility"]
+        if review_pending:
+            recommendations.append(f"Review original footage and supporting crops for {len(review_pending)} candidate tracks before drawing an operational conclusion.")
+        if any(track.human_feedback == "confirmed" for track in ranked_tracks):
+            recommendations.append("Operator-confirmed candidates are recorded separately from automated assessments; consult the review notes and source footage.")
+        if not tracks:
+            recommendations.append("No candidate tracks were retained. This does not establish that no person was present in the recording.")
+        if not recommendations:
+            recommendations.append("Review recorded operator decisions and unresolved attributes alongside the original footage.")
 
-        if strong_matches:
-            top = strong_matches[0]
-            gps_str = f" at GPS ({top.gps_location.latitude}, {top.gps_location.longitude})" if top.gps_location else ""
-            recommendations.append(f"CRITICAL: Dispatch SAR ground team immediately to verify Track {top.track_id}{gps_str} seen at timestamp {int(top.best_timestamp_seconds//60):02d}:{int(top.best_timestamp_seconds%60):02d}.")
-        elif possible_matches:
-            top = possible_matches[0]
-            gps_str = f" (GPS: {top.gps_location.latitude}, {top.gps_location.longitude})" if top.gps_location else ""
-            recommendations.append(f"PRIORITY REVIEW: Human operator confirm sighting at timestamp {int(top.best_timestamp_seconds//60):02d}:{int(top.best_timestamp_seconds%60):02d}{gps_str}. Upper clothing and backpack match target profile.")
-
-        if unclear_tracks:
-            recommendations.append(f"FLIGHT RECOMMENDATION: Re-fly region near timestamp {int(unclear_tracks[0].best_timestamp_seconds//60):02d}:{int(unclear_tracks[0].best_timestamp_seconds%60):02d} at lower altitude (30m) with 45-degree oblique camera angle to resolve heavy canopy/shadow occlusion.")
-
-        if not strong_matches and not possible_matches:
-            recommendations.append("SEARCH EXPANSION: No conclusive appearance match found in this recording. Recommend broadening target description parameters (e.g. allow alternative clothing color shades) or expanding flight search grid.")
-
-        # Identify unsearched / low-visibility intervals
-        unsearched_intervals = []
-        if video_info.duration_seconds > 0:
-            last_end = 0.0
-            for t in sorted(tracks, key=lambda x: x.first_seen_seconds):
-                if t.first_seen_seconds - last_end > 60.0:  # gap > 1 min
-                    unsearched_intervals.append({"start_seconds": last_end, "end_seconds": t.first_seen_seconds})
-                last_end = max(last_end, t.last_seen_seconds)
-            if video_info.duration_seconds - last_end > 60.0:
-                unsearched_intervals.append({"start_seconds": last_end, "end_seconds": video_info.duration_seconds})
-
-        sar_report = SARReport(
+        revision = uuid4().hex
+        report = SARReport(
             session_id=session_id,
-            mission_name=f"SAR Mission {session_id[:8]}",
-            generated_at=generated_at,
+            mission_name=f"Footage review {session_id}",
+            generated_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
             target_description=target_config,
             search_plan=search_plan,
             video_info=video_info,
             total_frames_sampled=total_sampled_frames,
-            total_people_detected=people_detected,
+            total_people_detected=total_people_detected,
             unique_tracks_count=len(tracks),
             ranked_sightings=ranked_tracks,
             has_telemetry=has_telemetry,
-            unsearched_intervals=unsearched_intervals,
-            actionable_recommendations=recommendations
+            # Object detection gaps cannot establish unsearched intervals.
+            unsearched_intervals=[],
+            actionable_recommendations=recommendations,
+            analysis_run_id=run_id,
+            analyzed_timestamps_seconds=times,
+            failed_sample_timestamps_seconds=failed_times,
+            coverage_summary=coverage,
+            limitations=limitations,
+            report_revision=revision,
         )
-
-        # Write HTML Report
-        html_filename = f"report_{session_id}.html"
-        html_path = os.path.join(reports_dir, html_filename)
-        html_content = ReportGenerator.render_html_report(sar_report)
-
-        with open(html_path, "w", encoding="utf-8") as f:
-            f.write(html_content)
-
-        return sar_report, f"/reports/{html_filename}"
+        html_path = os.path.join(reports_dir, f"report_{session_id}.html")
+        html_content = ReportGenerator.render_html_report(report, evidence_root=Path(reports_dir).parent / "crops")
+        temporary_path = None
+        try:
+            with tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=reports_dir, suffix=".tmp", delete=False) as output:
+                temporary_path = output.name
+                output.write(html_content)
+            os.replace(temporary_path, html_path)
+        finally:
+            if temporary_path and os.path.exists(temporary_path):
+                os.unlink(temporary_path)
+        return report, f"/api/sessions/{session_id}/report?revision={revision}"
 
     @staticmethod
-    def render_html_report(report: SARReport) -> str:
-        tracks_html = ""
-        for t in report.ranked_sightings:
-            badge_color = "#10B981" if t.classification == "strong_match" else ("#F59E0B" if t.classification == "possible_match" else "#EF4444")
-            gps_info = f"<b>GPS:</b> {t.gps_location.latitude}, {t.gps_location.longitude} (Alt: {t.gps_location.altitude_m}m)" if t.gps_location else "<b>GPS:</b> N/A"
-            
-            matching_items = "".join([f"<li>✅ {item}</li>" for item in t.matching_evidence])
-            conflicting_items = "".join([f"<li>⚠️ {item}</li>" for item in t.conflicting_evidence])
-            unknown_items = "".join([f"<li>❓ {item}</li>" for item in t.unknown_attributes])
+    def _thumbnail(track: TrackResult, evidence_root: Optional[Path]) -> str:
+        """Embed only local raster crops belonging to this session, with a size cap."""
+        if evidence_root is None or not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", track.session_id):
+            return ""
+        prefix = f"/crops/{track.session_id}/"
+        if not track.best_frame_path.startswith(prefix):
+            return ""
+        relative = track.best_frame_path[len(prefix):]
+        if not relative or any(part in relative for part in ("\\", "?", "#", "%", "\x00")):
+            return ""
+        session_root = (Path(evidence_root) / track.session_id).resolve()
+        candidate = (session_root / relative).resolve()
+        if not candidate.is_relative_to(session_root) or not candidate.is_file():
+            return ""
+        try:
+            if candidate.stat().st_size > 2_000_000:
+                return ""
+            payload = candidate.read_bytes()
+        except OSError:
+            return ""
+        if payload.startswith(b"\xff\xd8\xff"):
+            mime = "image/jpeg"
+        elif payload.startswith(b"\x89PNG\r\n\x1a\n"):
+            mime = "image/png"
+        elif payload.startswith(b"RIFF") and payload[8:12] == b"WEBP":
+            mime = "image/webp"
+        else:
+            return ""
+        return f'<img class="crop" src="data:{mime};base64,{base64.b64encode(payload).decode("ascii")}" alt="Evidence crop for track {_text(track.track_id)}">'
 
-            tracks_html += f"""
-            <div class="card">
-                <div class="card-header">
-                    <span class="badge" style="background:{badge_color};">{t.classification.replace('_', ' ').title()}</span>
-                    <h3>Track #{t.track_id} - Best Timestamp: {int(t.best_timestamp_seconds//60):02d}:{int(t.best_timestamp_seconds%60):02d} ({t.best_timestamp_seconds}s)</h3>
-                </div>
-                <div class="card-body">
-                    <div class="grid-2">
-                        <div>
-                            <p><b>Final Ranking Score:</b> {int(t.final_ranking_score * 100)}%</p>
-                            <p><b>Detection Conf:</b> {int(t.person_detection_confidence * 100)}% | <b>Appearance Similarity:</b> {int(t.appearance_similarity * 100)}%</p>
-                            <p>{gps_info}</p>
-                            <p><b>Observations Analyzed:</b> {t.observations_analyzed} frames ({t.first_seen_seconds}s to {t.last_seen_seconds}s)</p>
-                            <p><b>Explanation:</b> {t.explanation}</p>
-                        </div>
-                        <div>
-                            <h4>Evidence Summary</h4>
-                            <ul>{matching_items} {conflicting_items} {unknown_items}</ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            """
-
-        recs_html = "".join([f"<li>{r}</li>" for r in report.actionable_recommendations])
-
-        return f"""<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="utf-8">
-    <title>AI(EYE) in the sky SAR Post-Flight Search Report - {report.session_id}</title>
-    <style>
-        body {{ font-family: 'Segoe UI', system-ui, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 2rem; }}
-        .container {{ max-width: 1000px; margin: 0 auto; background: #1e293b; border-radius: 12px; padding: 2rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }}
-        h1, h2, h3 {{ color: #38bdf8; margin-top: 0; }}
-        .header {{ border-bottom: 2px solid #334155; padding-bottom: 1rem; margin-bottom: 1.5rem; }}
-        .badge {{ display: inline-block; padding: 4px 10px; border-radius: 6px; color: white; font-weight: bold; font-size: 0.85rem; }}
-        .card {{ background: #0f172a; border: 1px solid #334155; border-radius: 8px; margin-bottom: 1.5rem; padding: 1rem; }}
-        .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }}
-        .recs-box {{ background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; padding: 1rem; border-radius: 4px; margin-bottom: 1.5rem; }}
-        ul {{ padding-left: 1.2rem; }}
-        li {{ margin-bottom: 0.4rem; }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🛸 AI(EYE) in the sky - Post-Flight SAR Search Report</h1>
-            <p><b>Mission ID:</b> {report.session_id} | <b>Generated:</b> {report.generated_at}</p>
-        </div>
-
-        <div class="recs-box">
-            <h2>🚨 Actionable SAR Recommendations</h2>
-            <ul>{recs_html}</ul>
-        </div>
-
-        <h2>🎯 Missing Person Search Profile</h2>
-        <div class="card">
-            <p><b>Target Summary:</b> {report.search_plan.target_summary}</p>
-            <p><b>High-Value Attributes:</b> {", ".join(report.search_plan.high_value_attributes)}</p>
-            <p><b>Supporting Attributes:</b> {", ".join(report.search_plan.supporting_attributes)}</p>
-        </div>
-
-        <h2>📹 Video Flight Telemetry</h2>
-        <div class="card">
-            <p><b>File:</b> {report.video_info.filename} ({report.video_info.file_size_mb} MB)</p>
-            <p><b>Duration:</b> {report.video_info.duration_seconds}s | <b>Resolution:</b> {report.video_info.width}x{report.video_info.height} @ {report.video_info.fps} FPS</p>
-            <p><b>Total Sampled Frames:</b> {report.total_frames_sampled} | <b>Unique Person Tracks:</b> {report.unique_tracks_count}</p>
-        </div>
-
-        <h2>🔍 Ranked Candidate Sightings</h2>
-        {tracks_html}
-    </div>
-</body>
-</html>
-"""
+    @staticmethod
+    def render_html_report(report: SARReport, evidence_root: Optional[Path] = None) -> str:
+        cards = []
+        for track in report.ranked_sightings:
+            classification = {
+                "strong_match": "Candidate for review",
+                "possible_match": "Possible candidate",
+                "unlikely_match": "Low relevance",
+                "insufficient_visibility": "Insufficient evidence",
+            }.get(track.classification, "Candidate for review")
+            review = {"confirmed": "Confirmed by operator", "rejected": "Rejected by operator", "needs_research": "More review requested"}.get(track.human_feedback, "Awaiting human review")
+            gps = track.gps_location
+            if gps:
+                gps_info = f"{gps.latitude:.6f}, {gps.longitude:.6f}; SRT time {_time(gps.timestamp_seconds)}"
+                if gps.altitude_m is not None:
+                    gps_info += f"; absolute altitude {gps.altitude_m:g} m"
+                if gps.relative_altitude_m is not None:
+                    gps_info += f"; relative altitude {gps.relative_altitude_m:g} m"
+                if gps.telemetry_match_offset_seconds is not None:
+                    gps_info += f"; telemetry alignment gap {gps.telemetry_match_offset_seconds:g} s"
+            else:
+                gps_info = "No sufficiently close SRT position available"
+            rows = "".join(
+                f"<tr><th>{_text(name.replace('_', ' ').title())}</th><td>{_text(attribute.expected)}</td><td>{_text(attribute.observed)}</td><td>{_text(attribute.visibility.replace('_', ' '))}</td></tr>"
+                for name, attribute in track.attributes.items()
+            )
+            sections = "".join(
+                f"<h4>{label}</h4><ul>" + "".join(f"<li>{_text(item)}</li>" for item in items) + "</ul>"
+                for label, items in (("Supporting evidence", track.matching_evidence), ("Conflicting evidence", track.conflicting_evidence), ("Unknown attributes", track.unknown_attributes)) if items
+            )
+            notes = f"<p><b>Operator notes:</b> {_text(track.human_notes)}</p>" if track.human_notes else ""
+            cards.append(f"""<article class="card">
+                <div class="badge">{_text(classification)}</div><h3>Track #{_text(track.track_id)} · {_time(track.best_timestamp_seconds)}</h3>
+                <p class="review">{_text(review)}</p>
+                <div class="evidence">{ReportGenerator._thumbnail(track, evidence_root)}<div>
+                <p><b>Aircraft capture position:</b> {_text(gps_info)}</p>
+                <p><b>Reviewed observations:</b> {track.observations_analyzed}; {_time(track.first_seen_seconds)}–{_time(track.last_seen_seconds)}</p>
+                <p>{_text(track.explanation)}</p>{notes}</div></div>
+                <div class="table-wrap"><table><thead><tr><th>Attribute</th><th>Requested</th><th>Observed</th><th>Visibility</th></tr></thead><tbody>{rows}</tbody></table></div>
+                {sections}</article>""")
+        tracks_html = "".join(cards) or '<div class="card">No candidate tracks retained. Check the coverage and limitations below.</div>'
+        recs = "".join(f"<li>{_text(item)}</li>" for item in report.actionable_recommendations)
+        limits = "".join(f"<li>{_text(item)}</li>" for item in report.limitations)
+        failed = report.failed_sample_timestamps_seconds
+        failures = ""
+        if failed:
+            failures = f'<p><b>Failed sample times:</b> {_text(", ".join(_time(value) for value in failed[:20]))}{" (first 20 shown)" if len(failed) > 20 else ""}</p>'
+        return f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>Footage review · {_text(report.session_id)}</title>
+<style>
+*{{box-sizing:border-box}}body{{margin:0;background:#f3f5f7;color:#17212c;font:15px/1.6 system-ui,sans-serif;padding:32px 16px}}main{{max-width:960px;margin:auto}}
+header{{margin-bottom:28px}}h1{{font-size:32px;letter-spacing:-1px;margin:4px 0}}h2{{font-size:21px;margin-top:32px}}h3{{margin:8px 0}}h4{{margin-bottom:4px}}
+.muted{{color:#536171}}.card{{background:white;border:1px solid #dce2e8;border-radius:14px;padding:24px;margin:16px 0;break-inside:avoid}}
+.badge{{display:inline-block;color:#204b65;background:#edf5fa;border-radius:20px;padding:3px 12px;font-size:13px}}.review{{font-weight:600}}
+.evidence{{display:flex;gap:24px;align-items:flex-start}}.crop{{width:160px;max-height:280px;object-fit:contain;border-radius:8px;background:#edf0f3}}
+.table-wrap{{overflow-x:auto}}table{{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}}th,td{{text-align:left;border-bottom:1px solid #e4e8ee;padding:10px;vertical-align:top}}
+li{{margin-bottom:8px}}p{{overflow-wrap:anywhere}}@media(max-width:600px){{.evidence{{display:block}}.card{{padding:16px}}}}
+@media print{{body{{background:white;padding:0}}.card{{border-color:#ccc}}}}
+</style></head><body><main>
+<header><p class="muted">AI(EYE) IN THE SKY · EVIDENCE REVIEW</p><h1>Post-flight footage review</h1>
+<p class="muted">Session {_text(report.session_id)} · Generated {_text(report.generated_at)}</p></header>
+<section class="card"><h2>Search description</h2><p>{_text(report.target_description.free_text_description)}</p>
+<p><b>Configured search:</b> {_text(report.search_plan.target_summary)}</p><ul>{recs}</ul></section>
+<h2>Candidate evidence</h2>{tracks_html}
+<section class="card"><h2>Recording and analyzed samples</h2>
+<p><b>Recording:</b> {_text(report.video_info.filename)} · {report.video_info.width} × {report.video_info.height} · {report.video_info.duration_seconds:g} seconds</p>
+<p><b>Analyzed frames:</b> {report.total_frames_sampled} · <b>Person detector observations:</b> {report.total_people_detected} · <b>Retained tracks:</b> {report.unique_tracks_count}</p>
+<p>{_text(report.coverage_summary)}</p>{failures}
+<p><b>Telemetry:</b> {"SRT aircraft positions available" if report.has_telemetry else "Not available"}</p></section>
+<section class="card"><h2>Interpretation limits</h2><ul>{limits}</ul></section>
+<footer class="muted">Run {_text(report.analysis_run_id or "historical / unspecified")} · Revision {_text(report.report_revision)}</footer>
+</main></body></html>"""

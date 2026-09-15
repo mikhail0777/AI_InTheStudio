@@ -1,60 +1,67 @@
-# 🛸 AI(EYE) in the sky
+﻿# AI(EYE) in the sky
 
-**Agentic Post-Flight Drone Footage Analysis Platform for Search & Rescue (SAR)**
+Local post-flight person detection and evidence review with optional DJI SRT telemetry.
 
-`AI(EYE) in the sky` is an autonomous AI agent system designed for Search and Rescue teams. After a drone flight, the operator uploads the recorded MP4/MOV footage and optional DJI SRT flight telemetry. The platform autonomously executes a 2-stage scanning pipeline, tracks people across frames, extracts multi-attribute HSV color distributions, ranks target candidate matches, and generates downloadable SAR search reports.
+## Run
 
----
+Python 3.10+ and Node.js are required. From the repository root:
 
-## 🚀 How to Run `AI(EYE) in the sky`
-
-### Option 1: One-Click Windows Launcher (Recommended)
-Simply double-click the included batch file in the repository root:
-```cmd
-run_aieye.bat
-```
-This script will automatically:
-1. Launch the FastAPI backend server on `http://localhost:8000`.
-2. Launch the Vite React frontend UI on `http://localhost:5173`.
-3. Open your default web browser directly to `http://localhost:5173`.
-
----
-
-### Option 2: Manual Terminal Execution
-
-#### 1. Start the Backend API (FastAPI)
-In a terminal window in the project root:
 ```powershell
-# Install requirements if not already done
-pip install -r backend/requirements.txt
-
-# Start backend server
-python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
+python -m pip install -r backend/requirements.txt
+python backend/download_models.py
+python -m uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8000
 ```
 
-#### 2. Start the Frontend UI (React 18 + Vite)
-In a second terminal window:
+In a second terminal:
+
 ```powershell
 cd frontend
-npm install
-npm run dev
+npm.cmd install
+npm.cmd run dev
 ```
 
-#### 3. Access Mission Control UI
-Open your browser to:
-- **Mission Control Web App:** [http://localhost:5173](http://localhost:5173)
-- **API Interactive Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
+Open http://localhost:5173. After installation, `run_aieye.bat` starts both services.
+The segmentation model is already installed in this workspace. Runtime does not download
+models or switch detectors. Missing weights or inference failures stop the job explicitly.
 
----
+## Matching behavior
 
-## 🧪 Testing & Demo Footage Generation
+- YOLO detects people and backpacks. Zero people is a valid result; there is no HOG fallback.
+- Backpack masks are excluded from approximate upper/lower clothing bands. These bands
+  are estimates for upright people, not garment recognition. Occluded, small, or wide
+  silhouettes can remain unknown. Stationary people are eligible for review.
+- Up to six quality-ranked crops, separated by at least 0.75 seconds, support each track.
+  Temporal separation limits neighboring frames; it does not prove independent views.
+- Person evidence must pass a separate gate. Color or sharpness cannot compensate for
+  insufficient person evidence. Visible conflicts block promotion.
+- The configured `min_alert_confidence` is an internal color-support threshold, not a
+  measured accuracy or identity probability. It applies to both candidate categories.
+- The default review queue shows supported candidates and operator-flagged tracks.
+  Use **All tracks** to inspect limited-evidence detections. One card represents one track;
+  track fragmentation can still produce separate cards for the same person.
+- Simple descriptions can supply clothing colors/backpack attributes; selected fields
+  override those extractions. Hair, identity, gender, and garment styles are not evaluated.
+  Arbitrary required/negative constraints remain explicit and prevent automatic promotion.
+- Each assessed attribute links to its supporting crops. Scores and model provenance remain
+  available through the API; the operator UI uses evidence labels instead of percentages.
+- SRT coordinates locate the aircraft, not the person's ground position. Missing altitude
+  is preserved as unknown. Existing flights and review decisions are retained.
 
-To generate synthetic test footage (`demo_drone_search.mp4`) and flight telemetry (`demo_drone_search.SRT`):
+Configuration: `AIEYE_MODEL_PATH`, `AIEYE_IMAGE_SIZE` (default 1280),
+`AIEYE_CPU_THREADS` (default 4), and `AIEYE_DATA_DIR` (default backend/data).
+The application is intended for a local workstation and has no account login system.
+
+## Verify
+
 ```powershell
-python generate_demo_video.py
+$env:PYTHONPATH='backend'
+python -m unittest discover -s tests -v
+cd frontend
+npm.cmd run build
 ```
 
-To run the automated E2E system test suite:
-```powershell
-python test_e2e.py
-```
+`test_e2e.py` is an optional HTTP smoke test against a running backend and generated demo
+video. Synthetic drawings are not a detector accuracy benchmark. Before operational use,
+label representative real recordings (including tires, stationary people, occlusions,
+and empty scenes) and measure missed people and false candidate alerts per video hour.
+No measured precision/recall claim is made by this implementation.

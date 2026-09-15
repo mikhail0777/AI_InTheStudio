@@ -1,4 +1,4 @@
-import { TargetConfiguration, SessionStatus, TrackResult, SARReport } from './types';
+import { TargetConfiguration, SessionStatus, TrackResult, GPSPoint } from './types';
 
 const API_BASE = '/api';
 
@@ -19,6 +19,18 @@ export async function uploadVideo(sessionId: string, file: File): Promise<any> {
     method: 'POST',
     body: formData
   });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function getTelemetry(sessionId: string): Promise<GPSPoint[]> {
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}/telemetry`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function cancelAnalysis(sessionId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}/cancel`, { method: 'POST' });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

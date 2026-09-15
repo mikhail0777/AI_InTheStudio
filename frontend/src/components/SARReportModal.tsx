@@ -1,112 +1,29 @@
 import React from 'react';
 import { SessionStatus, TrackResult } from '../types';
-import { X, Download, FileText, Shield, Crosshair } from 'lucide-react';
+import { X, Download, FileText } from 'lucide-react';
+import { candidateLabels, formatTime, isReviewCandidate, reviewLabel } from '../review';
 
-interface SARReportModalProps {
-  status: SessionStatus | null;
-  tracks: TrackResult[];
-  onClose: () => void;
-}
+interface SARReportModalProps { status: SessionStatus | null; tracks: TrackResult[]; onClose: () => void; }
 
 export const SARReportModal: React.FC<SARReportModalProps> = ({ status, tracks, onClose }) => {
   if (!status) return null;
-
-  const strongMatches = tracks.filter(t => t.classification === 'strong_match');
-  const possibleMatches = tracks.filter(t => t.classification === 'possible_match');
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <div className="screws" />
-
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '32px' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '8px' }}>
-              <div style={{ padding: '8px', background: 'var(--bg-chassis)', boxShadow: 'var(--shadow-recessed)', borderRadius: 'var(--radius-full)' }}>
-                <FileText size={20} color="var(--accent-orange)" />
-              </div>
-              <h2 style={{ fontSize: '1.5rem', margin: 0 }}>POST-FLIGHT SAR REPORT</h2>
-            </div>
-            <p className="status-label" style={{ color: 'var(--text-muted)' }}>
-              MISSION SESSION ID: {status.session_id}
-            </p>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <a
-              href={`/reports/report_${status.session_id}.html`}
-              target="_blank"
-              rel="noreferrer"
-              className="btn-industrial"
-              style={{ padding: '8px 16px' }}
-            >
-              <Download size={16} /> DOWNLOAD EXPORT
-            </a>
-            <button onClick={onClose} className="btn-industrial" style={{ padding: '12px', borderRadius: 'var(--radius-full)' }}>
-              <X size={20} />
-            </button>
-          </div>
-        </div>
-
-        {/* Report Content Body */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-
-          {/* Actionable Recommendations Callout */}
-          <div className="card-module" style={{ padding: '24px', background: 'var(--bg-panel)' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--accent-orange)' }}>
-              <Shield size={20} /> ACTIONABLE RECOMMENDATIONS
-            </h3>
-            <ul style={{ paddingLeft: '24px', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>
-              {strongMatches.length > 0 ? (
-                <li>
-                  <b style={{ color: '#22c55e' }}>DISPATCH GROUND TEAM:</b> Immediate ground team dispatch recommended to Track #{strongMatches[0].track_id}
-                  {strongMatches[0].gps_location && ` at GPS (${strongMatches[0].gps_location.latitude.toFixed(5)}, ${strongMatches[0].gps_location.longitude.toFixed(5)})`} at timestamp {strongMatches[0].best_timestamp_seconds}s.
-                </li>
-              ) : possibleMatches.length > 0 ? (
-                <li>
-                  <b style={{ color: '#eab308' }}>PRIORITY SIGHTING REVIEW:</b> Confirm candidate sighting Track #{possibleMatches[0].track_id} at timestamp {possibleMatches[0].best_timestamp_seconds}s. Upper clothing and backpack match target profile.
-                </li>
-              ) : (
-                <li>
-                  <b>EXPAND SEARCH RADIUS:</b> No high-confidence target candidates identified in current flight recording. Expand search grid to adjacent sectors.
-                </li>
-              )}
-            </ul>
-          </div>
-
-          {/* Top Ranked Candidates Grid */}
-          <div className="card-module" style={{ padding: '24px' }}>
-            <h3 className="status-label" style={{ marginBottom: '24px' }}>
-              TOP RANKED CANDIDATES ({tracks.length} TOTAL SIGHTING TRACKS)
-            </h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
-              {tracks.slice(0, 4).map((t) => (
-                <div key={t.track_id} className="input-slot" style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                  padding: '12px',
-                  background: 'var(--bg-chassis)'
-                }}>
-                  <div className="screen-panel" style={{ width: '64px', height: '80px', flexShrink: 0, padding: 0 }}>
-                    {t.best_frame_path ? (
-                      <img src={t.best_frame_path} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <Crosshair size={24} style={{ opacity: 0.2, margin: '28px auto 0' }} />
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span className="status-label">MODULE #{t.track_id}</span>
-                    <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{(t.final_ranking_score * 100).toFixed(0)}%</p>
-                    <span className="status-label">T: {t.best_timestamp_seconds.toFixed(1)}S</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+  const candidates = tracks.filter(isReviewCandidate);
+  const confirmed = tracks.filter(t => t.human_feedback === 'confirmed');
+  const rejected = tracks.filter(t => t.human_feedback === 'rejected');
+  return <div className="modal-overlay"><div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="report-title">
+    <div className="row-between modal-heading">
+      <div><h2 id="report-title" className="icon-line"><FileText size={22} />Recording review</h2><p className="muted">Session {status.session_id}</p></div>
+      <button onClick={onClose} className="btn-industrial" aria-label="Close report"><X size={20} /></button>
     </div>
-  );
+    <p>{confirmed.length} confirmed by a reviewer · {rejected.length} rejected · {tracks.length} total tracks</p>
+    <p className="form-hint" style={{ margin: '16px 0 24px' }}>Automated candidates require review against the original footage. No candidates does not establish that the recording contains no person. Positions describe the drone at capture.</p>
+    <a href={`/api/sessions/${status.session_id}/report`} target="_blank" rel="noreferrer" className="btn-industrial"><Download size={16} />Open full evidence report</a>
+    <section className="review-section"><h3 className="status-label section-label">Candidates for review ({candidates.length})</h3>
+      <div className="report-grid">{candidates.map(t => <div className="report-candidate" key={t.track_id}>
+        {t.best_frame_path && <img src={t.best_frame_path} alt={`Track ${t.track_id} evidence`} />}
+        <div><strong>Track #{t.track_id}</strong><p>{candidateLabels[t.classification]}</p><p className="muted">{reviewLabel(t)}</p><p>{formatTime(t.best_timestamp_seconds)}</p></div>
+      </div>)}</div>
+      {!candidates.length && <p className="muted">No candidates in the review queue. The full report includes low-similarity and rejected tracks.</p>}
+    </section>
+  </div></div>;
 };

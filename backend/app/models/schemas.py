@@ -1,24 +1,24 @@
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Literal
 from pydantic import BaseModel, Field
 
 class TargetConfiguration(BaseModel):
-    free_text_description: str = Field(..., example="Locate a person wearing a red hoodie, black pants, white shoes, with short dark hair and a blue backpack.")
-    upper_clothing_type: Optional[str] = "hoodie"
-    upper_clothing_color: Optional[str] = "red"
-    lower_clothing_type: Optional[str] = "pants"
-    lower_clothing_color: Optional[str] = "black"
+    free_text_description: str = Field(default="", max_length=4000)
+    upper_clothing_type: Optional[str] = None
+    upper_clothing_color: Optional[str] = None
+    lower_clothing_type: Optional[str] = None
+    lower_clothing_color: Optional[str] = None
     shoe_color: Optional[str] = None
     hair_color: Optional[str] = None
     hair_length: Optional[str] = None
-    body_build: Optional[str] = "average"
-    backpack: Optional[str] = "blue backpack"
+    body_build: Optional[str] = None
+    backpack: Optional[str] = None
     hat: Optional[str] = None
     other_accessories: Optional[str] = None
     distinctive_features: Optional[str] = None
-    required_attributes: List[str] = Field(default_factory=lambda: ["red upper clothing"])
-    optional_attributes: List[str] = Field(default_factory=lambda: ["blue backpack", "black pants"])
-    negative_attributes: List[str] = Field(default_factory=lambda: ["hat", "bright green jacket"])
-    min_alert_confidence: float = 0.60
+    required_attributes: List[str] = Field(default_factory=list)
+    optional_attributes: List[str] = Field(default_factory=list)
+    negative_attributes: List[str] = Field(default_factory=list)
+    min_alert_confidence: float = Field(default=0.60, ge=0, le=1)
     reference_photo_path: Optional[str] = None
 
 class AnalysisStrategy(BaseModel):
@@ -53,23 +53,35 @@ class DetectionItem(BaseModel):
     detection_id: str
     frame_idx: int
     timestamp_seconds: float
-    bbox: List[float]  # [x1, y1, x2, y2] normalized or pixels
+    bbox: List[float] = Field(min_length=4, max_length=4)  # xyxy, original-frame pixels
     confidence: float
     crop_path: Optional[str] = None
     quality_score: float = 1.0
+    detector_name: str = "unknown"
+    model_version: Optional[str] = None
+    color_features: Dict[str, Dict[str, float]] = Field(default_factory=dict)
+    attribute_visibility: Dict[str, str] = Field(default_factory=dict)
+    backpack_detected: Optional[bool] = None
+    mask_path: Optional[str] = None
 
 class AttributeDetail(BaseModel):
     expected: str
     observed: str
     score: Optional[float] = None
     visibility: str  # clear, partial, not_visible, obscured
+    assessment: Literal["match", "conflict", "unknown"] = "unknown"
+    method: Optional[str] = None
+    evidence_timestamps: List[float] = Field(default_factory=list)
+    evidence_paths: List[str] = Field(default_factory=list)
 
 class GPSPoint(BaseModel):
     timestamp_seconds: float
     latitude: float
     longitude: float
-    altitude_m: float
+    altitude_m: Optional[float] = None
     relative_altitude_m: Optional[float] = None
+    telemetry_match_offset_seconds: Optional[float] = None
+    source: str = "srt_aircraft"
 
 class TrackResult(BaseModel):
     session_id: str
@@ -94,10 +106,13 @@ class TrackResult(BaseModel):
     human_feedback: Optional[str] = None  # confirmed, rejected, needs_research
     human_notes: Optional[str] = None
     gps_location: Optional[GPSPoint] = None
+    model_version: Optional[str] = None
+    evidence_timestamps: List[float] = Field(default_factory=list)
+    evidence_observations: List[DetectionItem] = Field(default_factory=list)
 
 class HumanFeedbackInput(BaseModel):
-    status: str  # confirmed, rejected, needs_research
-    notes: Optional[str] = None
+    status: Literal["confirmed", "rejected", "needs_research"]
+    notes: Optional[str] = Field(default=None, max_length=4000)
 
 class AgentLogEntry(BaseModel):
     timestamp: str
@@ -116,6 +131,10 @@ class SessionStatus(BaseModel):
     unique_tracks_count: int = 0
     search_plan: Optional[SearchPlan] = None
     agent_logs: List[AgentLogEntry] = Field(default_factory=list)
+    run_id: Optional[str] = None
+    frames_sampled: int = 0
+    frames_planned: int = 0
+    error_message: Optional[str] = None
 
 class SARReport(BaseModel):
     session_id: str
@@ -131,3 +150,9 @@ class SARReport(BaseModel):
     has_telemetry: bool
     unsearched_intervals: List[Dict[str, float]]
     actionable_recommendations: List[str]
+    analysis_run_id: Optional[str] = None
+    analyzed_timestamps_seconds: List[float] = Field(default_factory=list)
+    failed_sample_timestamps_seconds: List[float] = Field(default_factory=list)
+    coverage_summary: str = ""
+    limitations: List[str] = Field(default_factory=list)
+    report_revision: str = ""

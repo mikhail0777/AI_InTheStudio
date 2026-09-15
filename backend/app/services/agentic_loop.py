@@ -1,16 +1,11 @@
-from click import Tuple
-import os
+"""Deterministic, auditable video processing executed by the local worker."""
 import json
-import time
-import cv2
-import asyncio
+import os
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Callable
-from app.database import get_db_connection
-from app.models.schemas import (
-    TargetConfiguration, SearchPlan, VideoMetadata, SessionStatus,
-    AgentLogEntry, TrackResult, HumanFeedbackInput, GPSPoint, AttributeDetail
-)
+from typing import Callable
+import cv2
+from app.database import DB_DIR, get_db_connection
+from app.models.schemas import TargetConfiguration, TrackResult, VideoMetadata, GPSPoint
 from app.services.video_service import VideoService
 from app.services.search_agent import SearchPlanAgent
 from app.services.detector import PersonDetector
@@ -19,359 +14,201 @@ from app.services.appearance_analyzer import AppearanceAnalyzer
 from app.services.telemetry_service import TelemetryService
 from app.services.report_generator import ReportGenerator
 
-DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data"))
+DATA_DIR = DB_DIR
+
+
+def load_tracks(session_id):
+    with get_db_connection() as conn:
+        rows = conn.execute("SELECT * FROM tracks WHERE session_id=? ORDER BY final_ranking_score DESC", (session_id,)).fetchall()
+    results = []
+    json_fields = ("attributes", "matching_evidence", "conflicting_evidence", "unknown_attributes", "cropped_samples", "gps_location")
+    for row in rows:
+        # Payload preserves new provenance fields while columns retain compatibility.
+        data = json.loads(row["payload"]) if row["payload"] else {}
+        data.update({key: row[key] for key in row.keys() if key != "payload"})
+        for key in json_fields:
+            data[key] = json.loads(row[key]) if row[key] else (None if key == "gps_location" else ({} if key == "attributes" else []))
+        data["requires_human_review"] = bool(row["requires_human_review"])
+        results.append(TrackResult(**data))
+    return results
+
 
 class AgenticLoopManager:
-    def __init__(self):
-        pass
+    @staticmethod
+    def log_agent_event(session_id, step, message, level="info"):
+        with get_db_connection() as conn:
+            conn.execute("INSERT INTO agent_logs(session_id,timestamp,step,message,level) VALUES (?,?,?,?,?)",
+                         (session_id, datetime.now().strftime("%H:%M:%S"), step, message, level))
 
     @staticmethod
-    def log_agent_event(session_id: str, step: str, message: str, level: str = "info"):
-        conn = get_db_connection()
-        now_str = datetime.now().strftime("%H:%M:%S")
-        conn.execute(
-            "INSERT INTO agent_logs (session_id, timestamp, step, message, level) VALUES (?, ?, ?, ?, ?)",
-            (session_id, now_str, step, message, level)
-        )
-        conn.commit()
-        conn.close()
+    def update_session_status(session_id, status, progress, stage, people_count=0, tracks_count=0):
+        with get_db_connection() as conn:
+            # Processing must never undo a pause or cancellation requested by HTTP.
+            conn.execute("UPDATE sessions SET progress_percent=?,current_stage=? WHERE session_id=? AND status='analyzing'",
+                         (round(progress, 1), stage, session_id))
 
     @staticmethod
-    def update_session_status(
-        session_id: str,
-        status: str,
-        progress: float,
-        stage: str,
-        people_count: int = 0,
-        tracks_count: int = 0
-    ):
-        conn = get_db_connection()
-        conn.execute(
-            "UPDATE sessions SET status=?, progress_percent=?, current_stage=? WHERE session_id=?",
-            (status, round(progress, 1), stage, session_id)
-        )
-        conn.commit()
-        conn.close()
+    def _save_detections(session_id, run_id, frame_idx, detections):
+        with get_db_connection() as conn:
+            for det in detections:
+                conn.execute("""INSERT INTO detections(detection_id,session_id,frame_idx,timestamp_seconds,bbox,
+                    confidence,crop_path,quality_score,run_id,payload) VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                    (det.detection_id, session_id, det.frame_idx, det.timestamp_seconds, json.dumps(det.bbox),
+                     det.confidence, det.crop_path, det.quality_score, run_id, json.dumps(det.dict())))
+            conn.execute("UPDATE frame_samples SET status='sampled' WHERE run_id=? AND frame_idx=?", (run_id, frame_idx))
 
     @classmethod
-    def execute_analysis(
-        cls,
-        session_id: str,
-        target_config: TargetConfiguration,
-        progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None
-    ):
-        cls.log_agent_event(session_id, "INIT", "Forming Search Plan from target description...", "action")
-        cls.update_session_status(session_id, "analyzing", 5.0, "search_plan_generation")
-
-        conn = get_db_connection()
-        session_row = conn.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
-        if not session_row:
-            conn.close()
-            raise ValueError(f"Session {session_id} not found.")
-
-        video_meta_dict = json.loads(session_row["video_metadata"])
-        video_info = VideoMetadata(**video_meta_dict)
-        has_telemetry = bool(session_row["has_telemetry"])
-
-        # Step 1: Form search plan
-        search_plan = SearchPlanAgent.create_search_plan(target_config)
-        conn.execute(
-            "UPDATE sessions SET target_config=?, search_plan=? WHERE session_id=?",
-            (json.dumps(target_config.dict()), json.dumps(search_plan.dict()), session_id)
-        )
-        conn.commit()
-
-        cls.log_agent_event(
-            session_id,
-            "SEARCH_PLAN",
-            f"Search Plan created: High-value attributes: {', '.join(search_plan.high_value_attributes)}",
-            "info"
-        )
-
-        # Step 2: Telemetry loading
-        telemetry_points: List[GPSPoint] = []
-        if has_telemetry:
-            t_rows = conn.execute("SELECT * FROM telemetry WHERE session_id=?", (session_id,)).fetchall()
-            for tr in t_rows:
-                telemetry_points.append(GPSPoint(
-                    timestamp_seconds=tr["timestamp_seconds"],
-                    latitude=tr["latitude"],
-                    longitude=tr["longitude"],
-                    altitude_m=tr["altitude_m"],
-                    relative_altitude_m=tr["relative_altitude_m"]
-                ))
-            cls.log_agent_event(session_id, "TELEMETRY", f"Correlated {len(telemetry_points)} flight telemetry GPS points.", "info")
-
-        conn.close()
-
-        # Step 3: Stage 1 Broad Scan (~1 FPS)
-        broad_fps = search_plan.analysis_strategy.broad_scan_fps
-        broad_timestamps = VideoService.get_sample_timestamps(video_info.duration_seconds, broad_fps)
-        cls.log_agent_event(
-            session_id,
-            "BROAD_SCAN",
-            f"Starting Stage 1 Broad Scan at {broad_fps} FPS across {len(broad_timestamps)} frames...",
-            "action"
-        )
-        cls.update_session_status(session_id, "analyzing", 15.0, "stage_1_broad_scan")
-
-        detector = PersonDetector(crop_dir=os.path.join(DATA_DIR, "crops"))
+    def _scan(cls, session_id, run_id, video_info, indices, stage, detector, min_confidence,
+              checkpoint, all_detections, progress_start, progress_span):
+        indices = sorted(set(indices))
+        if not indices:
+            return
+        with get_db_connection() as conn:
+            conn.executemany("INSERT OR IGNORE INTO frame_samples(run_id,frame_idx,timestamp_seconds,stage) VALUES (?,?,?,?)",
+                             [(run_id, index, index / video_info.fps, stage) for index in indices])
+        targets = set(indices)
         cap = cv2.VideoCapture(video_info.filepath)
+        processed = set()
+        try:
+            if not cap.isOpened():
+                raise ValueError("The uploaded video can no longer be opened.")
+            index = 0
+            while index <= indices[-1]:
+                if index % 25 == 0 or index in targets:
+                    checkpoint()
+                if index in targets:
+                    ret, frame = cap.read()
+                    if not ret or frame is None or frame.size == 0:
+                        raise ValueError(f"Video decode failed at frame {index}; analysis is incomplete.")
+                    timestamp = index / video_info.fps
+                    detections = detector.detect_in_frame(frame=frame, session_id=session_id, frame_idx=index,
+                        timestamp_seconds=timestamp, min_confidence=min_confidence)
+                    checkpoint()
+                    cls._save_detections(session_id, run_id, index, detections)
+                    all_detections[index] = detections
+                    processed.add(index)
+                    cls.update_session_status(session_id, "analyzing", progress_start + progress_span * len(processed) / len(indices), stage)
+                elif not cap.grab():
+                    raise ValueError(f"Video decode ended early at frame {index}; analysis is incomplete.")
+                index += 1
+        except ValueError:
+            with get_db_connection() as conn:
+                conn.executemany("UPDATE frame_samples SET status='decode_failed' WHERE run_id=? AND frame_idx=? AND status='planned'",
+                                 [(run_id, index) for index in targets - processed])
+            raise
+        finally:
+            cap.release()
 
-        detection_windows: List[float] = []
-        broad_detections: List[Dict[str, Any]] = []
-
-        # Fast sequential decode for Stage 1 using cap.grab()
-        broad_target_frames = {int(t * video_info.fps): t for t in broad_timestamps}
-        total_broad = len(broad_target_frames)
-        max_broad_frame = max(broad_target_frames.keys()) if broad_target_frames else 0
-
-        curr_f = 0
-        proc_broad = 0
-        while cap.isOpened() and curr_f <= max_broad_frame:
-            if curr_f in broad_target_frames:
-                ret, frame = cap.read()
-                if not ret or frame is None:
-                    break
-                t_sec = broad_target_frames[curr_f]
-                dets = detector.detect_in_frame(
-                    frame=frame,
-                    session_id=session_id,
-                    frame_idx=curr_f,
-                    timestamp_seconds=t_sec,
-                    min_confidence=search_plan.analysis_strategy.minimum_person_confidence
-                )
-                if dets:
-                    detection_windows.append(t_sec)
-                    for d in dets:
-                        broad_detections.append((t_sec, d))
-                    min_ts = int(t_sec // 60)
-                    sec_ts = int(t_sec % 60)
-                    cls.log_agent_event(
-                        session_id,
-                        "DETECTION",
-                        f"Person detected at {min_ts:02d}:{sec_ts:02d} ({t_sec}s) with confidence {dets[0].confidence}.",
-                        "match"
-                    )
-
-                proc_broad += 1
-                pct = 15.0 + (proc_broad / float(max(1, total_broad))) * 35.0
-                cls.update_session_status(session_id, "analyzing", pct, "stage_1_broad_scan", len(broad_detections), 0)
-            else:
-                ret = cap.grab()
-                if not ret:
-                    break
-
-            curr_f += 1
-
-        # Step 4: Stage 2 Focused Inspection around detections
-        cls.log_agent_event(
-            session_id,
-            "FOCUSED_SCAN",
-            f"Stage 1 found {len(detection_windows)} detection timestamps. Increasing sampling rate to 3.0 FPS for focused track inspection...",
-            "action"
-        )
-        cls.update_session_status(session_id, "analyzing", 55.0, "stage_2_focused_scan")
-
-        focused_window_sec = search_plan.analysis_strategy.focused_window_seconds
-        focused_fps = search_plan.analysis_strategy.focused_scan_fps
-
-        # Merge overlapping focused timestamp intervals
-        intervals: List[Tuple[float, float]] = []
-        for det_t in detection_windows:
-            t_start = max(0.0, det_t - focused_window_sec)
-            t_end = min(video_info.duration_seconds, det_t + focused_window_sec)
-            if not intervals or t_start > intervals[-1][1]:
-                intervals.append((t_start, t_end))
-            else:
-                intervals[-1] = (intervals[-1][0], max(intervals[-1][1], t_end))
-
-        focused_timestamps_set = set()
-        for start, end in intervals:
-            t_curr = start
-            while t_curr <= end:
-                focused_timestamps_set.add(round(t_curr, 2))
-                t_curr += (1.0 / focused_fps)
-
-        focused_timestamps = sorted(list(focused_timestamps_set))
+    @classmethod
+    def execute_analysis(cls, session_id, target_config: TargetConfiguration, progress_callback=None,
+                         *, run_id: str, checkpoint: Callable):
+        checkpoint()
+        with get_db_connection() as conn:
+            row = conn.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
+            if not row:
+                raise ValueError("Session not found.")
+            video_info = VideoMetadata(**json.loads(row["video_metadata"]))
+            telemetry = [GPSPoint(**dict(point)) for point in conn.execute(
+                "SELECT timestamp_seconds,latitude,longitude,altitude_m,relative_altitude_m FROM telemetry WHERE session_id=? ORDER BY timestamp_seconds", (session_id,))]
+        target_config = SearchPlanAgent.normalize_target(target_config)
+        search_plan = SearchPlanAgent.create_search_plan(target_config)
+        with get_db_connection() as conn:
+            conn.execute("UPDATE sessions SET target_config=?,search_plan=? WHERE session_id=?",
+                         (json.dumps(target_config.dict()), json.dumps(search_plan.dict()), session_id))
+        cls.log_agent_event(session_id, "SEARCH_PLAN", "Prepared a person search using the supplied visible attributes.", "info")
+        cls.update_session_status(session_id, "analyzing", 5, "loading_detector")
+        detector = PersonDetector(crop_dir=os.path.join(DATA_DIR, "crops"))
+        checkpoint()
+        strategy = search_plan.analysis_strategy
+        broad_indices = VideoService.sample_frame_indices(video_info, strategy.broad_scan_fps)
+        all_detections = {}
+        cls.log_agent_event(session_id, "BROAD_SCAN", f"Sampling {len(broad_indices)} frames for person candidates.", "action")
+        cls._scan(session_id, run_id, video_info, broad_indices, "broad_scan", detector,
+                  strategy.minimum_person_confidence, checkpoint, all_detections, 10, 40)
+        # Retain broad positives and never infer a sampled frame a second time.
+        focused = set()
+        for index, detections in all_detections.items():
+            if detections:
+                timestamp = index / video_info.fps
+                focused.update(VideoService.sample_frame_indices(video_info, strategy.focused_scan_fps,
+                    timestamp - strategy.focused_window_seconds, timestamp + strategy.focused_window_seconds))
+        focused.difference_update(all_detections)
+        cls.log_agent_event(session_id, "FOCUSED_SCAN", f"Inspecting {len(focused)} additional frames around candidates.", "action")
+        cls._scan(session_id, run_id, video_info, focused, "focused_scan", detector,
+                  strategy.minimum_person_confidence, checkpoint, all_detections, 50, 30)
         tracker = PersonTracker()
-
-        # Fast sequential decode for Stage 2 using cap.grab()
-        focused_target_frames = {int(t * video_info.fps): t for t in focused_timestamps}
-        max_target_frame = max(focused_target_frames.keys()) if focused_target_frames else 0
-
-        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-        curr_f = 0
-        total_focused = len(focused_target_frames)
-        proc_count = 0
-
-        while cap.isOpened() and curr_f <= max_target_frame:
-            if curr_f in focused_target_frames:
-                ret, frame = cap.read()
-                if not ret or frame is None:
-                    break
-                t_sec = focused_target_frames[curr_f]
-                dets = detector.detect_in_frame(
-                    frame=frame,
-                    session_id=session_id,
-                    frame_idx=curr_f,
-                    timestamp_seconds=t_sec,
-                    min_confidence=0.30
-                )
-                if dets:
-                    tracker.process_detections(dets)
-
-                proc_count += 1
-                pct = 55.0 + (proc_count / float(max(1, total_focused))) * 25.0
-                cls.update_session_status(session_id, "analyzing", pct, "stage_2_focused_scan")
-            else:
-                ret = cap.grab()
-                if not ret:
-                    break
-
-            curr_f += 1
-
-        cap.release()
-
-        # Step 5: Multi-frame evidence aggregation & Appearance Analysis
-        cls.log_agent_event(session_id, "EVALUATION", "Aggregating multi-frame track evidence and evaluating target appearance match...", "action")
-        cls.update_session_status(session_id, "analyzing", 85.0, "appearance_matching")
-
-        tracks_state = tracker.finalize()
-        track_results: List[TrackResult] = []
-
-        for tr_state in tracks_state:
-            if len(tr_state.detections) < search_plan.analysis_strategy.minimum_track_observations:
-                continue
-
-            tr_res = AppearanceAnalyzer.evaluate_track(
-                session_id=session_id,
-                track_id=tr_state.track_id,
-                detections=tr_state.detections,
-                target_config=target_config,
-                search_plan=search_plan,
-                data_base_dir=DATA_DIR
-            )
-
-            # Correlate GPS location if available
-            if telemetry_points:
-                gps_match = TelemetryService.get_gps_for_timestamp(telemetry_points, tr_res.best_timestamp_seconds)
-                if gps_match:
-                    tr_res.gps_location = gps_match
-
-            track_results.append(tr_res)
-
-        # Save tracks to DB
-        conn = get_db_connection()
-        for tr in track_results:
-            conn.execute(
-                """
-                INSERT OR REPLACE INTO tracks (
-                    session_id, track_id, first_seen_seconds, last_seen_seconds, best_timestamp_seconds,
-                    classification, person_detection_confidence, appearance_similarity, evidence_quality,
-                    final_ranking_score, observations_analyzed, attributes, matching_evidence,
-                    conflicting_evidence, unknown_attributes, requires_human_review, explanation,
-                    best_frame_path, cropped_samples, human_feedback, human_notes, gps_location
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    tr.session_id, tr.track_id, tr.first_seen_seconds, tr.last_seen_seconds, tr.best_timestamp_seconds,
-                    tr.classification, tr.person_detection_confidence, tr.appearance_similarity, tr.evidence_quality,
-                    tr.final_ranking_score, tr.observations_analyzed, json.dumps({k: v.dict() for k, v in tr.attributes.items()}),
-                    json.dumps(tr.matching_evidence), json.dumps(tr.conflicting_evidence), json.dumps(tr.unknown_attributes),
-                    1 if tr.requires_human_review else 0, tr.explanation, tr.best_frame_path,
-                    json.dumps(tr.cropped_samples), tr.human_feedback, tr.human_notes,
-                    json.dumps(tr.gps_location.dict()) if tr.gps_location else None
-                )
-            )
-        conn.commit()
-
-        # Step 6: Generate post-flight report
-        cls.log_agent_event(session_id, "REPORT", "Generating post-flight SAR search report and actionable recommendations...", "action")
-        reports_dir = os.path.join(DATA_DIR, "reports")
-        report, report_rel_path = ReportGenerator.generate_report(
-            session_id=session_id,
-            target_config=target_config,
-            search_plan=search_plan,
-            video_info=video_info,
-            total_sampled_frames=len(broad_timestamps) + len(focused_timestamps),
-            tracks=track_results,
-            has_telemetry=has_telemetry,
-            reports_dir=reports_dir
-        )
-
-        cls.log_agent_event(
-            session_id,
-            "COMPLETE",
-            f"Analysis complete. Found {len(track_results)} unique tracks across {video_info.duration_seconds}s flight recording. Report ready.",
-            "info"
-        )
-        cls.update_session_status(session_id, "completed", 100.0, "completed", len(broad_detections), len(track_results))
-        conn.close()
-
+        for frame_idx, detections in sorted(all_detections.items()):
+            checkpoint()
+            tracker.process_detections(detections, timestamp_seconds=frame_idx / video_info.fps)
+        cls.update_session_status(session_id, "analyzing", 85, "appearance_matching")
+        track_results = []
+        for state in tracker.finalize():
+            checkpoint()
+            # Single observations remain reviewable with insufficient evidence.
+            result = AppearanceAnalyzer.evaluate_track(session_id=session_id, track_id=state.track_id,
+                detections=state.detections, target_config=target_config, search_plan=search_plan, data_base_dir=DATA_DIR, detector=detector)
+            if telemetry:
+                result.gps_location = TelemetryService.get_gps_for_timestamp(telemetry, result.best_timestamp_seconds)
+            track_results.append(result)
+        checkpoint()
+        with get_db_connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            current = conn.execute("SELECT status FROM sessions WHERE session_id=? AND run_id=?", (session_id,run_id)).fetchone()
+            if not current or current["status"] not in ("analyzing", "paused"):
+                raise RuntimeError("Processing stopped before results were saved.")
+            track_columns = {item[1] for item in conn.execute("PRAGMA table_info(tracks)")}
+            for track in track_results:
+                data = track.dict()
+                columns = [name for name in data if name in track_columns]
+                values = [json.dumps(data[name]) if isinstance(data[name], (list,dict)) else data[name] for name in columns]
+                columns.append("payload")
+                values.append(json.dumps(data))
+                conn.execute(f"INSERT INTO tracks ({','.join(columns)}) VALUES ({','.join('?' for _ in values)})", values)
+        checkpoint()
+        cls.update_session_status(session_id, "analyzing", 95, "report_generation")
+        report = cls.regenerate_report(session_id)
+        checkpoint()
+        with get_db_connection() as conn:
+            updated = conn.execute("UPDATE sessions SET status='completed',progress_percent=100,current_stage='completed' WHERE session_id=? AND run_id=? AND status='analyzing'", (session_id,run_id))
+            if updated.rowcount != 1:
+                raise RuntimeError("Processing stopped before completion.")
+            conn.execute("UPDATE analysis_runs SET status='completed',finished_at=CURRENT_TIMESTAMP WHERE run_id=?", (run_id,))
+        cls.log_agent_event(session_id, "COMPLETE", f"Analysis complete: {len(all_detections)} sampled frames and {len(track_results)} candidate tracks. Human review is required.")
         return report
 
     @staticmethod
-    def apply_human_feedback(session_id: str, track_id: int, feedback: HumanFeedbackInput) -> TrackResult:
-        conn = get_db_connection()
-        row = conn.execute("SELECT * FROM tracks WHERE session_id=? AND track_id=?", (session_id, track_id)).fetchone()
-        if not row:
-            conn.close()
-            raise ValueError(f"Track {track_id} not found in session {session_id}.")
+    def regenerate_report(session_id):
+        from app.models.schemas import SearchPlan
+        with get_db_connection() as conn:
+            row = conn.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
+            if not row or not row["video_metadata"] or not row["search_plan"]:
+                raise ValueError("No completed report inputs exist for this session.")
+            samples = conn.execute("SELECT timestamp_seconds,status FROM frame_samples WHERE run_id=?", (row["run_id"],)).fetchall()
+            count = conn.execute("SELECT COUNT(*) FROM detections WHERE session_id=? AND (run_id=? OR (? IS NULL AND run_id IS NULL))", (session_id,row["run_id"],row["run_id"])).fetchone()[0]
+        sampled = [item["timestamp_seconds"] for item in samples if item["status"] == "sampled"]
+        failed = [item["timestamp_seconds"] for item in samples if item["status"] == "decode_failed"]
+        report, _ = ReportGenerator.generate_report(session_id=session_id,
+            target_config=TargetConfiguration(**json.loads(row["target_config"])),
+            search_plan=SearchPlan(**json.loads(row["search_plan"])),
+            video_info=VideoMetadata(**json.loads(row["video_metadata"])),
+            total_sampled_frames=len(sampled), tracks=load_tracks(session_id), has_telemetry=bool(row["has_telemetry"]),
+            reports_dir=os.path.join(DATA_DIR,"reports"), sampled_timestamps=sampled if row["run_id"] else None,
+            total_people_detected=count if row["run_id"] else None, run_id=row["run_id"], failed_timestamps=failed)
+        return report
 
-        # Update feedback and adjust classification based on human review
-        new_classification = row["classification"]
-        if feedback.status == "confirmed":
-            new_classification = "strong_match"
-        elif feedback.status == "rejected":
-            new_classification = "unlikely_match"
-        elif feedback.status == "needs_research":
-            new_classification = "possible_match"
-
-        conn.execute(
-            "UPDATE tracks SET human_feedback=?, human_notes=?, classification=?, requires_human_review=0 WHERE session_id=? AND track_id=?",
-            (feedback.status, feedback.notes, new_classification, session_id, track_id)
-        )
-        conn.commit()
-
-        # Log event
-        now_str = datetime.now().strftime("%H:%M:%S")
-        conn.execute(
-            "INSERT INTO agent_logs (session_id, timestamp, step, message, level) VALUES (?, ?, ?, ?, ?)",
-            (session_id, now_str, "FEEDBACK", f"Operator submitted feedback '{feedback.status}' for Track #{track_id}.", "action")
-        )
-        conn.commit()
-
-        # Fetch updated track
-        updated_row = conn.execute("SELECT * FROM tracks WHERE session_id=? AND track_id=?", (session_id, track_id)).fetchone()
-        conn.close()
-
-        # Re-build TrackResult
-        attrs_raw = json.loads(updated_row["attributes"])
-        attributes = {k: AttributeDetail(**v) for k, v in attrs_raw.items()}
-        gps_raw = json.loads(updated_row["gps_location"]) if updated_row["gps_location"] else None
-
-        return TrackResult(
-            session_id=session_id,
-            track_id=track_id,
-            first_seen_seconds=updated_row["first_seen_seconds"],
-            last_seen_seconds=updated_row["last_seen_seconds"],
-            best_timestamp_seconds=updated_row["best_timestamp_seconds"],
-            classification=updated_row["classification"],
-            person_detection_confidence=updated_row["person_detection_confidence"],
-            appearance_similarity=updated_row["appearance_similarity"],
-            evidence_quality=updated_row["evidence_quality"],
-            final_ranking_score=updated_row["final_ranking_score"],
-            observations_analyzed=updated_row["observations_analyzed"],
-            attributes=attributes,
-            matching_evidence=json.loads(updated_row["matching_evidence"]),
-            conflicting_evidence=json.loads(updated_row["conflicting_evidence"]),
-            unknown_attributes=json.loads(updated_row["unknown_attributes"]),
-            requires_human_review=bool(updated_row["requires_human_review"]),
-            explanation=updated_row["explanation"],
-            best_frame_path=updated_row["best_frame_path"],
-            cropped_samples=json.loads(updated_row["cropped_samples"]),
-            human_feedback=updated_row["human_feedback"],
-            human_notes=updated_row["human_notes"],
-            gps_location=GPSPoint(**gps_raw) if gps_raw else None
-        )
+    @classmethod
+    def apply_human_feedback(cls, session_id, track_id, feedback):
+        with get_db_connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            session = conn.execute("SELECT status FROM sessions WHERE session_id=?", (session_id,)).fetchone()
+            if session and session["status"] in ("queued","analyzing","paused"):
+                raise RuntimeError("Wait for analysis to finish before reviewing results.")
+            row = conn.execute("SELECT * FROM tracks WHERE session_id=? AND track_id=?", (session_id,track_id)).fetchone()
+            if not row:
+                raise LookupError("Track not found.")
+            # Store human judgment separately; keep automated scores for auditing.
+            conn.execute("UPDATE tracks SET human_feedback=?,human_notes=?,requires_human_review=? WHERE session_id=? AND track_id=?",
+                         (feedback.status, feedback.notes, int(feedback.status == "needs_research"), session_id, track_id))
+        cls.log_agent_event(session_id,"FEEDBACK",f"Operator marked Track #{track_id} as {feedback.status}.","action")
+        # Report GET regenerates from these durable decisions, never an old snapshot.
+        return next(track for track in load_tracks(session_id) if track.track_id == track_id)

@@ -54,14 +54,20 @@ export interface AttributeDetail {
   observed: string;
   score?: number | null;
   visibility: 'clear' | 'partial' | 'not_visible' | 'obscured';
+  assessment?: 'match' | 'conflict' | 'unknown';
+  method?: string;
+  evidence_timestamps?: number[];
+  evidence_paths?: string[];
 }
 
 export interface GPSPoint {
   timestamp_seconds: number;
   latitude: number;
   longitude: number;
-  altitude_m: number;
-  relative_altitude_m?: number;
+  altitude_m?: number | null;
+  relative_altitude_m?: number | null;
+  source?: string;
+  telemetry_match_offset_seconds?: number | null;
 }
 
 export interface TrackResult {
@@ -98,7 +104,11 @@ export interface AgentLogEntry {
 
 export interface SessionStatus {
   session_id: string;
-  status: 'created' | 'uploaded' | 'analyzing' | 'paused' | 'completed' | 'error';
+  status: 'created' | 'uploaded' | 'queued' | 'analyzing' | 'paused' | 'cancelled' | 'completed' | 'error';
+  error_message?: string | null;
+  run_id?: string | null;
+  frames_sampled?: number;
+  frames_planned?: number;
   progress_percent: number;
   current_stage: string;
   total_duration_seconds: number;

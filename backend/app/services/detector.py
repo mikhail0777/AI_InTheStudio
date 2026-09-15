@@ -1,138 +1,174 @@
+"""YOLO-only person/backpack segmentation with explicit model provenance."""
+import hashlib
 import os
+import threading
+import uuid
+from pathlib import Path
 import cv2
 import numpy as np
-import uuid
-from typing import List, Dict, Any, Tuple, Optional
 from app.models.schemas import DetectionItem
+from app.services.visual_features import masked_regions
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+_MODEL_CACHE = {}
+_MODEL_LOCK = threading.RLock()
+
+
+def _mask(polygon, shape, offset=(0, 0)):
+    result = np.zeros(shape[:2], dtype=np.uint8)
+    if polygon is not None and len(polygon) >= 3:
+        points = np.rint(np.asarray(polygon) - np.array(offset)).astype(np.int32)
+        cv2.fillPoly(result, [points], 255)
+    return result
+
+
+def _bag_owner(bag, people):
+    x1, y1, x2, y2 = bag['bbox']
+    area = max(1, (x2 - x1) * (y2 - y1))
+    scores = []
+    for index, person in enumerate(people):
+        a, b, c, d = person['bbox']
+        overlap = max(0, min(x2, c) - max(x1, a)) * max(0, min(y2, d) - max(y1, b)) / area
+        if overlap >= .65:
+            scores.append((overlap, index))
+    scores.sort(reverse=True)
+    if not scores or (len(scores) > 1 and scores[0][0] - scores[1][0] < .15):
+        return None
+    return scores[0][1]
+
 
 class PersonDetector:
-    def __init__(self, crop_dir: str):
-        self.crop_dir = crop_dir
-        os.makedirs(self.crop_dir, exist_ok=True)
-        self.yolo_model = None
+    def __init__(self, crop_dir: str, model_path=None):
+        self.crop_dir = Path(crop_dir).resolve()
+        self.crop_dir.mkdir(parents=True, exist_ok=True)
+        self.model_path = Path(model_path or os.getenv('AIEYE_MODEL_PATH', str(BACKEND_DIR / 'models' / 'yolo11s-seg.pt'))).resolve()
+        self.image_size = int(os.getenv('AIEYE_IMAGE_SIZE', '1280'))
+        if self.image_size < 320 or self.image_size > 2048:
+            raise ValueError('AIEYE_IMAGE_SIZE must be between 320 and 2048.')
         self._init_yolo()
 
     def _init_yolo(self):
-        try:
-            from ultralytics import YOLO
-            # Load nano model (downloads automatically if not cached)
-            self.yolo_model = YOLO("yolo11n.pt")
-            print("[Detector] Ultralytics YOLO11n initialized successfully.")
-        except Exception as e:
-            try:
+        if not self.model_path.is_file():
+            raise RuntimeError('YOLO segmentation model missing. Run: python backend/download_models.py')
+        config = Path(os.getenv('AIEYE_DATA_DIR', str(BACKEND_DIR / 'data'))) / 'ultralytics'
+        config.mkdir(parents=True, exist_ok=True)
+        os.environ.setdefault('YOLO_CONFIG_DIR', str(config.resolve()))
+        key = (str(self.model_path), self.model_path.stat().st_mtime_ns)
+        with _MODEL_LOCK:
+            if key not in _MODEL_CACHE:
+                import torch
                 from ultralytics import YOLO
-                self.yolo_model = YOLO("yolov8n.pt")
-                print("[Detector] Ultralytics YOLOv8n initialized successfully.")
-            except Exception as e2:
-                print(f"[Detector] YOLO init notice: {e2}. Using fallback color/motion/HOG person detector.")
-                self.yolo_model = None
+                torch.set_num_threads(max(1, int(os.getenv('AIEYE_CPU_THREADS', '4'))))
+                try:
+                    model = YOLO(str(self.model_path))
+                except Exception as exc:
+                    raise RuntimeError('Configured YOLO model could not be loaded; no fallback will run.') from exc
+                if model.task != 'segment' or model.names.get(0) != 'person' or model.names.get(24) != 'backpack':
+                    raise RuntimeError('Use a COCO segmentation model with person and backpack classes.')
+                version = self.model_path.name + ':' + hashlib.sha256(self.model_path.read_bytes()).hexdigest()[:12]
+                _MODEL_CACHE[key] = (model, version)
+            self.yolo_model, self.model_version = _MODEL_CACHE[key]
 
-    def estimate_crop_quality(self, crop: np.ndarray) -> float:
+    def _predict(self, frame, image_size, threshold):
+        with _MODEL_LOCK:
+            try:
+                result = self.yolo_model.predict(frame, verbose=False, save=False, classes=[0, 24], conf=min(threshold, .25), iou=.5, imgsz=image_size)[0]
+            except Exception as exc:
+                raise RuntimeError('YOLO inference failed; analysis stopped without a fallback.') from exc
+        records = []
+        polygons = result.masks.xy if result.masks is not None else []
+        for i, box in enumerate(result.boxes):
+            label, score = int(box.cls.item()), float(box.conf.item())
+            if score < (threshold if label == 0 else .35):
+                continue
+            records.append({'class': label, 'confidence': score, 'bbox': box.xyxy[0].cpu().tolist(),
+                            'polygon': polygons[i] if i < len(polygons) else None})
+        return records
+
+    @staticmethod
+    def estimate_crop_quality(crop):
         if crop is None or crop.size == 0:
             return 0.0
         h, w = crop.shape[:2]
-        size_score = min(1.0, (h * w) / (120 * 60))  # ideal min crop ~60x120
+        blur = cv2.Laplacian(cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY), cv2.CV_64F).var()
+        return float(round(.5 * min(1, h * w / 20000) + .5 * min(1, blur / 150), 3))
 
-        # Blur estimation via Laplacian variance
-        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-        lap_var = cv2.Laplacian(gray, cv2.CV_64F).var()
-        blur_score = min(1.0, lap_var / 150.0)
-
-        # Aspect ratio score (human aspect ratio ~ 1.5 - 3.0 height/width)
-        ar = h / max(1.0, float(w))
-        ar_score = 1.0 if 1.2 <= ar <= 4.0 else 0.5
-
-        quality = 0.4 * size_score + 0.4 * blur_score + 0.2 * ar_score
-        return float(round(quality, 2))
-
-    def detect_in_frame(
-        self,
-        frame: np.ndarray,
-        session_id: str,
-        frame_idx: int,
-        timestamp_seconds: float,
-        min_confidence: float = 0.35,
-        crop_margin: float = 0.15
-    ) -> List[DetectionItem]:
-        detections: List[DetectionItem] = []
+    def detect_in_frame(self, frame, session_id, frame_idx, timestamp_seconds, min_confidence=.4, crop_margin=.12):
         if frame is None or frame.size == 0:
-            return detections
+            return []
+        records = self._predict(frame, self.image_size, min_confidence)
+        people = [r for r in records if r['class'] == 0]
+        bags = [r for r in records if r['class'] == 24]
+        assignments = [(bag, _bag_owner(bag, people)) for bag in bags]
+        directory = (self.crop_dir / session_id).resolve()
+        if directory.parent != self.crop_dir:
+            raise ValueError('Invalid session storage path.')
+        directory.mkdir(parents=True, exist_ok=True)
+        output = []
+        for pi, person in enumerate(people):
+            x1, y1, x2, y2 = person['bbox']
+            w, h = x2 - x1, y2 - y1
+            a, b = max(0, int(x1 - w * crop_margin)), max(0, int(y1 - h * crop_margin))
+            c, d = min(frame.shape[1], int(x2 + w * crop_margin)), min(frame.shape[0], int(y2 + h * crop_margin))
+            crop = frame[b:d, a:c]
+            if crop.size == 0:
+                continue
+            person_mask = _mask(person['polygon'], crop.shape, (a, b))
+            bag_mask = np.zeros(crop.shape[:2], dtype=np.uint8)
+            for bag, owner in assignments:
+                if owner == pi:
+                    bag_mask |= _mask(bag['polygon'], crop.shape, (a, b))
+            features, visibility = masked_regions(crop, person_mask, bag_mask)
+            detection_id = f'det_{session_id}_{frame_idx}_{uuid.uuid4().hex[:8]}'
+            path = directory / (detection_id + '.jpg')
+            mask_path = directory / (detection_id + '_mask.png')
+            if not cv2.imwrite(str(path), crop) or not cv2.imwrite(str(mask_path), person_mask):
+                raise RuntimeError('Could not save analysis evidence. Check available disk space.')
+            output.append(DetectionItem(detection_id=detection_id, frame_idx=frame_idx, timestamp_seconds=timestamp_seconds,
+                bbox=person['bbox'], confidence=person['confidence'], quality_score=self.estimate_crop_quality(crop),
+                crop_path=f'/crops/{session_id}/{path.name}', mask_path=f'/crops/{session_id}/{mask_path.name}',
+                detector_name='YOLO instance segmentation', model_version=self.model_version, color_features=features,
+                attribute_visibility=visibility, backpack_detected=True if features.get('backpack') else None))
+        return output
 
-        img_h, img_w = frame.shape[:2]
-        boxes_conf: List[Tuple[List[float], float]] = []
-
-        if self.yolo_model is not None:
-            try:
-                results = self.yolo_model(frame, verbose=False, classes=[0], conf=0.20)  # class 0 = person
-                for r in results:
-                    for box in r.boxes:
-                        conf = float(box.conf[0].cpu().numpy())
-                        if conf >= min_confidence:
-                            xyxy = box.xyxy[0].cpu().numpy().tolist()
-                            boxes_conf.append((xyxy, conf))
-            except Exception as ex:
-                print(f"[Detector] YOLO detection fallback trigger: {ex}")
-                boxes_conf = self._fallback_detect(frame, min_confidence)
-
-        if not boxes_conf:
-            boxes_conf = self._fallback_detect(frame, min_confidence)
-
-        # Save crops and build DetectionItem list
-        session_crop_dir = os.path.join(self.crop_dir, session_id)
-        os.makedirs(session_crop_dir, exist_ok=True)
-
-        for (x1, y1, x2, y2), conf in boxes_conf:
-            # Apply margin
-            bw = x2 - x1
-            bh = y2 - y1
-            mx1 = max(0, int(x1 - bw * crop_margin))
-            my1 = max(0, int(y1 - bh * crop_margin))
-            mx2 = min(img_w, int(x2 + bw * crop_margin))
-            my2 = min(img_h, int(y2 + bh * crop_margin))
-
-            crop = frame[my1:my2, mx1:mx2]
-            det_id = f"det_{session_id}_{frame_idx}_{uuid.uuid4().hex[:6]}"
-            crop_rel_path = f"/crops/{session_id}/{det_id}.jpg"
-            crop_full_path = os.path.join(session_crop_dir, f"{det_id}.jpg")
-
-            if crop.size > 0:
-                cv2.imwrite(crop_full_path, crop)
-                quality = self.estimate_crop_quality(crop)
-            else:
-                quality = 0.1
-                crop_rel_path = ""
-
-            detections.append(
-                DetectionItem(
-                    detection_id=det_id,
-                    frame_idx=frame_idx,
-                    timestamp_seconds=timestamp_seconds,
-                    bbox=[round(x1, 1), round(y1, 1), round(x2, 1), round(y2, 1)],
-                    confidence=round(conf, 2),
-                    crop_path=crop_rel_path,
-                    quality_score=quality
-                )
-            )
-
-        return detections
-
-    def _fallback_detect(self, frame: np.ndarray, min_confidence: float) -> List[Tuple[List[float], float]]:
-        """
-        Robust OpenCV fallback person detection for synthetic demo or offline mode.
-        Detects distinct human-like objects/blobs or uses HOG descriptor.
-        """
-        boxes_conf = []
-        h, w = frame.shape[:2]
-
-        # Use HOG descriptor
-        hog = cv2.HOGDescriptor()
-        hog.setSVMDetector(cv2.HOGDescriptor_getDefaultPeopleDetector())
-        rects, weights = hog.detectMultiScale(frame, winStride=(8, 8), padding=(4, 4), scale=1.05)
-
-        for (x, y, bw, bh), wgt in zip(rects, weights):
-            conf = min(0.95, float(wgt) / 2.5 + 0.4)
-            if conf >= min_confidence:
-                boxes_conf.append(([float(x), float(y), float(x + bw), float(y + bh)], conf))
-
-        # Removed color blob detection fallback to prevent tracking inanimate objects (blue bins, etc)
-        return boxes_conf
+    def refine_evidence(self, detection):
+        # Same model, higher relative resolution. This stage never creates detections.
+        path = (self.crop_dir.parent / (detection.crop_path or '').lstrip('/')).resolve()
+        if not path.is_relative_to(self.crop_dir) or not path.is_file():
+            return detection
+        crop = cv2.imread(str(path))
+        if crop is None or min(crop.shape[:2]) < 24:
+            return detection
+        records = self._predict(crop, 640, .4)
+        people = [r for r in records if r['class'] == 0]
+        if not people:
+            return detection
+        original_path = (self.crop_dir.parent / (detection.mask_path or '').lstrip('/')).resolve()
+        if not original_path.is_relative_to(self.crop_dir) or not original_path.is_file():
+            return detection
+        original_mask = cv2.imread(str(original_path), cv2.IMREAD_GRAYSCALE)
+        if original_mask is None or original_mask.shape != crop.shape[:2]:
+            return detection
+        overlaps = []
+        for candidate in people:
+            candidate_mask = _mask(candidate['polygon'], crop.shape)
+            intersection = np.count_nonzero((candidate_mask > 0) & (original_mask > 0))
+            union = np.count_nonzero((candidate_mask > 0) | (original_mask > 0))
+            overlaps.append(intersection / max(1, union))
+        person_index = int(np.argmax(overlaps))
+        if overlaps[person_index] < .5:
+            return detection
+        person = people[person_index]
+        bag_mask = np.zeros(crop.shape[:2], dtype=np.uint8)
+        for bag in (r for r in records if r['class'] == 24):
+            if _bag_owner(bag, people) == person_index:
+                bag_mask |= _mask(bag['polygon'], crop.shape)
+        features, visibility = masked_regions(crop, _mask(person['polygon'], crop.shape), bag_mask)
+        # Preserve a supported bag observation when a tighter view cannot recover it.
+        if detection.backpack_detected and not features.get('backpack'):
+            return detection
+        if features:
+            detection.color_features = features
+            detection.attribute_visibility = visibility
+            detection.backpack_detected = True if features.get('backpack') else None
+        return detection

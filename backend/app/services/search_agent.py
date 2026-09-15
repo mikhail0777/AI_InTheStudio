@@ -1,88 +1,51 @@
-from typing import List
+"""Explicit description normalization; no implied general language understanding."""
+import re
 from app.models.schemas import TargetConfiguration, SearchPlan, AnalysisStrategy
+
+COLORS = r"black|dark|white|gr[ae]y|green|blue|red|yellow|orange|pink|purple|brown|beige|khaki"
+UPPER = r"upper clothing|long[ -]sleeve(?:d)?(?:\s+top)?|short[ -]sleeve(?:d)?(?:\s+top)?|hoodie|shirt|jacket|coat|sweater|top"
+LOWER = r"lower clothing|bottoms|pants|trousers|shorts|jeans|skirt"
+
 
 class SearchPlanAgent:
     @staticmethod
+    def normalize_target(config: TargetConfiguration) -> TargetConfiguration:
+        values = config.model_dump()
+        text = config.free_text_description.lower()
+        for field, names in (("upper_clothing_color", UPPER), ("lower_clothing_color", LOWER)):
+            found = re.search(rf"\b({COLORS})\s+(?:{names})\b", text)
+            negated = found and re.search(r'\b(?:no|not|without)\s+(?:a\s+)?$', text[:found.start()])
+            if not values[field] and found and not negated:
+                values[field] = found.group(1).replace("gray", "grey")
+        if not values['backpack']:
+            absent = re.search(rf'\b(?:no|without)\s+(?:a\s+)?(?:({COLORS})\s+)?back\s*pack\b', text)
+            found = re.search(rf"\b({COLORS})\s+back\s*pack\b", text)
+            if absent:
+                values['backpack'] = 'no backpack' if not absent.group(1) else 'not ' + absent.group(1) + ' backpack'
+            elif found:
+                values['backpack'] = found.group(1) + ' backpack'
+            elif re.search(r"\b(?:with|wearing|carrying|a)\s+(?:a\s+)?back\s*pack\b", text) and not re.search(r"\b(?:no|without)\s+(?:a\s+)?back\s*pack\b", text):
+                values['backpack'] = 'backpack'
+        return TargetConfiguration(**values)
+
+    @staticmethod
     def create_search_plan(config: TargetConfiguration) -> SearchPlan:
-        high_value = []
-        supporting = []
-        low_reliability = []
-        negative = list(config.negative_attributes or [])
-
-        # Upper clothing
-        upper_desc = []
+        config = SearchPlanAgent.normalize_target(config)
+        supported = []
         if config.upper_clothing_color:
-            upper_desc.append(config.upper_clothing_color)
-        if config.upper_clothing_type:
-            upper_desc.append(config.upper_clothing_type)
-        if upper_desc:
-            high_value.append(f"{' '.join(upper_desc)} upper clothing")
-
-        # Backpack
-        if config.backpack:
-            high_value.append(f"{config.backpack}")
-
-        # Lower clothing
-        lower_desc = []
+            supported.append(f'{config.upper_clothing_color} upper clothing')
         if config.lower_clothing_color:
-            lower_desc.append(config.lower_clothing_color)
-        if config.lower_clothing_type:
-            lower_desc.append(config.lower_clothing_type)
-        if lower_desc:
-            supporting.append(f"{' '.join(lower_desc)} lower clothing")
-
-        # Hat / Headwear
-        if config.hat:
-            supporting.append(f"hat: {config.hat}")
-
-        # Body build
-        if config.body_build:
-            supporting.append(f"{config.body_build} build")
-
-        # Shoes (often low reliability from top-down overhead perspective)
-        if config.shoe_color:
-            low_reliability.append(f"{config.shoe_color} shoes")
-
-        # Hair color/length (low reliability from high altitude/angle)
-        hair_desc = []
-        if config.hair_length:
-            hair_desc.append(config.hair_length)
-        if config.hair_color:
-            hair_desc.append(config.hair_color)
-        if hair_desc:
-            low_reliability.append(f"{' '.join(hair_desc)} hair")
-
-        # Additional required attributes to high value
-        for req in config.required_attributes:
-            if req not in high_value:
-                high_value.append(req)
-
-        # Additional optional attributes
-        for opt in config.optional_attributes:
-            if opt not in supporting and opt not in high_value:
-                supporting.append(opt)
-
-        summary_parts = []
-        if high_value:
-            summary_parts.append(", ".join(high_value))
-        if supporting:
-            summary_parts.append(", ".join(supporting))
-        target_summary = f"Person with {', '.join(summary_parts)}" if summary_parts else config.free_text_description
-
-        strategy = AnalysisStrategy(
-            broad_scan_fps=1.0,
-            focused_scan_fps=3.0,
-            focused_window_seconds=4.0,
-            minimum_person_confidence=0.40,
-            minimum_alert_score=config.min_alert_confidence or 0.65,
-            minimum_track_observations=2
-        )
-
-        return SearchPlan(
-            target_summary=target_summary,
-            high_value_attributes=high_value,
-            supporting_attributes=supporting,
-            low_reliability_attributes=low_reliability,
-            negative_attributes=negative,
-            analysis_strategy=strategy
-        )
+            supported.append(f'{config.lower_clothing_color} lower clothing')
+        if config.backpack:
+            supported.append(config.backpack)
+        unverified = []
+        for label, value in (("Clothing type", config.upper_clothing_type), ("Lower clothing type", config.lower_clothing_type), ("Hair color", config.hair_color), ("Hair length", config.hair_length), ("Shoes", config.shoe_color), ("Body build", config.body_build), ("Hat", config.hat), ("Accessories", config.other_accessories), ("Distinctive features", config.distinctive_features)):
+            if value:
+                unverified.append(f'{label}: {value} (not evaluated)')
+        if config.free_text_description:
+            unverified.append('Description is an operator note; only extracted clothing colors and backpack attributes are evaluated.')
+        return SearchPlan(target_summary='; '.join(supported) or 'Review visible people; no supported appearance filters supplied.',
+            high_value_attributes=supported, supporting_attributes=list(config.optional_attributes),
+            low_reliability_attributes=unverified, negative_attributes=list(config.negative_attributes),
+            analysis_strategy=AnalysisStrategy(broad_scan_fps=1, focused_scan_fps=3, focused_window_seconds=4,
+                minimum_person_confidence=.40, minimum_alert_score=config.min_alert_confidence, minimum_track_observations=2))
