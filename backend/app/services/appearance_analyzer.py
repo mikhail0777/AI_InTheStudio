@@ -1,7 +1,7 @@
 ﻿"""Conservative attribute evidence; ranking values are not probabilities."""
 from statistics import mean
 from app.models.schemas import AttributeDetail, TrackResult
-from app.services.visual_features import expected_colors
+from app.services.visual_features import color_match_score, expected_colors
 
 
 def select_evidence(detections, limit=6):
@@ -39,6 +39,9 @@ class AppearanceAnalyzer:
             ('backpack', 'backpack', target_config.backpack),
         ):
             colors = expected_colors(expected)
+            has_color_request = bool(colors) or (
+                region in ('upper', 'lower') and 'khaki' in (expected or '').lower()
+            )
             negated_color = (expected or '').lower().startswith('not ')
             if negated_color:
                 colors = set()
@@ -55,13 +58,13 @@ class AppearanceAnalyzer:
                 observed = f'{dominant if distribution[dominant] >= .45 else "Mixed colors"}; ' + ('detected backpack' if region == 'backpack' else 'approximate clothing region')
                 if absent_bag:
                     score, assessment = 0., 'conflict'
-                elif colors:
-                    score = min(1., sum(distribution.get(c, 0) for c in colors))
+                elif has_color_request:
+                    score, raw_score = color_match_score(expected, distribution)
                     # Require agreement across views; average colors cannot hide a conflict.
-                    per_view = [sum(d.color_features[region].get(c, 0) for c in colors) for d in views]
-                    if score >= .55 and min(per_view) >= .35:
+                    per_view = [color_match_score(expected, d.color_features[region])[1] for d in views]
+                    if raw_score >= .50 and min(per_view) >= .35:
                         assessment = 'match'
-                    elif score <= .15 and distribution[dominant] >= .65 and len(views) >= 2:
+                    elif raw_score <= .15 and distribution[dominant] >= .65 and len(views) >= 2:
                         assessment = 'conflict'
                 elif region == 'backpack' and (expected or '').lower().strip() in ('backpack', 'a backpack', 'back pack'):
                     score, assessment = 1., 'match'

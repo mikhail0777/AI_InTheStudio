@@ -37,6 +37,31 @@ def expected_colors(text):
     return words.intersection(COLOR_NAMES)
 
 
+def color_match_score(expected, distribution):
+    """Return calibrated support for a requested color family, not a probability.
+
+    Garments contain shadows, highlights, skin gaps, buttons and logos, so requiring the
+    requested label to occupy the full mask rejects correct clothing. A 55% supported
+    fraction is treated as full color support after visibility and multi-view checks.
+    """
+    text = (expected or '').lower()
+    colors = expected_colors(text)
+    raw = sum(distribution.get(color, 0.0) for color in colors)
+    if 'khaki' in text:
+        raw = distribution.get('beige', 0.0) + distribution.get('brown', 0.0)
+    elif 'dark' in text and 'blue' in colors:
+        blue = distribution.get('blue', 0.0)
+        raw = blue + min(distribution.get('black', 0.0), blue)
+    # Chromatic garments are commonly diluted by highlights/background leakage inside a
+    # segmentation mask. Compare their share of informative pixels while neutral-color
+    # searches continue to use the full mask.
+    neutral_request = bool(colors.intersection({'black', 'grey', 'white'})) and not (
+        'dark' in text and len(colors) > 0
+    )
+    informative = 1.0 if neutral_request else max(raw, 1.0 - distribution.get('white', 0.0) - distribution.get('grey', 0.0))
+    return min(1.0, raw / max(.01, informative)), raw
+
+
 def masked_regions(image, person_mask, backpack_mask=None):
     """Partition a detected silhouette, excluding detected bag pixels from clothing.
 

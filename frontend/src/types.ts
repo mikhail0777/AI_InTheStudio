@@ -2,6 +2,7 @@ export interface TargetConfiguration {
   free_text_description: string;
   upper_clothing_type?: string;
   upper_clothing_color?: string;
+  sleeve_length?: string;
   lower_clothing_type?: string;
   lower_clothing_color?: string;
   shoe_color?: string;
@@ -10,6 +11,9 @@ export interface TargetConfiguration {
   body_build?: string;
   backpack?: string;
   hat?: string;
+  eyewear?: string;
+  footwear_type?: string;
+  posture?: string;
   other_accessories?: string;
   distinctive_features?: string;
   required_attributes: string[];

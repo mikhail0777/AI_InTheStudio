@@ -5,6 +5,7 @@ class TargetConfiguration(BaseModel):
     free_text_description: str = Field(default="", max_length=4000)
     upper_clothing_type: Optional[str] = None
     upper_clothing_color: Optional[str] = None
+    sleeve_length: Optional[str] = None
     lower_clothing_type: Optional[str] = None
     lower_clothing_color: Optional[str] = None
     shoe_color: Optional[str] = None
@@ -13,6 +14,9 @@ class TargetConfiguration(BaseModel):
     body_build: Optional[str] = None
     backpack: Optional[str] = None
     hat: Optional[str] = None
+    eyewear: Optional[str] = None
+    footwear_type: Optional[str] = None
+    posture: Optional[str] = None
     other_accessories: Optional[str] = None
     distinctive_features: Optional[str] = None
     required_attributes: List[str] = Field(default_factory=list)

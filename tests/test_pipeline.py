@@ -9,6 +9,7 @@ from app.services.search_agent import SearchPlanAgent
 from app.services.detector import PersonDetector, _bag_owner
 from app.services.tracker import compute_iou, PersonTracker
 from app.services.visual_features import masked_regions
+from app.services.visual_features import color_match_score
 
 
 def detection(t=0, **changes):
@@ -138,6 +139,34 @@ class PipelineTests(unittest.TestCase):
     def test_refined_observations_are_retained_for_audit(self):
         result = evaluate()
         self.assertEqual(result.evidence_observations[0].color_features['upper']['green'], .9)
+
+    def test_parses_dark_blue_button_up_and_khaki_shorts(self):
+        target = SearchPlanAgent.normalize_target(TargetConfiguration(
+            free_text_description='look for someone with khaki shorts and dark blue button up shirt'))
+        self.assertEqual(target.upper_clothing_color, 'dark blue')
+        self.assertEqual(target.upper_clothing_type, 'button-up')
+        self.assertEqual(target.lower_clothing_color, 'khaki')
+        self.assertEqual(target.lower_clothing_type, 'shorts')
+
+    def test_dark_blue_and_khaki_color_families(self):
+        dark_blue, dark_blue_raw = color_match_score('dark blue', {'blue': .37, 'black': .16, 'white': .16, 'grey': .11})
+        khaki, khaki_raw = color_match_score('khaki', {'beige': .49, 'brown': .07, 'white': .32, 'grey': .10})
+        self.assertGreater(dark_blue, .65)
+        self.assertGreater(khaki, .9)
+        self.assertAlmostEqual(dark_blue_raw, .53)
+        self.assertAlmostEqual(khaki_raw, .56)
+
+    def test_khaki_request_is_evaluated_even_as_a_color_family(self):
+        dets = [detection(t, color_features={
+            'upper': {'blue': .45, 'black': .15, 'white': .15, 'grey': .1},
+            'lower': {'beige': .49, 'brown': .08, 'white': .3, 'grey': .1},
+        }) for t in (0, 1)]
+        target = TargetConfiguration(upper_clothing_color='dark blue', lower_clothing_color='khaki')
+        result = AppearanceAnalyzer.evaluate_track('test', 1, dets, target,
+            SearchPlanAgent.create_search_plan(target), '.', detector=None)
+        self.assertEqual(result.attributes['upper_clothing'].assessment, 'match')
+        self.assertEqual(result.attributes['lower_clothing'].assessment, 'match')
+        self.assertIn(result.classification, ('possible_match', 'strong_match'))
 
 if __name__ == '__main__':
     unittest.main()
