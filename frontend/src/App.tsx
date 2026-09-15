@@ -9,7 +9,7 @@ import { TrackDetailModal } from './components/TrackDetailModal';
 import { AgentActivityFeed } from './components/AgentActivityFeed';
 import { TelemetryMap } from './components/TelemetryMap';
 import { SARReportModal } from './components/SARReportModal';
-import { candidateLabels, isReviewCandidate } from './review';
+import { isReviewCandidate } from './review';
 
 const activeStatuses = ['queued', 'analyzing', 'paused'];
 const messageOf = (error: unknown) => error instanceof Error ? error.message : 'Unexpected error. Please try again.';
@@ -26,7 +26,6 @@ export const App: React.FC = () => {
   const [uploadStage, setUploadStage] = useState('');
   const [controlPending, setControlPending] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
-  const [filterClassification, setFilterClassification] = useState('review');
   const [error, setError] = useState('');
   const [connectionError, setConnectionError] = useState('');
   const generation = useRef(0);
@@ -66,7 +65,7 @@ export const App: React.FC = () => {
     generation.current += 1;
     setIsUploading(true); setError(''); setConnectionError(''); setMonitoredSessionId(null);
     setTracks([]); setTelemetry([]); setSelectedTrack(null); setVideoUrl(null); setJumpTimestamp(null);
-    setShowReportModal(false); setFilterClassification('review');
+    setShowReportModal(false);
     try {
       setUploadStage('Creating session');
       const created = await createSession(config);
@@ -117,20 +116,14 @@ export const App: React.FC = () => {
     generation.current += 1;
     setMonitoredSessionId(null); setSession(null); setTracks([]); setTelemetry([]); setSelectedTrack(null);
     setVideoUrl(null); setJumpTimestamp(null); setError(''); setConnectionError(''); setShowReportModal(false);
-    setFilterClassification('review');
   };
   const jumpTo = (seconds: number) => setJumpTimestamp({ seconds, key: Date.now() });
-  const filteredTracks = tracks.filter(track => {
-    if (filterClassification === 'all') return true;
-    if (filterClassification === 'review') return isReviewCandidate(track);
-    if (filterClassification === 'confirmed' || filterClassification === 'rejected') return track.human_feedback === filterClassification;
-    return track.classification === filterClassification;
-  });
+  const matchingTracks = tracks.filter(isReviewCandidate);
   const emptyDetail = isProcessing ? 'Candidates will appear when processing finishes.'
-    : session?.status === 'completed' ? tracks.length ? 'No tracks match this filter. Select All tracks to inspect other detections.' : 'No person tracks were returned. This does not establish that no person was present.'
+    : session?.status === 'completed' ? 'No person had enough visible evidence to match the description.'
     : session?.status === 'error' ? 'Processing stopped. Review the error above and retry with a new analysis.'
     : session?.status === 'cancelled' ? 'Analysis was cancelled. Start a new analysis to process the recording.'
-    : 'Upload a recording and choose the visible attributes to compare.';
+    : 'Describe who you are looking for and attach a recording.';
 
   return <div className="app-shell">
     <Header status={session} onNewMission={handleNewMission} onOpenReport={() => setShowReportModal(true)} isProcessing={isProcessing} isUploading={isUploading} controlPending={controlPending} onControl={handleControl} />
@@ -139,23 +132,17 @@ export const App: React.FC = () => {
     <main className="layout-grid">
       <div className="layout-column">
         <TargetForm onStartSession={handleStartSession} isProcessing={isProcessing} />
-        <TelemetryMap points={telemetry} tracks={filteredTracks} onSelectTrack={track => { setSelectedTrack(track); jumpTo(track.best_timestamp_seconds); }} />
+        <TelemetryMap points={telemetry} tracks={matchingTracks} onSelectTrack={track => { setSelectedTrack(track); jumpTo(track.best_timestamp_seconds); }} />
       </div>
       <div className="layout-column">
-        <VideoPlayer videoUrl={videoUrl} tracks={filteredTracks} status={session} selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack} jumpTimestamp={jumpTimestamp?.seconds} jumpKey={jumpTimestamp?.key} />
+        <VideoPlayer videoUrl={videoUrl} tracks={matchingTracks} status={session} selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack} jumpTimestamp={jumpTimestamp?.seconds} jumpKey={jumpTimestamp?.key} />
         <section className="card-module sightings-panel">
-          <div className="row-between sightings-heading"><div><h2>Candidate review</h2><p className="muted">{filteredTracks.length} shown · {tracks.length} total tracks</p></div>
-            <label className="filter-label">Show<select className="input-slot" value={filterClassification} onChange={event => setFilterClassification(event.target.value)}>
-              <option value="review">Review queue</option><option value="all">All tracks</option>
-              {Object.entries(candidateLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-              <option value="confirmed">Confirmed by reviewer</option><option value="rejected">Rejected by reviewer</option>
-            </select></label>
-          </div>
-          <div className="sightings-grid">{filteredTracks.length ? filteredTracks.map(track => <TrackCard key={track.track_id} track={track} isSelected={selectedTrack?.track_id === track.track_id} onSelect={() => setSelectedTrack(track)} onJumpToTime={jumpTo} onFeedback={handleFeedback} />)
+          <div className="row-between sightings-heading"><div><h2>Matching people</h2><p className="muted">{matchingTracks.length} results supported by visible evidence</p></div></div>
+          <div className="sightings-grid">{matchingTracks.length ? matchingTracks.map(track => <TrackCard key={track.track_id} track={track} isSelected={selectedTrack?.track_id === track.track_id} onSelect={() => setSelectedTrack(track)} onJumpToTime={jumpTo} onFeedback={handleFeedback} />)
             : <div className="empty-state"><strong>{isProcessing ? 'Processing recording' : 'No candidate sightings'}</strong><p>{emptyDetail}</p></div>}</div>
         </section>
       </div>
-      <div className="layout-column activity-column"><AgentActivityFeed logs={session?.agent_logs || []} currentStage={uploadStage || session?.current_stage || 'idle'} /></div>
+      <div className="activity-column"><AgentActivityFeed logs={session?.agent_logs || []} currentStage={uploadStage || session?.current_stage || 'idle'} /></div>
     </main>
     <TrackDetailModal track={selectedTrack} onClose={() => setSelectedTrack(null)} onFeedback={handleFeedback} />
     {showReportModal && <SARReportModal status={session} tracks={tracks} onClose={() => setShowReportModal(false)} />}

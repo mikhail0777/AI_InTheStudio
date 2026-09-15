@@ -20,7 +20,8 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open http://localhost:5173. After installation, `run_aieye.bat` starts both services.
+Open http://localhost:5173. The main workflow is one description field, a required video,
+and optional matching SRT telemetry. After installation, `run_aieye.bat` starts both services.
 The segmentation model is already installed in this workspace. Runtime does not download
 models or switch detectors. Missing weights or inference failures stop the job explicitly.
 
@@ -36,9 +37,9 @@ models or switch detectors. Missing weights or inference failures stop the job e
   insufficient person evidence. Visible conflicts block promotion.
 - The configured `min_alert_confidence` is an internal color-support threshold, not a
   measured accuracy or identity probability. It applies to both candidate categories.
-- The default review queue shows supported candidates and operator-flagged tracks.
-  Use **All tracks** to inspect limited-evidence detections. One card represents one track;
-  track fragmentation can still produce separate cards for the same person.
+- The interface shows supported candidates and operator-flagged tracks only. Low-similarity
+  and limited-evidence tracks remain internal. One card represents one track; track
+  fragmentation can still produce separate cards for the same person.
 - Simple descriptions can supply clothing colors/backpack attributes; selected fields
   override those extractions. Hair, identity, gender, and garment styles are not evaluated.
   Arbitrary required/negative constraints remain explicit and prevent automatic promotion.
