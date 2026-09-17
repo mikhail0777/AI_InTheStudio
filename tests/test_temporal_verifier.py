@@ -47,6 +47,21 @@ class TemporalVerifierTests(unittest.TestCase):
         evidence = self.verifier.verify(query, [dog])
         self.assertEqual(evidence[0].assessment, "supported")
 
+    def test_person_and_stroller_must_move_together_to_support_pushing(self):
+        query = StructuredQueryParser().parse("a person pushing a stroller")
+        person = track("person:1", "person", [[0, 0, 20, 40], [10, 0, 30, 40], [20, 0, 40, 40]])
+        stroller = track("stroller:1", "stroller", [[15, 15, 45, 40], [25, 15, 55, 40], [35, 15, 65, 40]])
+        evidence = self.verifier.verify(query, [person, stroller])
+        self.assertEqual(evidence[0].assessment, "supported")
+        self.assertEqual(evidence[0].kind, "action")
+
+    def test_nearby_stationary_stroller_does_not_prove_pushing(self):
+        query = StructuredQueryParser().parse("a person pushing a stroller")
+        person = track("person:1", "person", [[0, 0, 20, 40], [10, 0, 30, 40], [20, 0, 40, 40]])
+        stroller = track("stroller:1", "stroller", [[20, 15, 45, 40], [20, 15, 45, 40], [20, 15, 45, 40]])
+        evidence = self.verifier.verify(query, [person, stroller])
+        self.assertNotEqual(evidence[0].assessment, "supported")
+
 
 if __name__ == "__main__":
     unittest.main()

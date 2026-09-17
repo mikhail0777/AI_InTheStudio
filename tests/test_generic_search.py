@@ -146,6 +146,24 @@ class GenericSearchTests(unittest.TestCase):
         )
         self.assertEqual(results, [])
 
+    def test_person_stroller_event_materializes_joint_frame_and_clip(self):
+        person = [
+            self.detection("p1", "f1", 1, .5, {}, [0, 5, 20, 55], "person"),
+            self.detection("p2", "f2", 2, 1.0, {}, [10, 5, 30, 55], "person"),
+        ]
+        stroller = [
+            self.detection("s1", "f1", 1, .5, {}, [15, 25, 50, 55], "stroller"),
+            self.detection("s2", "f2", 2, 1.0, {}, [25, 25, 60, 55], "stroller"),
+        ]
+        results = OpenVocabularySearchManager._rank(
+            StructuredQueryParser().parse("a person pushing a stroller"), "q", "s", self.video,
+            [person, stroller], self.root / "evidence", PROVENANCE,
+        )
+        self.assertEqual(results[0].classification, "strong_match")
+        self.assertEqual({entity.label for entity in results[0].entities}, {"person", "stroller"})
+        self.assertTrue((self.root / results[0].best_frame_path.lstrip("/")).is_file())
+        self.assertTrue((self.root / results[0].clip_path.lstrip("/")).is_file())
+
 
 if __name__ == "__main__":
     unittest.main()

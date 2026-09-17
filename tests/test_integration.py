@@ -101,6 +101,25 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(self.client.get(self.base+'/status').json()['status'],'completed')
         self.assertEqual(self.client.get(self.base+'/tracks').json(),[])
 
+    def test_person_stroller_query_dispatches_to_generic_event_pipeline(self):
+        response = self.client.post(
+            self.base + '/analyze', json={'free_text_description': 'person pushing a stroller'}
+        )
+        self.assertEqual(response.status_code, 200, response.text)
+
+        def complete(session_id, target, *, run_id, checkpoint):
+            checkpoint()
+            with database.get_db_connection() as conn:
+                conn.execute("UPDATE analysis_runs SET status='completed' WHERE run_id=?", (run_id,))
+                conn.execute("UPDATE sessions SET status='completed',progress_percent=100 WHERE session_id=?", (session_id,))
+            return []
+
+        with patch('app.services.generic_search.OpenVocabularySearchManager.execute_analysis', side_effect=complete) as execute:
+            self.assertTrue(analysis_worker.AnalysisWorker().run_once())
+        self.assertEqual(execute.call_count, 1)
+        self.assertEqual(execute.call_args.args[1].free_text_description, 'person pushing a stroller')
+        self.assertEqual(self.client.get(self.base + '/status').json()['status'], 'completed')
+
     def test_old_telemetry_migration_retains_coordinates(self):
         with database.get_db_connection() as conn:
             conn.execute('DROP TABLE telemetry')

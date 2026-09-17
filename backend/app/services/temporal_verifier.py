@@ -15,6 +15,15 @@ def _diagonal(detection):
     return max(1.0, math.hypot(x2 - x1, y2 - y1))
 
 
+def _overlap(left, right):
+    intersection = max(0.0, min(left.bbox[2], right.bbox[2]) - max(left.bbox[0], right.bbox[0])) * max(
+        0.0, min(left.bbox[3], right.bbox[3]) - max(left.bbox[1], right.bbox[1])
+    )
+    left_area = max(1.0, (left.bbox[2] - left.bbox[0]) * (left.bbox[3] - left.bbox[1]))
+    right_area = max(1.0, (right.bbox[2] - right.bbox[0]) * (right.bbox[3] - right.bbox[1]))
+    return intersection / min(left_area, right_area)
+
+
 def _matching_tracks(entity, tracks: Sequence[EntityTrack]):
     expected = (entity.entity_type or entity.name).lower()
     aliases = {expected}
@@ -23,6 +32,40 @@ def _matching_tracks(entity, tracks: Sequence[EntityTrack]):
     if expected == "vehicle":
         aliases.update({"car", "truck", "bus", "motorcycle"})
     return [track for track in tracks if track.label.lower() in aliases]
+
+
+def _paired_observations(left: EntityTrack, right: EntityTrack, maximum_gap=1.1):
+    pairs = []
+    for first in left.detections:
+        choices = [second for second in right.detections
+                   if abs(first.timestamp_seconds - second.timestamp_seconds) <= maximum_gap]
+        if choices:
+            pairs.append((first, min(choices, key=lambda item: abs(first.timestamp_seconds - item.timestamp_seconds))))
+    return pairs
+
+
+def _association(left: EntityTrack, right: EntityTrack):
+    pairs = _paired_observations(left, right)
+    close = []
+    for first, second in pairs:
+        distance = math.dist(_center(first), _center(second)) / max(_diagonal(first), _diagonal(second))
+        if distance <= 2.0:
+            close.append((first, second, distance))
+    return close
+
+
+def _co_motion(close):
+    if len(close) < 2:
+        return 0.0
+    first_left, first_right, _ = close[0]
+    last_left, last_right, _ = close[-1]
+    actor = (_center(last_left)[0] - _center(first_left)[0], _center(last_left)[1] - _center(first_left)[1])
+    obj = (_center(last_right)[0] - _center(first_right)[0], _center(last_right)[1] - _center(first_right)[1])
+    actor_length, object_length = math.hypot(*actor), math.hypot(*obj)
+    scale = max(_diagonal(first_left), _diagonal(first_right), _diagonal(last_left), _diagonal(last_right))
+    if actor_length / scale < .12 or object_length / scale < .12:
+        return 0.0
+    return (actor[0] * obj[0] + actor[1] * obj[1]) / max(1.0, actor_length * object_length)
 
 
 class MultiFrameEvidenceVerifier:
@@ -46,13 +89,8 @@ class MultiFrameEvidenceVerifier:
             close_times = []
             for subject in subjects:
                 for obj in objects:
-                    for left in subject.detections:
-                        for right in obj.detections:
-                            if abs(left.timestamp_seconds - right.timestamp_seconds) > 1.1:
-                                continue
-                            distance = math.dist(_center(left), _center(right)) / max(_diagonal(left), _diagonal(right))
-                            if distance <= 2.0:
-                                close_times.append((left.timestamp_seconds + right.timestamp_seconds) / 2)
+                    close_times.extend((left.timestamp_seconds + right.timestamp_seconds) / 2
+                                       for left, right, _ in _association(subject, obj))
             distinct = sorted({round(value, 2) for value in close_times})
             if len(distinct) >= 2 and relationship.predicate in {"near", "beside", "behind"}:
                 assessment, score = "supported", min(1.0, .55 + .1 * len(distinct))
@@ -80,6 +118,24 @@ class MultiFrameEvidenceVerifier:
             elif action.action == "running" and any(self._normalized_motion(track) >= .75 for track in actors):
                 assessment, score = "supported", .7
                 explanation = "The actor has sustained multi-frame displacement consistent with running; human review is required."
+            elif action.action == "pushing" and objects:
+                associations = [(actor, obj, _association(actor, obj)) for actor in actors for obj in objects]
+                best = max(associations, key=lambda item: (
+                    sum(_overlap(left, right) >= .03 for left, right, _ in item[2]),
+                    len(item[2]), _co_motion(item[2])), default=None)
+                contact_count = (sum(_overlap(left, right) >= .03 for left, right, _ in best[2])
+                                 if best else 0)
+                if best and len(best[2]) >= 2 and contact_count >= 2 and _co_motion(best[2]) >= .3:
+                    assessment, score = "supported", min(.95, .7 + .04 * contact_count)
+                    timestamps = sorted({round((left.timestamp_seconds + right.timestamp_seconds) / 2, 2)
+                                         for left, right, _ in best[2] if _overlap(left, right) >= .03})
+                    explanation = "Person and stroller remain in contact and move together across multiple sampled moments."
+                elif best and len(best[2]) >= 2:
+                    assessment, score = "uncertain", .35
+                    explanation = "Person and stroller are nearby, but repeated contact and coordinated motion are not both clear."
+                else:
+                    assessment, score = "conflicting", 0.0
+                    explanation = "Person and stroller were not repeatedly associated in the sampled moments."
             evidence.append(EvidenceAssessment(
                 criterion_id=action.criterion_id, kind="action", assessment=assessment,
                 score=score, explanation=explanation, timestamps=timestamps,

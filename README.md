@@ -36,6 +36,12 @@ results include annotated frames, playable clips, component evidence, model prov
 and correct/incorrect feedback controls. `AIEYE_MAX_RESULT_TRACKS` bounds generated result
 clips (default 10), and `AIEYE_RESULT_CLIP_WIDTH` bounds clip width (default 1280).
 
+Interaction queries such as `a person pushing a stroller` also use the generic path. The
+application combines YOLO person masks with OWLv2 phrase boxes, tracks both entities, and
+requires repeated person-stroller contact plus coordinated multi-frame motion before calling
+the action supported. Mere co-visibility or proximity remains uncertain or conflicting.
+`AIEYE_MAX_EVENT_COMBINATIONS` bounds combinatorial event verification (default 500).
+
 Person/clothing searches continue to use the established specialized module during the
 incremental migration. They share the same sessions, queue, feedback, reporting, and video
 index infrastructure; later phases migrate their verification into the generic pipeline.

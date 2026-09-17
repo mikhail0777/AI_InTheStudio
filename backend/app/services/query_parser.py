@@ -107,4 +107,12 @@ def should_use_generic_search(query: SearchQuery) -> bool:
     """Keep legacy person-only appearance searches working until their Phase 8 migration."""
     # The first mentioned entity is the subject of the current vertical slice.
     # Secondary objects must not silently reroute established person searches.
-    return bool(query.entities) and query.entities[0].entity_type != "person"
+    if not query.entities:
+        return False
+    if query.actions or query.relationships:
+        # Preserve the established backpack appearance module until its Phase 8 adapter.
+        legacy_backpack = (len(query.entities) == 2 and query.entities[0].entity_type == "person"
+                           and query.entities[1].entity_type == "backpack"
+                           and all(action.action == "carrying" for action in query.actions))
+        return not legacy_backpack
+    return query.entities[0].entity_type != "person"

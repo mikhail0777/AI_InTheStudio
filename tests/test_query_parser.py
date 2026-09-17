@@ -30,6 +30,10 @@ class QueryParserTests(unittest.TestCase):
         query = self.parser.parse("person carrying a blue backpack")
         self.assertFalse(should_use_generic_search(query))
 
+    def test_person_stroller_interaction_uses_generic_pipeline(self):
+        query = self.parser.parse("person pushing a stroller")
+        self.assertTrue(should_use_generic_search(query))
+
 
 if __name__ == "__main__":
     unittest.main()

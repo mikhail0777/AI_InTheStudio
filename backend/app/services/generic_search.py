@@ -15,6 +15,7 @@ from app.models.open_vocabulary import (
 from app.models.open_vocabulary import ModelProvenance
 from app.models.schemas import TargetConfiguration, VideoMetadata
 from app.services.generic_detector import CandidateFrame, YoloDetectionProvider
+from app.services.event_ranker import build_event_results
 from app.services.grounding import Owlv2GroundingProvider
 from app.services.query_parser import StructuredQueryParser
 from app.services.semantic_retrieval import SemanticRetrievalService
@@ -257,6 +258,12 @@ class OpenVocabularySearchManager:
     def _rank(cls, query: SearchQuery, search_id: str, session_id: str, video: VideoMetadata,
               tracks: Sequence[Sequence], evidence_root: Path,
               semantic_provenance: ModelProvenance) -> List[SearchResult]:
+        if len(query.entities) > 1 or query.actions or query.relationships:
+            event_results = build_event_results(query, search_id, video.duration_seconds, tracks)
+            return cls._materialize_events(
+                event_results[:max(1, int(os.environ.get("AIEYE_MAX_RESULT_TRACKS", "10")))],
+                session_id, video, evidence_root, semantic_provenance,
+            )
         expected_entity = query.entities[0]
         color_constraint = next((item for item in expected_entity.attributes if item.name == "color"), None)
         output = []
@@ -367,6 +374,49 @@ class OpenVocabularySearchManager:
                 }.values()),
             ))
         return sorted(output, key=lambda item: item.overall_score, reverse=True)
+
+    @classmethod
+    def _materialize_events(cls, results, session_id, video, evidence_root, semantic_provenance):
+        directory = evidence_root / session_id
+        directory.mkdir(parents=True, exist_ok=True)
+        output = []
+        for number, result in enumerate(results, start=1):
+            detections = [item for track in result.entities for item in track.detections if item.frame_id]
+            if not detections:
+                continue
+            best = min(detections, key=lambda item: abs(item.timestamp_seconds - result.best_timestamp_seconds))
+            with database.get_db_connection() as conn:
+                frame_row = conn.execute(
+                    "SELECT image_path FROM indexed_frames WHERE frame_id=? AND index_id=(SELECT index_id FROM sessions WHERE session_id=?)",
+                    (best.frame_id, session_id),
+                ).fetchone()
+            if not frame_row:
+                continue
+            image = cv2.imread(frame_row["image_path"])
+            if image is None:
+                continue
+            colors = [(0, 210, 255), (255, 120, 20), (80, 220, 80), (220, 80, 220)]
+            for index, track in enumerate(result.entities):
+                observation = min(track.detections, key=lambda item: abs(item.timestamp_seconds - best.timestamp_seconds))
+                if abs(observation.timestamp_seconds - best.timestamp_seconds) > .6:
+                    continue
+                x1, y1, x2, y2 = map(int, observation.bbox)
+                color = colors[index % len(colors)]
+                cv2.rectangle(image, (x1, y1), (x2, y2), color, 5)
+                cv2.putText(image, f"{track.label} {observation.confidence:.2f}",
+                            (x1, max(30, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 3)
+            annotated = directory / f"event_{number}_frame.jpg"
+            clip = directory / f"event_{number}_clip.mp4"
+            if not cv2.imwrite(str(annotated), image):
+                raise OSError("Could not save annotated event frame.")
+            _extract_clip(video.filepath, result.start_seconds, result.end_seconds, clip)
+            result.best_timestamp_seconds = best.timestamp_seconds
+            result.best_frame_path = f"/evidence/{session_id}/{annotated.name}"
+            result.clip_path = f"/evidence/{session_id}/{clip.name}"
+            if not any(item.model_version == semantic_provenance.model_version for item in result.model_provenance):
+                result.model_provenance.insert(0, semantic_provenance)
+            output.append(result)
+        return output
 
     @staticmethod
     def apply_feedback(session_id, result_id, feedback):
