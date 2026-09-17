@@ -13,6 +13,7 @@ from app.services.tracker import PersonTracker
 from app.services.appearance_analyzer import AppearanceAnalyzer
 from app.services.telemetry_service import TelemetryService
 from app.services.report_generator import ReportGenerator
+from app.services.video_indexer import VideoIndexer
 
 DATA_DIR = DB_DIR
 
@@ -116,11 +117,15 @@ class AgenticLoopManager:
             conn.execute("UPDATE sessions SET target_config=?,search_plan=? WHERE session_id=?",
                          (json.dumps(target_config.model_dump(mode="json")), json.dumps(search_plan.model_dump(mode="json")), session_id))
         cls.log_agent_event(session_id, "SEARCH_PLAN", "Prepared a person search using the supplied visible attributes.", "info")
+        cls.update_session_status(session_id, "analyzing", 3, "video_indexing")
+        video_index = VideoIndexer().build_or_reuse(video_info, mode="balanced")
+        index_action = "Reused" if video_index.cache_hit else "Built"
+        cls.log_agent_event(session_id, "VIDEO_INDEX", f"{index_action} reusable video index {video_index.index_id} with {len(video_index.keyframe_indices)} keyframes and {video_index.scene_count} scenes.", "action")
         cls.update_session_status(session_id, "analyzing", 5, "loading_detector")
         detector = PersonDetector(crop_dir=os.path.join(DATA_DIR, "crops"))
         checkpoint()
         strategy = search_plan.analysis_strategy
-        broad_indices = VideoService.sample_frame_indices(video_info, strategy.broad_scan_fps)
+        broad_indices = video_index.keyframe_indices
         all_detections = {}
         cls.log_agent_event(session_id, "BROAD_SCAN", f"Sampling {len(broad_indices)} frames for person candidates.", "action")
         cls._scan(session_id, run_id, video_info, broad_indices, "broad_scan", detector,
