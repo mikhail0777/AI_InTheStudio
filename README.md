@@ -107,6 +107,12 @@ cd frontend
 npm.cmd run build
 ```
 
+Completed searches can be measured against operator labels with
+`scripts/evaluate_labeled_search.py`; copy `evaluation/manifest.example.json` and supply the
+search session ID, event intervals, required labels, condition tags, and optional boxes. Reports
+retain explicit counts and return unavailable metrics as `null` rather than inventing accuracy.
+See `docs/PHASE10_EVALUATION_HARDENING.md` for the measured example and limitations.
+
 `test_e2e.py` is an optional HTTP smoke test against a running backend and generated demo
 video. Synthetic drawings are not a detector accuracy benchmark. Before operational use,
 label representative real recordings (including tires, stationary people, occlusions,

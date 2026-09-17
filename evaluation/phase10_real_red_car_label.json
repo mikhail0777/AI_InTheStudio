@@ -1,0 +1,24 @@
+{
+  "cases": [
+    {
+      "case_id": "real-red-car-dji-0178-fast",
+      "session_id": "benchmark_c953b7c9e2ab",
+      "ground_truth_events": [
+        {
+          "event_id": "red-tesla",
+          "start_seconds": 0.0,
+          "end_seconds": 2.1354666667,
+          "required_labels": ["car"],
+          "conditions": ["daylight", "high_angle", "medium_distance"],
+          "boxes": [
+            {
+              "timestamp_seconds": 2.002,
+              "label": "car",
+              "bbox": [510, 1184, 1130, 1710]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

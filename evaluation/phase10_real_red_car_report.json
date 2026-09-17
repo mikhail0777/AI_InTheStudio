@@ -1,0 +1,49 @@
+{
+  "source_manifest": "evaluation/phase10_real_red_car_label.json",
+  "case_id": "real-red-car-dji-0178-fast",
+  "session_id": "benchmark_c953b7c9e2ab",
+  "query": "a red car",
+  "processing_mode": "fast",
+  "search_metrics": {
+    "stage_timings": {
+      "indexing": 1.840545,
+      "semantic_retrieval": 15.632116,
+      "entity_localization": 5.733047,
+      "evidence_ranking": 26.62029,
+      "total": 49.90343
+    },
+    "cache_hit": false,
+    "candidate_count": 6,
+    "localized_frame_count": 3,
+    "detection_count": 53,
+    "track_count": 5,
+    "result_count": 5,
+    "device": "cpu"
+  },
+  "report": {
+    "counts": {
+      "ground_truth_events": 1,
+      "retrieved_events": 1,
+      "matched_events": 1,
+      "promoted_results": 1,
+      "false_positive_results": 0,
+      "labeled_boxes": 1,
+      "localized_boxes": 1
+    },
+    "metrics": {
+      "candidate_retrieval_recall": 1.0,
+      "event_recall": 1.0,
+      "promoted_false_positive_rate": 0.0,
+      "event_localization_iou": 0.9999999999843906,
+      "box_localization_recall_at_50_iou": 1.0,
+      "mean_box_iou": 0.9870077196175435,
+      "mean_reciprocal_rank": 1.0,
+      "condition_recall": {
+        "daylight": 1.0,
+        "high_angle": 1.0,
+        "medium_distance": 1.0
+      }
+    },
+    "notes": []
+  }
+}

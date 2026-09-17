@@ -65,6 +65,18 @@ class GenericDetectorTests(unittest.TestCase):
             provider.class_ids = {value: key for key, value in provider.names.items()}
             self.assertEqual(provider.supported_labels(["stroller"]), [])
 
+    def test_cpu_fallback_is_explicit_in_provenance(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            model_path = root / "model.pt"
+            model_path.write_bytes(b"test")
+            with patch.object(YoloDetectionProvider, "_load"), patch.object(
+                YoloDetectionProvider, "_cuda_available", return_value=False,
+            ):
+                provider = YoloDetectionProvider(str(root / "evidence"), model_path)
+                provider.weight_hash = "test"
+                self.assertEqual(provider.provenance.device, "cpu")
+
 
 if __name__ == "__main__":
     unittest.main()

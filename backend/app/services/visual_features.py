@@ -19,7 +19,8 @@ def color_distribution(image, mask):
     labels[chromatic & (h >= 35) & (h < 86)] = 'green'
     labels[chromatic & (h >= 86) & (h < 131)] = 'blue'
     labels[chromatic & (h >= 131) & (h < 170)] = 'purple'
-    labels[chromatic & (h < 25) & (v < 160)] = 'brown'
+    # Preserve pure/dark red near hue zero; brown occupies the warmer orange-red band.
+    labels[chromatic & (h >= 5) & (h < 25) & (v < 160)] = 'brown'
     labels[chromatic & ((h < 10) | (h >= 160)) & (v > 180) & (s < 150)] = 'pink'
     labels[(s < 45) & (v >= 205)] = 'white'
     labels[(h >= 10) & (h < 35) & (s >= 25) & (s < 100) & (v >= 160)] = 'beige'
