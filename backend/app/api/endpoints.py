@@ -240,7 +240,9 @@ def get_report(session_id: str):
     row = get_session(session_id)
     if row["status"] != "completed":
         raise HTTPException(409,"A completed analysis is required before exporting a report.")
-    if row["search_id"]:
+    with get_db_connection() as conn:
+        has_legacy_tracks = bool(conn.execute("SELECT 1 FROM tracks WHERE session_id=? LIMIT 1", (session_id,)).fetchone())
+    if row["search_id"] and not has_legacy_tracks:
         from app.services.generic_report import generate_generic_report
         generate_generic_report(session_id)
     else:

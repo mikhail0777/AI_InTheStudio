@@ -17,7 +17,7 @@ def main():
 
     from app import database
     from app.models.schemas import TargetConfiguration
-    from app.services.generic_search import OpenVocabularySearchManager
+    from app.services.unified_search import UnifiedSearchManager
     from app.services.video_service import VideoService
 
     video = VideoService.inspect_video(str(args.video.resolve()))
@@ -35,7 +35,7 @@ def main():
             (run_id, session_id, "analyzing"),
         )
     started = time.perf_counter()
-    results = OpenVocabularySearchManager.execute_analysis(
+    results = UnifiedSearchManager.execute_analysis(
         session_id, target, run_id=run_id, checkpoint=lambda: None,
     )
     elapsed = time.perf_counter() - started

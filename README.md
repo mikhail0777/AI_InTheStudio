@@ -42,9 +42,15 @@ requires repeated person-stroller contact plus coordinated multi-frame motion be
 the action supported. Mere co-visibility or proximity remains uncertain or conflicting.
 `AIEYE_MAX_EVENT_COMBINATIONS` bounds combinatorial event verification (default 500).
 
-Person/clothing searches continue to use the established specialized module during the
-incremental migration. They share the same sessions, queue, feedback, reporting, and video
-index infrastructure; later phases migrate their verification into the generic pipeline.
+All searches now enter through one worker and publish the same structured query/result
+contract. Person/clothing searches retain the established appearance verifier as an optional
+specialist provider, while generic entities and interactions use the open-vocabulary path.
+Legacy track, feedback, and report routes remain available during compatibility migration.
+
+Structured generic queries support quantities, negative entities, per-entity colors,
+spatial relationships, running, pushing, and carrying. Interaction claims require repeated
+localized evidence; unsupported visible attributes remain explicitly uncertain instead of
+being inferred from semantic similarity.
 
 - YOLO detects people and backpacks. Zero people is a valid result; there is no HOG fallback.
 - Backpack masks are excluded from approximate upper/lower clothing bands. These bands

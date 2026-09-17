@@ -7,6 +7,7 @@ import uuid
 
 from app.models.open_vocabulary import EntityTrack, EvidenceAssessment, SearchQuery, SearchResult
 from app.services.temporal_verifier import MultiFrameEvidenceVerifier
+from app.services.visual_features import color_match_score
 
 
 def _matches(label, entity):
@@ -36,12 +37,65 @@ def _as_tracks(raw_tracks):
     return output
 
 
+def _associated(left, right):
+    for first in left.detections:
+        for second in right.detections:
+            if abs(first.timestamp_seconds - second.timestamp_seconds) > 1.1:
+                continue
+            ax, ay = (first.bbox[0] + first.bbox[2]) / 2, (first.bbox[1] + first.bbox[3]) / 2
+            bx, by = (second.bbox[0] + second.bbox[2]) / 2, (second.bbox[1] + second.bbox[3]) / 2
+            scale = max(1.0, ((first.bbox[2] - first.bbox[0]) ** 2 + (first.bbox[3] - first.bbox[1]) ** 2) ** .5)
+            if ((ax - bx) ** 2 + (ay - by) ** 2) ** .5 / scale <= 2.0:
+                return True
+    return False
+
+
+def _attribute_evidence(entity, selected):
+    evidence = []
+    detections = [item for track in selected for item in track.detections]
+    for attribute in entity.attributes:
+        scores, raw_scores = [], []
+        if attribute.name == "color":
+            for detection in detections:
+                score, raw = color_match_score(attribute.value, detection.attributes.get("colors", {}))
+                scores.append(score)
+                raw_scores.append(raw)
+            support, raw = max(scores, default=0.0), max(raw_scores, default=0.0)
+            if attribute.negative:
+                assessment = "supported" if raw < .05 else ("conflicting" if raw >= .18 else "uncertain")
+                explanation = f"Excluded {attribute.value}; strongest localized color coverage was {round(raw * 100)}%."
+                score = 1.0 - support
+            else:
+                assessment = "supported" if support >= .30 and raw >= .18 else (
+                    "conflicting" if raw < .05 else "uncertain"
+                )
+                explanation = f"Requested {attribute.value}; strongest localized color coverage was {round(raw * 100)}%."
+                score = support
+        else:
+            assessment, score = "uncertain", None
+            explanation = f"The visible attribute '{attribute.value}' has no specialized verifier yet."
+        evidence.append(EvidenceAssessment(
+            criterion_id=attribute.criterion_id, kind="attribute", assessment=assessment,
+            score=score, explanation=explanation,
+            timestamps=[item.timestamp_seconds for item, value in zip(detections, scores) if value >= .3],
+            entity_track_ids=[track.track_id for track in selected],
+            evidence_paths=[item.crop_path for item in detections if item.crop_path],
+            provenance=detections[0].provenance if detections else None,
+        ))
+    return evidence
+
+
 def build_event_results(query: SearchQuery, search_id: str, duration: float,
                         raw_tracks: Sequence[Sequence]):
     tracks = _as_tracks(raw_tracks)
+    positive_entities = [entity for entity in query.entities if not entity.negative]
+    negative_entities = [entity for entity in query.entities if entity.negative]
+    if not positive_entities:
+        return []
+    slots = [entity for entity in positive_entities for _ in range(entity.quantity or 1)]
     per_entity = []
     limit = max(1, int(os.environ.get("AIEYE_MAX_TRACKS_PER_ENTITY", "12")))
-    for entity in query.entities:
+    for entity in slots:
         matches = [track for track in tracks if _matches(track.label, entity)]
         matches.sort(key=lambda track: max(item.confidence for item in track.detections), reverse=True)
         if not matches:
@@ -57,23 +111,47 @@ def build_event_results(query: SearchQuery, search_id: str, duration: float,
             continue
         constraint_evidence = verifier.verify(query, combination)
         entity_evidence = []
-        for entity, track in zip(query.entities, combination):
+        selected_by_entity = {entity.entity_id: [] for entity in positive_entities}
+        for entity, track in zip(slots, combination):
+            selected_by_entity[entity.entity_id].append(track)
+        for entity in positive_entities:
+            selected = selected_by_entity[entity.entity_id]
+            detections = [item for track in selected for item in track.detections]
             entity_evidence.append(EvidenceAssessment(
                 criterion_id=entity.entity_id, kind="entity", assessment="supported",
-                score=max(item.confidence for item in track.detections),
-                explanation=f"Localized {track.label} in {len(track.detections)} indexed observations.",
-                timestamps=[item.timestamp_seconds for item in track.detections],
-                entity_track_ids=[track.track_id],
-                evidence_paths=[item.crop_path for item in track.detections if item.crop_path],
-                provenance=track.detections[0].provenance,
+                score=mean(item.confidence for item in detections),
+                explanation=(f"Localized {len(selected)} required {entity.entity_type or entity.name} track(s) "
+                             f"in {len(detections)} indexed observations."),
+                timestamps=[item.timestamp_seconds for item in detections],
+                entity_track_ids=[track.track_id for track in selected],
+                evidence_paths=[item.crop_path for item in detections if item.crop_path],
+                provenance=detections[0].provenance,
+            ))
+            constraint_evidence.extend(_attribute_evidence(entity, selected))
+        primary_tracks = selected_by_entity[positive_entities[0].entity_id] if positive_entities else []
+        for entity in negative_entities:
+            excluded = [track for track in tracks if _matches(track.label, entity)]
+            conflicts = [track for track in excluded if any(_associated(primary, track) for primary in primary_tracks)]
+            assessment = "conflicting" if conflicts else "supported"
+            constraint_evidence.append(EvidenceAssessment(
+                criterion_id=entity.entity_id, kind="entity", assessment=assessment,
+                score=0.0 if conflicts else 1.0,
+                explanation=(f"Found {len(conflicts)} associated excluded {entity.entity_type or entity.name} track(s)."
+                             if conflicts else f"No associated {entity.entity_type or entity.name} was localized in sampled moments."),
+                timestamps=[item.timestamp_seconds for track in conflicts for item in track.detections],
+                entity_track_ids=[track.track_id for track in conflicts],
+                evidence_paths=[item.crop_path for track in conflicts for item in track.detections if item.crop_path],
+                provenance=conflicts[0].detections[0].provenance if conflicts else verifier.provenance,
             ))
         assessments = [item.assessment for item in constraint_evidence]
         if constraint_evidence and all(value == "supported" for value in assessments):
             classification = "strong_match"
         elif any(value == "conflicting" for value in assessments):
             classification = "unlikely_match"
-        else:
+        elif constraint_evidence:
             classification = "insufficient_visibility"
+        else:
+            classification = "strong_match" if all(len(track.detections) >= 2 for track in combination) else "possible_match"
         constraint_score = mean(item.score or 0.0 for item in constraint_evidence) if constraint_evidence else 1.0
         entity_score = mean(max(item.confidence for item in track.detections) for track in combination)
         visibility = mean(max(item.visibility for item in track.detections) for track in combination)

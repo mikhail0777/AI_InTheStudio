@@ -258,7 +258,12 @@ class OpenVocabularySearchManager:
     def _rank(cls, query: SearchQuery, search_id: str, session_id: str, video: VideoMetadata,
               tracks: Sequence[Sequence], evidence_root: Path,
               semantic_provenance: ModelProvenance) -> List[SearchResult]:
-        if len(query.entities) > 1 or query.actions or query.relationships:
+        needs_event_ranking = (
+            len(query.entities) > 1 or query.actions or query.relationships
+            or any((entity.quantity or 1) > 1 or entity.negative for entity in query.entities)
+            or any(attribute.name != "color" for entity in query.entities for attribute in entity.attributes)
+        )
+        if needs_event_ranking:
             event_results = build_event_results(query, search_id, video.duration_seconds, tracks)
             return cls._materialize_events(
                 event_results[:max(1, int(os.environ.get("AIEYE_MAX_RESULT_TRACKS", "10")))],

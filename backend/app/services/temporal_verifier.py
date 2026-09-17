@@ -101,6 +101,10 @@ class MultiFrameEvidenceVerifier:
             else:
                 assessment, score = "missing", None
                 explanation = "One or both entities required for the relationship were not localized."
+            if relationship.negative and assessment in {"supported", "conflicting"}:
+                assessment = "conflicting" if assessment == "supported" else "supported"
+                score = 1.0 - (score or 0.0)
+                explanation = "Negated relationship: " + explanation
             evidence.append(EvidenceAssessment(
                 criterion_id=relationship.criterion_id, kind="relationship", assessment=assessment,
                 score=score, explanation=explanation, timestamps=distinct,
@@ -118,7 +122,7 @@ class MultiFrameEvidenceVerifier:
             elif action.action == "running" and any(self._normalized_motion(track) >= .75 for track in actors):
                 assessment, score = "supported", .7
                 explanation = "The actor has sustained multi-frame displacement consistent with running; human review is required."
-            elif action.action == "pushing" and objects:
+            elif action.action in {"pushing", "carrying"} and objects:
                 associations = [(actor, obj, _association(actor, obj)) for actor in actors for obj in objects]
                 best = max(associations, key=lambda item: (
                     sum(_overlap(left, right) >= .03 for left, right, _ in item[2]),
@@ -129,17 +133,57 @@ class MultiFrameEvidenceVerifier:
                     assessment, score = "supported", min(.95, .7 + .04 * contact_count)
                     timestamps = sorted({round((left.timestamp_seconds + right.timestamp_seconds) / 2, 2)
                                          for left, right, _ in best[2] if _overlap(left, right) >= .03})
-                    explanation = "Person and stroller remain in contact and move together across multiple sampled moments."
+                    if action.action == "pushing":
+                        explanation = "Actor and pushed object remain in contact and move together across multiple sampled moments."
+                    else:
+                        explanation = "Actor and carried object overlap and move together across multiple sampled moments."
                 elif best and len(best[2]) >= 2:
                     assessment, score = "uncertain", .35
-                    explanation = "Person and stroller are nearby, but repeated contact and coordinated motion are not both clear."
+                    explanation = ("Actor and object are nearby, but repeated contact and coordinated motion "
+                                   "are not both clear.")
                 else:
                     assessment, score = "conflicting", 0.0
-                    explanation = "Person and stroller were not repeatedly associated in the sampled moments."
+                    explanation = "Actor and object were not repeatedly associated in the sampled moments."
+            if action.negative and assessment in {"supported", "conflicting"}:
+                assessment = "conflicting" if assessment == "supported" else "supported"
+                score = 1.0 - (score or 0.0)
+                explanation = "Negated action: " + explanation
             evidence.append(EvidenceAssessment(
                 criterion_id=action.criterion_id, kind="action", assessment=assessment,
                 score=score, explanation=explanation, timestamps=timestamps,
                 entity_track_ids=[track.track_id for track in actors + objects], provenance=self.provenance,
+            ))
+        action_evidence = {item.criterion_id: item for item in evidence if item.kind == "action"}
+        ordered_actions = sorted(query.actions, key=lambda item: next(
+            (step.order for step in query.event_sequence
+             if step.actor_entity_id == item.actor_entity_id and step.action == item.action
+             and step.object_entity_id == item.object_entity_id), 10**6
+        ))
+        for step, action in zip(sorted(query.event_sequence, key=lambda item: item.order), ordered_actions):
+            current = action_evidence.get(action.criterion_id)
+            prior_actions = ordered_actions[:step.order]
+            prior = action_evidence.get(prior_actions[-1].criterion_id) if prior_actions else None
+            if not current or current.assessment != "supported":
+                assessment, score = "uncertain", None
+                explanation = "The event step lacks supported action evidence."
+            elif prior and prior.assessment == "supported" and prior.timestamps and current.timestamps:
+                if max(prior.timestamps) < min(current.timestamps):
+                    assessment, score = "supported", .75
+                    explanation = "Supported action evidence occurs after the preceding event step."
+                else:
+                    assessment, score = "uncertain", .35
+                    explanation = "Actions were observed, but their requested order was not established."
+            elif prior:
+                assessment, score = "uncertain", None
+                explanation = "The preceding event step lacks timestamped supported evidence."
+            else:
+                assessment, score = "supported", current.score
+                explanation = "The first event step has supported action evidence."
+            evidence.append(EvidenceAssessment(
+                criterion_id=step.step_id, kind="temporal", assessment=assessment,
+                score=score, explanation=explanation,
+                timestamps=current.timestamps if current else [],
+                entity_track_ids=current.entity_track_ids if current else [], provenance=self.provenance,
             ))
         return evidence
 

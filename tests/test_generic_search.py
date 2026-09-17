@@ -164,6 +164,22 @@ class GenericSearchTests(unittest.TestCase):
         self.assertTrue((self.root / results[0].best_frame_path.lstrip("/")).is_file())
         self.assertTrue((self.root / results[0].clip_path.lstrip("/")).is_file())
 
+    def test_quantity_query_uses_joint_event_ranking(self):
+        first = [
+            self.detection("p1", "f1", 1, .5, {}, [0, 5, 20, 55], "person"),
+            self.detection("p2", "f2", 2, 1.0, {}, [2, 5, 22, 55], "person"),
+        ]
+        second = [
+            self.detection("p3", "f1", 1, .5, {}, [30, 5, 50, 55], "person"),
+            self.detection("p4", "f2", 2, 1.0, {}, [32, 5, 52, 55], "person"),
+        ]
+        results = OpenVocabularySearchManager._rank(
+            StructuredQueryParser().parse("two people"), "q", "s", self.video,
+            [first, second], self.root / "evidence", PROVENANCE,
+        )
+        self.assertEqual(results[0].classification, "strong_match")
+        self.assertEqual(len(results[0].entities), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

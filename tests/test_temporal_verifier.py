@@ -62,6 +62,35 @@ class TemporalVerifierTests(unittest.TestCase):
         evidence = self.verifier.verify(query, [person, stroller])
         self.assertNotEqual(evidence[0].assessment, "supported")
 
+    def test_carried_object_requires_repeated_contact_and_co_motion(self):
+        query = StructuredQueryParser().parse("a person carrying a package")
+        person = track("person:1", "person", [[0, 0, 30, 50], [10, 0, 40, 50], [20, 0, 50, 50]])
+        package = track("package:1", "package", [[15, 20, 28, 35], [25, 20, 38, 35], [35, 20, 48, 35]])
+        evidence = self.verifier.verify(query, [person, package])
+        self.assertEqual(evidence[0].assessment, "supported")
+
+    def test_unrelated_object_does_not_prove_carrying(self):
+        query = StructuredQueryParser().parse("a person carrying a package")
+        person = track("person:1", "person", [[0, 0, 30, 50], [10, 0, 40, 50], [20, 0, 50, 50]])
+        package = track("package:1", "package", [[200, 0, 220, 20], [210, 0, 230, 20], [220, 0, 240, 20]])
+        evidence = self.verifier.verify(query, [person, package])
+        self.assertEqual(evidence[0].assessment, "conflicting")
+
+    def test_negated_relationship_inverts_repeated_association(self):
+        query = StructuredQueryParser().parse("a dog not near a bicycle")
+        dog = track("dog:1", "dog", [[0, 0, 20, 20], [2, 0, 22, 20]])
+        bike = track("bicycle:1", "bicycle", [[22, 0, 62, 40], [24, 0, 64, 40]])
+        self.assertEqual(self.verifier.verify(query, [dog, bike])[0].assessment, "conflicting")
+
+    def test_unproved_event_order_remains_uncertain(self):
+        query = StructuredQueryParser().parse("a person running then carrying a package")
+        person = track("person:1", "person", [[0, 0, 30, 50], [30, 0, 60, 50], [60, 0, 90, 50]])
+        package = track("package:1", "package", [[15, 20, 28, 35], [45, 20, 58, 35], [75, 20, 88, 35]])
+        evidence = self.verifier.verify(query, [person, package])
+        sequence = [item for item in evidence if item.kind == "temporal"]
+        self.assertEqual(sequence[0].assessment, "supported")
+        self.assertEqual(sequence[1].assessment, "uncertain")
+
 
 if __name__ == "__main__":
     unittest.main()

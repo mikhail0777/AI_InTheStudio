@@ -101,6 +101,7 @@ class SearchQuery(BaseModel):
             if any(ref is not None and ref not in known_entities for ref in refs):
                 raise ValueError("action references an unknown entity")
         for step in self.event_sequence:
+            criteria.append(step.step_id)
             refs = [step.actor_entity_id, step.object_entity_id]
             if any(ref is not None and ref not in known_entities for ref in refs):
                 raise ValueError("event step references an unknown entity")
