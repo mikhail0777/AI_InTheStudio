@@ -210,6 +210,28 @@ def init_db():
         )
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS clips_by_time ON indexed_clips(index_id, start_seconds, end_seconds)")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS embeddings (
+            index_id TEXT NOT NULL, owner_kind TEXT NOT NULL, owner_id TEXT NOT NULL,
+            provider TEXT NOT NULL, model_version TEXT NOT NULL,
+            dimension INTEGER NOT NULL, vector BLOB NOT NULL, metadata JSON,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY(index_id, owner_kind, owner_id, provider, model_version),
+            FOREIGN KEY(index_id) REFERENCES video_indexes(index_id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS embeddings_by_index ON embeddings(index_id, provider, model_version)")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS search_candidates (
+            search_id TEXT NOT NULL, candidate_id TEXT NOT NULL,
+            owner_kind TEXT NOT NULL, owner_id TEXT NOT NULL,
+            semantic_similarity REAL NOT NULL, rank INTEGER NOT NULL,
+            payload JSON NOT NULL,
+            PRIMARY KEY(search_id, candidate_id),
+            FOREIGN KEY(search_id) REFERENCES searches(search_id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS candidates_by_rank ON search_candidates(search_id, rank)")
 
     conn.commit()
     conn.close()

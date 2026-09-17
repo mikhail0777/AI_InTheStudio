@@ -7,3 +7,5 @@ opencv-python==5.0.0.93
 ultralytics==8.4.148
 httpx==0.28.1
 requests==2.32.5
+transformers==5.3.0
+sentencepiece==0.2.2

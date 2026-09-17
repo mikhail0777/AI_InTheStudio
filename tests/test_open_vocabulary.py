@@ -107,7 +107,8 @@ class OpenVocabularyMigrationTests(unittest.TestCase):
                     indexes = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='index'")}
                 self.assertIn("search_query", session_columns)
                 self.assertTrue({"searches", "search_results", "media_assets", "video_indexes",
-                                 "scenes", "indexed_frames", "indexed_clips"}.issubset(tables))
+                                 "scenes", "indexed_frames", "indexed_clips", "embeddings",
+                                 "search_candidates"}.issubset(tables))
                 self.assertIn("results_by_rank", indexes)
 
 

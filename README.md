@@ -57,6 +57,11 @@ Configuration: `AIEYE_MODEL_PATH`, `AIEYE_IMAGE_SIZE` (default 1280),
 `AIEYE_CPU_THREADS` (default 4), and `AIEYE_DATA_DIR` (default backend/data).
 The application is intended for a local workstation and has no account login system.
 
+The open-vocabulary index uses a revision-pinned local SigLIP model for frame and aggregated
+clip embeddings. `python backend/download_models.py` installs its safetensor weights
+explicitly; runtime inference is offline-only and never downloads a model. Configure
+`AIEYE_EMBEDDING_BATCH_SIZE` to bound embedding memory (default 2 on CPU and 8 on CUDA).
+
 ## Verify
 
 ```powershell

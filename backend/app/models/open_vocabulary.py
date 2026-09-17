@@ -184,3 +184,15 @@ class SearchResult(BaseModel):
         if any(not 0 <= value <= 1 for value in self.component_scores.values()):
             raise ValueError("component scores must be between zero and one")
         return self
+
+
+class SemanticCandidate(BaseModel):
+    candidate_id: str
+    index_id: str
+    owner_kind: Literal["frame", "clip"]
+    owner_id: str
+    timestamp_seconds: float = Field(ge=0)
+    semantic_similarity: float = Field(ge=-1, le=1)
+    rank: int = Field(ge=1)
+    artifact_path: str
+    metadata: Dict[str, Any] = Field(default_factory=dict)
