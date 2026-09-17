@@ -15,12 +15,20 @@ def _safe_url(value):
 
 def generate_generic_report(session_id: str) -> str:
     with database.get_db_connection() as conn:
-        session = conn.execute("SELECT search_query,video_metadata FROM sessions WHERE session_id=?", (session_id,)).fetchone()
+        session = conn.execute("""SELECT s.search_query,s.video_metadata,q.processing_mode,q.metrics_json
+            FROM sessions s LEFT JOIN searches q ON q.search_id=s.search_id WHERE s.session_id=?""",
+            (session_id,)).fetchone()
     if not session or not session["search_query"]:
         raise ValueError("Generic search report inputs are missing.")
     query = json.loads(session["search_query"])
     video = json.loads(session["video_metadata"] or "{}")
     results = load_search_results(session_id)
+    metrics = json.loads(session["metrics_json"] or "{}")
+    timings = metrics.get("stage_timings", {})
+    timing_items = "".join(
+        f"<li>{escape(name.replace('_', ' ').title())}: {float(value):.3f} seconds</li>"
+        for name, value in timings.items()
+    )
     cards = []
     for result in results:
         image = _safe_url(result.best_frame_path)
@@ -42,6 +50,8 @@ def generate_generic_report(session_id: str) -> str:
     small{{color:#667085}}</style></head><body><h1>Open-vocabulary video search report</h1>
     <p><b>Query:</b> {escape(query.get('original_text',''))}</p>
     <p><b>Video:</b> {escape(video.get('filename',''))}</p>
+    <p><b>Processing mode:</b> {escape((session['processing_mode'] or 'unknown').title())}</p>
+    {f'<h2>Stage timings</h2><ul>{timing_items}</ul>' if timing_items else ''}
     <small>Generated {escape(datetime.now(timezone.utc).isoformat())}. Automated evidence requires human review.</small>
     {''.join(cards) if cards else no_results}</body></html>"""
     reports = Path(database.DB_DIR) / "reports"

@@ -15,7 +15,9 @@ class UnifiedSearchManager:
 
     @classmethod
     def execute_analysis(cls, session_id: str, target: TargetConfiguration, *, run_id: str, checkpoint):
-        parsed = StructuredQueryParser().parse(target.free_text_description or "Locate a person.")
+        parsed = StructuredQueryParser().parse(
+            target.free_text_description or "Locate a person.", target.processing_mode,
+        )
         if should_use_generic_search(parsed):
             return OpenVocabularySearchManager.execute_analysis(
                 session_id, target, run_id=run_id, checkpoint=checkpoint,
@@ -39,7 +41,7 @@ class UnifiedSearchManager:
             from app.services.generic_search import load_search_results
             return load_search_results(session_id)
         target = TargetConfiguration(**json.loads(session["target_config"]))
-        query = target_to_search_query(target)
+        query = target_to_search_query(target, target.processing_mode)
         search_id = f"search_{uuid.uuid4().hex}"
         results = [track_to_search_result(track, search_id) for track in load_tracks(session_id)]
         with database.get_db_connection() as conn:

@@ -30,6 +30,11 @@ export const App: React.FC = () => {
   const [showReportModal, setShowReportModal] = useState(false);
   const [error, setError] = useState('');
   const [connectionError, setConnectionError] = useState('');
+  const [classificationFilter, setClassificationFilter] = useState('all');
+  const [entityFilter, setEntityFilter] = useState('all');
+  const [minimumScore, setMinimumScore] = useState(0);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
   const generation = useRef(0);
   const isProcessing = isUploading || !!(session && activeStatuses.includes(session.status));
 
@@ -68,6 +73,7 @@ export const App: React.FC = () => {
     generation.current += 1;
     setIsUploading(true); setError(''); setConnectionError(''); setMonitoredSessionId(null);
     setTracks([]); setResults([]); setTelemetry([]); setSelectedTrack(null); setVideoUrl(null); setJumpTimestamp(null);
+    setClassificationFilter('all'); setEntityFilter('all'); setMinimumScore(0); setStartTime(''); setEndTime('');
     setShowReportModal(false);
     try {
       setUploadStage('Creating session');
@@ -130,10 +136,18 @@ export const App: React.FC = () => {
     generation.current += 1;
     setMonitoredSessionId(null); setSession(null); setTracks([]); setResults([]); setTelemetry([]); setSelectedTrack(null);
     setVideoUrl(null); setJumpTimestamp(null); setError(''); setConnectionError(''); setShowReportModal(false);
+    setClassificationFilter('all'); setEntityFilter('all'); setMinimumScore(0); setStartTime(''); setEndTime('');
   };
   const jumpTo = (seconds: number) => setJumpTimestamp({ seconds, key: Date.now() });
   const matchingTracks = tracks.filter(isReviewCandidate);
-  const matchingResults = results.filter(result => result.human_feedback !== 'rejected');
+  const entityOptions = Array.from(new Set(results.flatMap(result => result.entities.map(entity => entity.label)))).sort();
+  const startSeconds = startTime === '' ? 0 : Number(startTime);
+  const endSeconds = endTime === '' ? Number.POSITIVE_INFINITY : Number(endTime);
+  const matchingResults = results.filter(result => result.human_feedback !== 'rejected'
+    && (classificationFilter === 'all' || result.classification === classificationFilter)
+    && (entityFilter === 'all' || result.entities.some(entity => entity.label === entityFilter))
+    && result.overall_score >= minimumScore
+    && result.end_seconds >= startSeconds && result.start_seconds <= endSeconds);
   const hasGenericSearch = !!session?.search_query;
   const emptyDetail = isProcessing ? 'Candidates will appear when processing finishes.'
     : session?.status === 'completed' ? 'No matching event was found in the analyzed frames. This does not establish that it is absent from the full video.'
@@ -153,7 +167,15 @@ export const App: React.FC = () => {
       <div className="layout-column">
         <VideoPlayer videoUrl={videoUrl} tracks={matchingTracks} status={session} selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack} jumpTimestamp={jumpTimestamp?.seconds} jumpKey={jumpTimestamp?.key} />
         <section className="card-module sightings-panel">
-          <div className="row-between sightings-heading"><div><h2>{hasGenericSearch ? 'Ranked search results' : 'Matching people'}</h2><p className="muted">{hasGenericSearch ? `${matchingResults.length} localized candidates, including conflicts for review` : `${matchingTracks.length} results supported by required visible evidence`}</p></div></div>
+          <div className="row-between sightings-heading"><div><h2>{hasGenericSearch ? 'Ranked search results' : 'Matching people'}</h2><p className="muted">{hasGenericSearch ? `${matchingResults.length} of ${results.length} localized candidates` : `${matchingTracks.length} results supported by required visible evidence`}</p></div>
+            {hasGenericSearch && <div className="result-filters" aria-label="Result filters">
+              <label className="filter-label">Classification<select className="input-slot" value={classificationFilter} onChange={event => setClassificationFilter(event.target.value)}><option value="all">All</option><option value="strong_match">Strong</option><option value="possible_match">Possible</option><option value="unlikely_match">Unlikely</option><option value="insufficient_visibility">Insufficient</option></select></label>
+              <label className="filter-label">Entity<select className="input-slot" value={entityFilter} onChange={event => setEntityFilter(event.target.value)}><option value="all">All</option>{entityOptions.map(entity => <option key={entity} value={entity}>{entity}</option>)}</select></label>
+              <label className="filter-label">Minimum score<input className="input-slot" type="number" min="0" max="1" step="0.05" value={minimumScore} onChange={event => setMinimumScore(Math.min(1, Math.max(0, Number(event.target.value))))} /></label>
+              <label className="filter-label">From (s)<input className="input-slot" type="number" min="0" value={startTime} onChange={event => setStartTime(event.target.value)} /></label>
+              <label className="filter-label">To (s)<input className="input-slot" type="number" min="0" value={endTime} onChange={event => setEndTime(event.target.value)} /></label>
+            </div>}
+          </div>
           <div className="sightings-grid">{hasGenericSearch && matchingResults.length ? matchingResults.map(result => <ResultCard key={result.result_id} result={result} onJumpToTime={jumpTo} onFeedback={handleResultFeedback} />)
             : !hasGenericSearch && matchingTracks.length ? matchingTracks.map(track => <TrackCard key={track.track_id} track={track} isSelected={selectedTrack?.track_id === track.track_id} onSelect={() => setSelectedTrack(track)} onJumpToTime={jumpTo} onFeedback={handleFeedback} />)
             : <div className="empty-state"><strong>{isProcessing ? 'Processing recording' : 'No matching events'}</strong><p>{emptyDetail}</p></div>}</div>

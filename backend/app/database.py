@@ -149,6 +149,9 @@ def init_db():
         )
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS searches_by_session ON searches(session_id, created_at)")
+    search_columns = {row[1] for row in cursor.execute("PRAGMA table_info(searches)")}
+    if "metrics_json" not in search_columns:
+        cursor.execute("ALTER TABLE searches ADD COLUMN metrics_json JSON")
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS search_results (
             search_id TEXT NOT NULL, result_id TEXT NOT NULL,

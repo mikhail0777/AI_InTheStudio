@@ -138,6 +138,23 @@ class GenericSearchTests(unittest.TestCase):
         self.assertIn(("detect", ["person"], "s"), calls)
         self.assertIn(("ground", ["stroller"], "s"), calls)
 
+    def test_localization_reports_batch_progress(self):
+        progress = []
+
+        class Detector:
+            def supported_labels(self, labels):
+                return labels
+
+            def detect(self, frames, vocabulary, session_id):
+                return []
+
+        frames = [object(), object(), object()]
+        localize_entities(
+            frames, StructuredQueryParser().parse("a car"), "s", self.root,
+            Detector(), batch_size=2, on_batch=lambda complete, total: progress.append((complete, total)),
+        )
+        self.assertEqual(progress, [(2, 3), (3, 3)])
+
     def test_secondary_entity_is_not_misattributed_to_primary_criterion(self):
         bicycle = self.detection("d1", "f1", 1, .5, {}, label="bicycle")
         results = OpenVocabularySearchManager._rank(

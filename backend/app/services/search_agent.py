@@ -40,6 +40,11 @@ class SearchPlanAgent:
     @staticmethod
     def create_search_plan(config: TargetConfiguration) -> SearchPlan:
         config = SearchPlanAgent.normalize_target(config)
+        mode_strategy = {
+            "fast": (0.5, 2.0, 3.0),
+            "balanced": (1.0, 3.0, 4.0),
+            "thorough": (2.0, 5.0, 6.0),
+        }[config.processing_mode]
         supported = []
         if config.upper_clothing_color:
             supported.append(f'{config.upper_clothing_color} upper clothing')
@@ -56,5 +61,6 @@ class SearchPlanAgent:
         return SearchPlan(target_summary='; '.join(supported) or 'Review visible people; no supported appearance filters supplied.',
             high_value_attributes=supported, supporting_attributes=list(config.optional_attributes),
             low_reliability_attributes=unverified, negative_attributes=list(config.negative_attributes),
-            analysis_strategy=AnalysisStrategy(broad_scan_fps=1, focused_scan_fps=3, focused_window_seconds=4,
+            analysis_strategy=AnalysisStrategy(broad_scan_fps=mode_strategy[0], focused_scan_fps=mode_strategy[1],
+                focused_window_seconds=mode_strategy[2],
                 minimum_person_confidence=.40, minimum_alert_score=config.min_alert_confidence, minimum_track_observations=2))

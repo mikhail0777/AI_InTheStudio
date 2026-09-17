@@ -52,6 +52,12 @@ spatial relationships, running, pushing, and carrying. Interaction claims requir
 localized evidence; unsupported visible attributes remain explicitly uncertain instead of
 being inferred from semantic similarity.
 
+Choose `fast`, `balanced`, or `thorough` in the search form. These modes use progressively
+denser reusable indexes and larger bounded retrieval, localization, batching, and result
+budgets. Completed searches expose per-stage timings and device provenance; the result view
+supports classification, entity, score, and time filters plus annotated frames, clip playback,
+feedback, and evidence-report export.
+
 - YOLO detects people and backpacks. Zero people is a valid result; there is no HOG fallback.
 - Backpack masks are excluded from approximate upper/lower clothing bands. These bands
   are estimates for upright people, not garment recognition. Occluded, small, or wide

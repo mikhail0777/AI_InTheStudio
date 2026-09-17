@@ -1,5 +1,6 @@
 export interface TargetConfiguration {
   free_text_description: string;
+  processing_mode: 'fast' | 'balanced' | 'thorough';
   upper_clothing_type?: string;
   upper_clothing_color?: string;
   sleeve_length?: string;
@@ -124,6 +125,8 @@ export interface SessionStatus {
     original_text: string;
     entities: Array<{ entity_id: string; name: string; entity_type?: string | null }>;
   } | null;
+  processing_mode?: 'fast' | 'balanced' | 'thorough' | null;
+  stage_timings?: Record<string, number>;
   search_plan?: SearchPlan | null;
   agent_logs: AgentLogEntry[];
 }

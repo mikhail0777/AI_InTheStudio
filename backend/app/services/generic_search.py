@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import time
 import uuid
 from typing import Dict, List, Sequence
 
@@ -18,6 +19,7 @@ from app.services.generic_detector import CandidateFrame, YoloDetectionProvider
 from app.services.event_ranker import build_event_results
 from app.services.grounding import Owlv2GroundingProvider
 from app.services.query_parser import StructuredQueryParser
+from app.services.processing_profiles import get_processing_profile
 from app.services.semantic_retrieval import SemanticRetrievalService
 from app.services.temporal_verifier import MultiFrameEvidenceVerifier
 from app.services.video_indexer import VideoIndexer
@@ -79,14 +81,27 @@ def _matches_entity(label, entity):
 
 
 def localize_entities(frames, query: SearchQuery, session_id: str, evidence_root: Path,
-                      detector=None, grounder_factory=Owlv2GroundingProvider):
+                      detector=None, grounder_factory=Owlv2GroundingProvider, batch_size=None,
+                      on_batch=None):
     detector = detector or YoloDetectionProvider(str(evidence_root))
     vocabulary = [entity.entity_type or entity.name for entity in query.entities]
     supported = [value for value in vocabulary if detector.supported_labels([value])]
     grounded = [value for value in vocabulary if not detector.supported_labels([value])]
-    detections = detector.detect(frames, supported, session_id)
-    if grounded:
-        detections.extend(grounder_factory(str(evidence_root)).ground(frames, grounded, session_id))
+    batch_size = max(1, int(batch_size or len(frames) or 1))
+    detections = []
+    grounder = grounder_factory(str(evidence_root)) if grounded else None
+    if not frames:
+        detections.extend(detector.detect([], supported, session_id))
+        if grounder:
+            detections.extend(grounder.ground([], grounded, session_id))
+        return detections, grounded
+    for start in range(0, len(frames), batch_size):
+        batch = frames[start:start + batch_size]
+        detections.extend(detector.detect(batch, supported, session_id))
+        if grounder:
+            detections.extend(grounder.ground(batch, grounded, session_id))
+        if on_batch:
+            on_batch(min(len(frames), start + len(batch)), len(frames))
     return detections, grounded
 
 
@@ -158,13 +173,18 @@ class OpenVocabularySearchManager:
 
     @classmethod
     def execute_analysis(cls, session_id: str, target_config: TargetConfiguration, *, run_id: str, checkpoint):
+        total_started = time.perf_counter()
+        timings = {}
         checkpoint()
         with database.get_db_connection() as conn:
             row = conn.execute("SELECT * FROM sessions WHERE session_id=?", (session_id,)).fetchone()
             if not row or not row["video_metadata"]:
                 raise ValueError("Session video metadata is missing.")
             video = VideoMetadata(**json.loads(row["video_metadata"]))
-        query = StructuredQueryParser().parse(target_config.free_text_description)
+        query = StructuredQueryParser().parse(
+            target_config.free_text_description, target_config.processing_mode,
+        )
+        profile = get_processing_profile(query.processing_mode)
         search_id = f"search_{uuid.uuid4().hex}"
         with database.get_db_connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -179,7 +199,9 @@ class OpenVocabularySearchManager:
                 "The query contains no entity supported by the current parser.")
             return []
         cls._status(session_id, 5, "video_indexing")
+        stage_started = time.perf_counter()
         index = VideoIndexer().build_or_reuse(video, query.processing_mode)
+        timings["indexing"] = time.perf_counter() - stage_started
         checkpoint()
         with database.get_db_connection() as conn:
             conn.execute("UPDATE sessions SET index_id=? WHERE session_id=?", (index.index_id, session_id))
@@ -187,12 +209,13 @@ class OpenVocabularySearchManager:
                          (index.index_id, search_id))
         cls._log(session_id, "VIDEO_INDEX", f"{'Reused' if index.cache_hit else 'Built'} index {index.index_id}.", "action")
         cls._status(session_id, 20, "semantic_retrieval")
-        retrieval_limit = {"fast": 16, "balanced": 40, "thorough": 80}[query.processing_mode]
         retrieval = SemanticRetrievalService()
+        stage_started = time.perf_counter()
         candidates = retrieval.retrieve(
-            index.index_id, query.original_text, limit=retrieval_limit,
+            index.index_id, query.original_text, limit=profile.retrieval_limit,
             search_id=search_id, owner_kinds=("frame", "clip"),
         )
+        timings["semantic_retrieval"] = time.perf_counter() - stage_started
         checkpoint()
         # Frames and clips can share a representative image. Localize it once, preserving the best score.
         best_by_path = {}
@@ -213,19 +236,34 @@ class OpenVocabularySearchManager:
                     timestamp_seconds=frame["timestamp_seconds"], image_path=frame["image_path"],
                     semantic_similarity=candidate.semantic_similarity,
                 ))
+                if len(frames) >= profile.localization_frame_limit:
+                    break
         frames.sort(key=lambda item: item.timestamp_seconds)
         cls._status(session_id, 50, "entity_localization")
         evidence_root = Path(database.DB_DIR) / "evidence"
-        detections, grounded = localize_entities(frames, query, session_id, evidence_root)
+        stage_started = time.perf_counter()
+        detections, grounded = localize_entities(
+            frames, query, session_id, evidence_root,
+            batch_size=profile.localization_batch_size,
+            on_batch=lambda complete, total: cls._status(
+                session_id, 50 + 20 * complete / max(1, total), "entity_localization",
+            ),
+        )
+        timings["entity_localization"] = time.perf_counter() - stage_started
         if grounded:
             cls._log(session_id, "GROUNDING", "Grounded open-vocabulary entities: " + ", ".join(grounded), "action")
         checkpoint()
         tracks = track_entities(detections)
-        max_tracks = max(1, int(os.environ.get("AIEYE_MAX_RESULT_TRACKS", "10")))
+        max_tracks = min(
+            profile.result_track_limit,
+            max(1, int(os.environ.get("AIEYE_MAX_RESULT_TRACKS", str(profile.result_track_limit)))),
+        )
         tracks = sorted(tracks, key=lambda track: _track_priority(query, track), reverse=True)[:max_tracks]
         cls._status(session_id, 75, "evidence_ranking")
+        stage_started = time.perf_counter()
         results = cls._rank(query, search_id, session_id, video, tracks, evidence_root,
-                            retrieval.provider.provenance)
+                            retrieval.provider.provenance, result_limit=max_tracks)
+        timings["evidence_ranking"] = time.perf_counter() - stage_started
         checkpoint()
         with database.get_db_connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
@@ -234,7 +272,18 @@ class OpenVocabularySearchManager:
                 (search_id, result.result_id, result.start_seconds, result.end_seconds,
                  result.classification, result.overall_score, result.model_dump_json()) for result in results
             ])
-            conn.execute("UPDATE searches SET status='completed',finished_at=CURRENT_TIMESTAMP WHERE search_id=?", (search_id,))
+            timings["total"] = time.perf_counter() - total_started
+            metrics = {
+                "stage_timings": {name: round(value, 6) for name, value in timings.items()},
+                "cache_hit": index.cache_hit, "candidate_count": len(candidates),
+                "localized_frame_count": len(frames), "detection_count": len(detections),
+                "track_count": len(tracks), "result_count": len(results),
+                "processing_profile": profile.__dict__,
+                "actual_result_limit": max_tracks,
+                "device": retrieval.provider.provenance.device,
+            }
+            conn.execute("UPDATE searches SET status='completed',finished_at=CURRENT_TIMESTAMP,metrics_json=? WHERE search_id=?",
+                         (json.dumps(metrics), search_id))
             conn.execute("UPDATE analysis_runs SET status='completed',finished_at=CURRENT_TIMESTAMP WHERE run_id=?", (run_id,))
             conn.execute("""UPDATE sessions SET status='completed',progress_percent=100,current_stage='completed'
                 WHERE session_id=? AND run_id=? AND status='analyzing'""", (session_id, run_id))
@@ -257,7 +306,8 @@ class OpenVocabularySearchManager:
     @classmethod
     def _rank(cls, query: SearchQuery, search_id: str, session_id: str, video: VideoMetadata,
               tracks: Sequence[Sequence], evidence_root: Path,
-              semantic_provenance: ModelProvenance) -> List[SearchResult]:
+              semantic_provenance: ModelProvenance, result_limit=None) -> List[SearchResult]:
+        result_limit = max(1, int(result_limit or os.environ.get("AIEYE_MAX_RESULT_TRACKS", "10")))
         needs_event_ranking = (
             len(query.entities) > 1 or query.actions or query.relationships
             or any((entity.quantity or 1) > 1 or entity.negative for entity in query.entities)
@@ -266,7 +316,7 @@ class OpenVocabularySearchManager:
         if needs_event_ranking:
             event_results = build_event_results(query, search_id, video.duration_seconds, tracks)
             return cls._materialize_events(
-                event_results[:max(1, int(os.environ.get("AIEYE_MAX_RESULT_TRACKS", "10")))],
+                event_results[:result_limit],
                 session_id, video, evidence_root, semantic_provenance,
             )
         expected_entity = query.entities[0]

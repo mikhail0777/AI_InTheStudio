@@ -17,6 +17,7 @@ export const SARReportModal: React.FC<SARReportModalProps> = ({ status, tracks, 
       <button onClick={onClose} className="btn-industrial" aria-label="Close report"><X size={20} /></button>
     </div>
     <p>{confirmed.length} confirmed by a reviewer · {rejected.length} rejected · {tracks.length} total tracks</p>
+    {status.processing_mode && <p><strong>{status.processing_mode} mode</strong>{status.stage_timings?.total !== undefined ? ` · ${status.stage_timings.total.toFixed(2)} seconds total` : ''}</p>}
     <p className="form-hint" style={{ margin: '16px 0 24px' }}>Automated candidates require review against the original footage. No candidates does not establish that the recording contains no person. Positions describe the drone at capture.</p>
     <a href={`/api/sessions/${status.session_id}/report`} target="_blank" rel="noreferrer" className="btn-industrial"><Download size={16} />Open full evidence report</a>
     {!generic && <section className="review-section"><h3 className="status-label section-label">Candidates for review ({candidates.length})</h3>

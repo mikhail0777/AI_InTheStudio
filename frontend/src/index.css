@@ -364,6 +364,8 @@ button:focus-visible, a:focus-visible, .map-marker:focus-visible { outline: 2px 
 .sightings-heading h2 { font-size: 1.15rem; }
 .sightings-heading p { font-size: 12px; }
 .filter-label { font-size: 11px; display: flex; flex-direction: column; gap: 4px; }
+.result-filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
+.result-filters .input-slot { min-width: 92px; max-width: 130px; padding: 7px 8px; }
 .sightings-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; padding: 16px; max-height: 680px; overflow-y: auto; background: #f7f9fc; }
 .track-card { padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 .track-card.selected { border-color: #718bac; }
@@ -379,6 +381,8 @@ button:focus-visible, a:focus-visible, .map-marker:focus-visible { outline: 2px 
 .track-actions button:first-child, .track-actions button:nth-child(2) { flex: 1; }
 .result-frame { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #111923; }
 .result-clip { width: 100%; max-height: 320px; background: #111923; }
+.entity-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.entity-chips span { padding: 4px 7px; border: 1px solid #cfdae6; border-radius: 4px; background: #eef4fa; color: #344f6c; font-size: 11px; }
 .evidence-supported { color: #256449 !important; }
 .evidence-conflicting { color: #9a3d2c !important; }
 .evidence-missing, .evidence-uncertain, .evidence-unsupported { color: #637185 !important; }

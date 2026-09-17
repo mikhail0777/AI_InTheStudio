@@ -1,9 +1,10 @@
 from typing import List, Dict, Optional, Any, Literal
 from pydantic import BaseModel, Field
-from app.models.open_vocabulary import SearchQuery
+from app.models.open_vocabulary import ProcessingMode, SearchQuery
 
 class TargetConfiguration(BaseModel):
     free_text_description: str = Field(default="", max_length=4000)
+    processing_mode: ProcessingMode = "balanced"
     upper_clothing_type: Optional[str] = None
     upper_clothing_color: Optional[str] = None
     sleeve_length: Optional[str] = None
@@ -137,6 +138,8 @@ class SessionStatus(BaseModel):
     entity_counts: Dict[str, int] = Field(default_factory=dict)
     results_count: int = 0
     search_query: Optional[SearchQuery] = None
+    processing_mode: Optional[ProcessingMode] = None
+    stage_timings: Dict[str, float] = Field(default_factory=dict)
     search_plan: Optional[SearchPlan] = None
     agent_logs: List[AgentLogEntry] = Field(default_factory=list)
     run_id: Optional[str] = None

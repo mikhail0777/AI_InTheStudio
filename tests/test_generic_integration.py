@@ -52,8 +52,9 @@ class GenericIntegrationTests(unittest.TestCase):
                  '{"filename":"flight.mp4"}'),
             )
             conn.execute(
-                "INSERT INTO searches(search_id,session_id,status,processing_mode,query_json) VALUES (?,?,?,?,?)",
-                (search_id, session_id, "completed", "balanced", query.model_dump_json()),
+                "INSERT INTO searches(search_id,session_id,status,processing_mode,query_json,metrics_json) VALUES (?,?,?,?,?,?)",
+                (search_id, session_id, "completed", "balanced", query.model_dump_json(),
+                 '{"stage_timings":{"indexing":0.25,"total":1.5}}'),
             )
             conn.execute(
                 "INSERT INTO search_results(search_id,result_id,start_seconds,end_seconds,classification,overall_score,payload) VALUES (?,?,?,?,?,?,?)",
@@ -65,6 +66,8 @@ class GenericIntegrationTests(unittest.TestCase):
         status = self.client.get(base + "/status")
         self.assertEqual(status.status_code, 200, status.text)
         self.assertEqual(status.json()["results_count"], 1)
+        self.assertEqual(status.json()["processing_mode"], "balanced")
+        self.assertEqual(status.json()["stage_timings"]["total"], 1.5)
         self.assertEqual(status.json()["search_query"]["entities"][0]["entity_type"], "car")
         results = self.client.get(base + "/results")
         self.assertEqual(results.status_code, 200, results.text)
@@ -80,6 +83,8 @@ class GenericIntegrationTests(unittest.TestCase):
         self.assertNotIn("<script>", report.text)
         self.assertIn("&lt;script&gt;", report.text)
         self.assertIn("/evidence/generic-session/clip.mp4", report.text)
+        self.assertIn("Balanced", report.text)
+        self.assertIn("1.500 seconds", report.text)
 
 
 if __name__ == "__main__":

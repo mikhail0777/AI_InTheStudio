@@ -3,6 +3,7 @@ import json
 import math
 import os
 from pathlib import Path
+import threading
 from typing import List, Optional, Sequence
 
 import numpy as np
@@ -14,6 +15,8 @@ from app.models.open_vocabulary import ModelProvenance, SemanticCandidate
 SIGLIP_MODEL_ID = "google/siglip-base-patch16-224"
 SIGLIP_REVISION = "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed"
 SIGLIP_WEIGHT_SHA256 = "2c63cb7d1f2e95ba501893cbb8faeb4ea9a3af295498d35097126228659c2af8"
+_MODEL_CACHE = {}
+_MODEL_LOCK = threading.RLock()
 
 
 def _normalize(values: np.ndarray) -> np.ndarray:
@@ -41,14 +44,19 @@ class SiglipEmbeddingProvider:
         self.batch_size = batch_size or int(os.environ.get("AIEYE_EMBEDDING_BATCH_SIZE", "8" if self.device == "cuda" else "2"))
         if self.batch_size <= 0:
             raise ValueError("Embedding batch size must be positive.")
+        key = (model_id, revision, self.device)
         try:
-            # Runtime is intentionally offline. Model installation is an explicit operator action.
-            self.processor = AutoProcessor.from_pretrained(
-                model_id, revision=revision, local_files_only=True, use_fast=False,
-            )
-            self.model = AutoModel.from_pretrained(
-                model_id, revision=revision, local_files_only=True, use_safetensors=True,
-            ).to(self.device).eval()
+            with _MODEL_LOCK:
+                if key not in _MODEL_CACHE:
+                    # Runtime is intentionally offline. Model installation is an explicit operator action.
+                    processor = AutoProcessor.from_pretrained(
+                        model_id, revision=revision, local_files_only=True, use_fast=False,
+                    )
+                    model = AutoModel.from_pretrained(
+                        model_id, revision=revision, local_files_only=True, use_safetensors=True,
+                    ).to(self.device).eval()
+                    _MODEL_CACHE[key] = processor, model
+                self.processor, self.model = _MODEL_CACHE[key]
         except (OSError, ValueError) as error:
             raise RuntimeError(
                 "Pinned SigLIP model is not installed. Run: python backend/download_models.py"
@@ -84,7 +92,7 @@ class SiglipEmbeddingProvider:
                         images.append(source.convert("RGB"))
                 inputs = self.processor(images=images, return_tensors="pt")
                 inputs = {name: value.to(self.device) for name, value in inputs.items()}
-                with self.torch.inference_mode():
+                with self.torch.inference_mode(), _MODEL_LOCK:
                     output = self._pooled(self.model.get_image_features(**inputs))
                 vectors.append(output.detach().float().cpu().numpy())
             finally:
@@ -103,7 +111,7 @@ class SiglipEmbeddingProvider:
                 truncation=True, return_tensors="pt",
             )
             inputs = {name: value.to(self.device) for name, value in inputs.items()}
-            with self.torch.inference_mode():
+            with self.torch.inference_mode(), _MODEL_LOCK:
                 output = self._pooled(self.model.get_text_features(**inputs))
             vectors.append(output.detach().float().cpu().numpy())
         if not vectors:

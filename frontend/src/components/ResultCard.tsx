@@ -24,6 +24,8 @@ export const ResultCard: React.FC<Props> = ({ result, onJumpToTime, onFeedback }
     {result.best_frame_path && <img className="result-frame" src={result.best_frame_path} alt="Annotated matching evidence" />}
     <div className="track-summary">
       <span className="icon-line"><Clock size={15} />{formatTime(result.start_seconds)}–{formatTime(result.end_seconds)}</span>
+      <div className="entity-chips" aria-label="Highlighted participants">{result.entities.map(entity => <span key={entity.track_id}>{entity.label} · {entity.track_id}</span>)}</div>
+      <span className="muted">Ranking score {(result.overall_score * 100).toFixed(0)}%</span>
       <strong>{result.explanation}</strong>
       {result.evidence.map(item => <p key={item.criterion_id} className={`evidence-${item.assessment}`}>
         {item.kind}: {item.explanation}

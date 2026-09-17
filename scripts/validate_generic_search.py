@@ -12,6 +12,7 @@ def main():
     parser.add_argument("video", type=Path)
     parser.add_argument("query")
     parser.add_argument("--data-dir", type=Path, required=True)
+    parser.add_argument("--mode", choices=("fast", "balanced", "thorough"), default="balanced")
     args = parser.parse_args()
     os.environ["AIEYE_DATA_DIR"] = str(args.data_dir.resolve())
 
@@ -23,7 +24,7 @@ def main():
     video = VideoService.inspect_video(str(args.video.resolve()))
     session_id = "validation_" + uuid.uuid4().hex[:12]
     run_id = "run_" + uuid.uuid4().hex[:12]
-    target = TargetConfiguration(free_text_description=args.query)
+    target = TargetConfiguration(free_text_description=args.query, processing_mode=args.mode)
     database.init_db()
     with database.get_db_connection() as conn:
         conn.execute(
