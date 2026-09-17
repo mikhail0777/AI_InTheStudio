@@ -9,7 +9,7 @@ import numpy as np
 from app import database
 from app.models.open_vocabulary import EntityDetection, ModelProvenance
 from app.models.schemas import VideoMetadata
-from app.services.generic_search import OpenVocabularySearchManager, track_entities
+from app.services.generic_search import OpenVocabularySearchManager, localize_entities, track_entities
 from app.services.query_parser import StructuredQueryParser
 
 
@@ -51,10 +51,10 @@ class GenericSearchTests(unittest.TestCase):
             file_size_mb=self.video_path.stat().st_size / 1024**2, creation_timestamp="",
         )
 
-    def detection(self, detection_id, frame_id, frame_idx, timestamp, colors, bbox=None):
+    def detection(self, detection_id, frame_id, frame_idx, timestamp, colors, bbox=None, label="car"):
         return EntityDetection(
             detection_id=detection_id, frame_id=frame_id, frame_idx=frame_idx,
-            timestamp_seconds=timestamp, label="car", bbox=bbox or [10, 10, 50, 50],
+            timestamp_seconds=timestamp, label=label, bbox=bbox or [10, 10, 50, 50],
             confidence=.9, visibility=.8, crop_path=f"/evidence/s/{detection_id}.jpg",
             attributes={"colors": colors, "semantic_similarity": .4}, provenance=PROVENANCE,
         )
@@ -104,6 +104,47 @@ class GenericSearchTests(unittest.TestCase):
         tracks = track_entities(detections)
         self.assertEqual(len(tracks), 1)
         self.assertEqual(len(tracks[0]), 2)
+
+    def test_motion_between_samples_can_remain_one_track_without_iou(self):
+        detections = [
+            self.detection("d1", "f1", 1, .5, {"yellow": .8}, [10, 10, 50, 50]),
+            self.detection("d2", "f2", 2, 1.0, {"yellow": .8}, [45, 10, 85, 50]),
+        ]
+        tracks = track_entities(detections)
+        self.assertEqual(len(tracks), 1)
+
+    def test_fixed_and_open_vocabulary_entities_route_to_separate_providers(self):
+        calls = []
+
+        class Detector:
+            def supported_labels(self, labels):
+                return labels if labels == ["person"] else []
+
+            def detect(self, frames, vocabulary, session_id):
+                calls.append(("detect", vocabulary, session_id))
+                return []
+
+        class Grounder:
+            def __init__(self, root):
+                calls.append(("grounder", root))
+
+            def ground(self, frames, vocabulary, session_id):
+                calls.append(("ground", vocabulary, session_id))
+                return []
+
+        query = StructuredQueryParser().parse("a woman pushing a stroller")
+        _, grounded = localize_entities([], query, "s", self.root, Detector(), Grounder)
+        self.assertEqual(grounded, ["stroller"])
+        self.assertIn(("detect", ["person"], "s"), calls)
+        self.assertIn(("ground", ["stroller"], "s"), calls)
+
+    def test_secondary_entity_is_not_misattributed_to_primary_criterion(self):
+        bicycle = self.detection("d1", "f1", 1, .5, {}, label="bicycle")
+        results = OpenVocabularySearchManager._rank(
+            StructuredQueryParser().parse("a dog near a bicycle"), "q", "s", self.video,
+            [[bicycle]], self.root / "evidence", PROVENANCE,
+        )
+        self.assertEqual(results, [])
 
 
 if __name__ == "__main__":

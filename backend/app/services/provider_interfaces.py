@@ -31,12 +31,14 @@ class EmbeddingProvider(Provider, Protocol):
 
 @runtime_checkable
 class DetectionProvider(Provider, Protocol):
-    def detect(self, frames: Sequence[object], vocabulary: Optional[Sequence[str]] = None) -> List[EntityDetection]: ...
+    def detect(self, frames: Sequence[object], vocabulary: Optional[Sequence[str]] = None,
+               session_id: str = "") -> List[EntityDetection]: ...
 
 
 @runtime_checkable
 class GroundingProvider(Provider, Protocol):
-    def ground(self, frames: Sequence[object], phrases: Sequence[str]) -> List[EntityDetection]: ...
+    def ground(self, frames: Sequence[object], phrases: Sequence[str],
+               session_id: str = "") -> List[EntityDetection]: ...
 
 
 @runtime_checkable

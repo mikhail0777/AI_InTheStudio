@@ -15,8 +15,10 @@ from app.models.open_vocabulary import (
 from app.models.open_vocabulary import ModelProvenance
 from app.models.schemas import TargetConfiguration, VideoMetadata
 from app.services.generic_detector import CandidateFrame, YoloDetectionProvider
+from app.services.grounding import Owlv2GroundingProvider
 from app.services.query_parser import StructuredQueryParser
 from app.services.semantic_retrieval import SemanticRetrievalService
+from app.services.temporal_verifier import MultiFrameEvidenceVerifier
 from app.services.video_indexer import VideoIndexer
 from app.services.visual_features import color_match_score
 
@@ -34,8 +36,17 @@ def track_entities(detections, max_gap=4.0, minimum_iou=.2):
         expired = [track for track in active if detection.timestamp_seconds - track[-1].timestamp_seconds > max_gap]
         completed.extend(expired)
         active = [track for track in active if track not in expired]
-        choices = [(float(_iou(track[-1].bbox, detection.bbox)), track) for track in active
-                   if track[-1].label == detection.label and track[-1].frame_idx != detection.frame_idx]
+        choices = []
+        for track in active:
+            previous = track[-1]
+            if previous.label != detection.label or previous.frame_idx == detection.frame_idx:
+                continue
+            overlap = float(_iou(previous.bbox, detection.bbox))
+            ax, ay = (previous.bbox[0] + previous.bbox[2]) / 2, (previous.bbox[1] + previous.bbox[3]) / 2
+            bx, by = (detection.bbox[0] + detection.bbox[2]) / 2, (detection.bbox[1] + detection.bbox[3]) / 2
+            scale = max(1.0, np.hypot(previous.bbox[2] - previous.bbox[0], previous.bbox[3] - previous.bbox[1]))
+            proximity = max(0.0, 1.0 - np.hypot(ax - bx, ay - by) / (1.5 * scale))
+            choices.append((max(overlap, float(proximity)), track))
         choices.sort(key=lambda item: item[0], reverse=True)
         if choices and choices[0][0] >= minimum_iou:
             choices[0][1].append(detection)
@@ -54,6 +65,28 @@ def _track_priority(query: SearchQuery, track):
     confidence = max((item.confidence for item in track), default=0.0)
     visibility = max((item.visibility for item in track), default=0.0)
     return color_support, semantic, confidence, visibility
+
+
+def _matches_entity(label, entity):
+    expected = (entity.entity_type or entity.name).lower()
+    aliases = {expected}
+    if expected in {"woman", "man", "child", "someone"}:
+        aliases.add("person")
+    if expected == "vehicle":
+        aliases.update({"car", "truck", "bus", "motorcycle"})
+    return label.lower() in aliases
+
+
+def localize_entities(frames, query: SearchQuery, session_id: str, evidence_root: Path,
+                      detector=None, grounder_factory=Owlv2GroundingProvider):
+    detector = detector or YoloDetectionProvider(str(evidence_root))
+    vocabulary = [entity.entity_type or entity.name for entity in query.entities]
+    supported = [value for value in vocabulary if detector.supported_labels([value])]
+    grounded = [value for value in vocabulary if not detector.supported_labels([value])]
+    detections = detector.detect(frames, supported, session_id)
+    if grounded:
+        detections.extend(grounder_factory(str(evidence_root)).ground(frames, grounded, session_id))
+    return detections, grounded
 
 
 def _extract_clip(video_path: str, start: float, end: float, destination: Path):
@@ -182,14 +215,9 @@ class OpenVocabularySearchManager:
         frames.sort(key=lambda item: item.timestamp_seconds)
         cls._status(session_id, 50, "entity_localization")
         evidence_root = Path(database.DB_DIR) / "evidence"
-        detector = YoloDetectionProvider(str(evidence_root))
-        vocabulary = [entity.entity_type or entity.name for entity in query.entities]
-        unsupported = [value for value in vocabulary if not detector.supported_labels([value])]
-        if unsupported:
-            cls._complete_without_results(session_id, run_id, search_id, "unsupported_query",
-                "Required entities need an open-vocabulary grounding provider: " + ", ".join(unsupported))
-            return []
-        detections = detector.detect(frames, vocabulary, session_id)
+        detections, grounded = localize_entities(frames, query, session_id, evidence_root)
+        if grounded:
+            cls._log(session_id, "GROUNDING", "Grounded open-vocabulary entities: " + ", ".join(grounded), "action")
         checkpoint()
         tracks = track_entities(detections)
         max_tracks = max(1, int(os.environ.get("AIEYE_MAX_RESULT_TRACKS", "10")))
@@ -233,7 +261,7 @@ class OpenVocabularySearchManager:
         color_constraint = next((item for item in expected_entity.attributes if item.name == "color"), None)
         output = []
         for number, observations in enumerate(tracks, start=1):
-            if not observations:
+            if not observations or not _matches_entity(observations[0].label, expected_entity):
                 continue
             entity_scores = [item.confidence for item in observations]
             semantic_scores = [float(item.attributes.get("semantic_similarity", 0)) for item in observations]
@@ -296,6 +324,10 @@ class OpenVocabularySearchManager:
                 attributes={"requested_color": color_constraint.value if color_constraint else None,
                             "color_support": round(color_support, 4)},
             )
+            constraint_evidence = MultiFrameEvidenceVerifier().verify(query, [track])
+            evidence.extend(constraint_evidence)
+            if any(item.assessment != "supported" for item in constraint_evidence):
+                classification = "insufficient_visibility"
             with database.get_db_connection() as conn:
                 frame_row = conn.execute("SELECT image_path FROM indexed_frames WHERE frame_id=? AND index_id=(SELECT index_id FROM sessions WHERE session_id=?)",
                                          (best.frame_id, session_id)).fetchone()

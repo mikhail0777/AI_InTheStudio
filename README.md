@@ -22,8 +22,9 @@ npm.cmd run dev
 
 Open http://localhost:5173. The main workflow is one description field, a required video,
 and optional matching SRT telemetry. After installation, `run_aieye.bat` starts both services.
-The segmentation model is already installed in this workspace. Runtime does not download
-models or switch detectors. Missing weights or inference failures stop the job explicitly.
+The segmentation model is already installed in this workspace. The installer also fetches
+the pinned SigLIP retrieval and OWLv2 grounding safetensors. Runtime does not download models
+or switch providers. Missing weights or inference failures stop the job explicitly.
 
 ## Matching behavior
 
@@ -73,6 +74,11 @@ The open-vocabulary index uses a revision-pinned local SigLIP model for frame an
 clip embeddings. `python backend/download_models.py` installs its safetensor weights
 explicitly; runtime inference is offline-only and never downloads a model. Configure
 `AIEYE_EMBEDDING_BATCH_SIZE` to bound embedding memory (default 2 on CPU and 8 on CUDA).
+
+Entities outside YOLO's fixed taxonomy use revision-pinned OWLv2 phrase grounding. Its
+Apache-2.0 620 MB safetensor is stored under ignored `backend/models/owlv2`, hash-checked,
+and loaded only when a query needs grounding. `AIEYE_GROUNDING_BATCH_SIZE` defaults to 2;
+`AIEYE_GROUNDING_MODEL_PATH` can select another compatible, locally installed snapshot.
 
 ## Verify
 

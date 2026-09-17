@@ -12,6 +12,7 @@ dist/
 backend/data/
 *.mp4
 *.pt
+backend/models/owlv2/
 *.db
 node_modules/
 frontend/dist/
