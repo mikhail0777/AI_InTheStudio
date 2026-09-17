@@ -54,7 +54,7 @@ class AgenticLoopManager:
                 conn.execute("""INSERT INTO detections(detection_id,session_id,frame_idx,timestamp_seconds,bbox,
                     confidence,crop_path,quality_score,run_id,payload) VALUES (?,?,?,?,?,?,?,?,?,?)""",
                     (det.detection_id, session_id, det.frame_idx, det.timestamp_seconds, json.dumps(det.bbox),
-                     det.confidence, det.crop_path, det.quality_score, run_id, json.dumps(det.dict())))
+                     det.confidence, det.crop_path, det.quality_score, run_id, json.dumps(det.model_dump(mode="json"))))
             conn.execute("UPDATE frame_samples SET status='sampled' WHERE run_id=? AND frame_idx=?", (run_id, frame_idx))
 
     @classmethod
@@ -114,7 +114,7 @@ class AgenticLoopManager:
         search_plan = SearchPlanAgent.create_search_plan(target_config)
         with get_db_connection() as conn:
             conn.execute("UPDATE sessions SET target_config=?,search_plan=? WHERE session_id=?",
-                         (json.dumps(target_config.dict()), json.dumps(search_plan.dict()), session_id))
+                         (json.dumps(target_config.model_dump(mode="json")), json.dumps(search_plan.model_dump(mode="json")), session_id))
         cls.log_agent_event(session_id, "SEARCH_PLAN", "Prepared a person search using the supplied visible attributes.", "info")
         cls.update_session_status(session_id, "analyzing", 5, "loading_detector")
         detector = PersonDetector(crop_dir=os.path.join(DATA_DIR, "crops"))
@@ -158,7 +158,7 @@ class AgenticLoopManager:
                 raise RuntimeError("Processing stopped before results were saved.")
             track_columns = {item[1] for item in conn.execute("PRAGMA table_info(tracks)")}
             for track in track_results:
-                data = track.dict()
+                data = track.model_dump(mode="json")
                 columns = [name for name in data if name in track_columns]
                 values = [json.dumps(data[name]) if isinstance(data[name], (list,dict)) else data[name] for name in columns]
                 columns.append("payload")

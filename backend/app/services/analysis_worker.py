@@ -139,7 +139,7 @@ def queue_analysis(session_id, target_config=None):
         if not row["video_metadata"] or not os.path.isfile(json.loads(row["video_metadata"])["filepath"]):
             raise ValueError("Upload a valid video before starting analysis.")
         run_id = uuid.uuid4().hex
-        config_json = json.dumps(target_config.dict()) if target_config else row["target_config"]
+        config_json = json.dumps(target_config.model_dump(mode="json")) if target_config else row["target_config"]
         conn.execute("INSERT INTO analysis_runs(run_id,session_id,status) VALUES (?,?,'queued')", (run_id,session_id))
         conn.execute("UPDATE sessions SET run_id=?,status='queued',current_stage='queued',progress_percent=0,error_message=NULL,target_config=? WHERE session_id=?", (run_id, config_json, session_id))
     worker.wake_event.set()

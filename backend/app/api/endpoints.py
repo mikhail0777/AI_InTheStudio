@@ -77,7 +77,7 @@ def create_session(target_config: Optional[TargetConfiguration] = None):
     target_config = target_config or TargetConfiguration(free_text_description="Locate a person.")
     with get_db_connection() as conn:
         conn.execute("INSERT INTO sessions(session_id,status,progress_percent,current_stage,target_config) VALUES (?,?,?,?,?)",
-                     (session_id,"created",0.0,"created",json.dumps(target_config.dict())))
+                     (session_id,"created",0.0,"created",json.dumps(target_config.model_dump(mode="json"))))
     AgenticLoopManager.log_agent_event(session_id,"INIT","Created a local analysis session.")
     return SessionStatus(session_id=session_id,status="created",current_stage="created")
 
@@ -95,7 +95,7 @@ async def upload_video(session_id: str, file: UploadFile = File(...)):
         metadata.filename = original_name
         with get_db_connection() as conn:
             conn.execute("UPDATE sessions SET status='uploaded',video_metadata=? WHERE session_id=? AND status='uploading'",
-                         (json.dumps(metadata.dict()),session_id))
+                         (json.dumps(metadata.model_dump(mode="json")),session_id))
         AgenticLoopManager.log_agent_event(session_id,"UPLOAD",f"Video ready: {original_name} ({metadata.duration_seconds:.2f} seconds).")
         return {"status":"uploaded","video_metadata":metadata,"video_url":f"/uploads/{session_id}/{path.name}"}
     except BaseException:

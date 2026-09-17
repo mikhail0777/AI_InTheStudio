@@ -106,7 +106,7 @@ def init_db():
 
     # Additive migrations retain earlier flights and their human review decisions.
     migrations = {
-        "sessions": {"run_id": "TEXT", "error_message": "TEXT"},
+        "sessions": {"run_id": "TEXT", "error_message": "TEXT", "search_query": "JSON"},
         "detections": {"run_id": "TEXT", "payload": "JSON"},
         "tracks": {"payload": "JSON"},
     }
@@ -137,6 +137,28 @@ def init_db():
         )
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS detections_by_session ON detections(session_id, run_id)")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS searches (
+            search_id TEXT PRIMARY KEY, session_id TEXT NOT NULL,
+            index_id TEXT, status TEXT NOT NULL, processing_mode TEXT NOT NULL DEFAULT 'balanced',
+            query_json JSON NOT NULL, parser_provenance JSON,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP, started_at TEXT, finished_at TEXT,
+            error_message TEXT,
+            FOREIGN KEY(session_id) REFERENCES sessions(session_id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS searches_by_session ON searches(session_id, created_at)")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS search_results (
+            search_id TEXT NOT NULL, result_id TEXT NOT NULL,
+            start_seconds REAL NOT NULL, end_seconds REAL NOT NULL,
+            classification TEXT NOT NULL, overall_score REAL NOT NULL,
+            payload JSON NOT NULL, human_feedback TEXT, human_notes TEXT,
+            PRIMARY KEY(search_id, result_id),
+            FOREIGN KEY(search_id) REFERENCES searches(search_id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS results_by_rank ON search_results(search_id, overall_score DESC)")
 
     conn.commit()
     conn.close()
