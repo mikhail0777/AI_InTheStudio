@@ -82,6 +82,8 @@ class AnalysisWorker:
     def run_once(self):
         from app.models.schemas import TargetConfiguration
         from app.services.agentic_loop import AgenticLoopManager
+        from app.services.generic_search import OpenVocabularySearchManager
+        from app.services.query_parser import StructuredQueryParser, should_use_generic_search
         with get_db_connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             job = conn.execute("SELECT r.run_id, r.session_id, s.target_config FROM analysis_runs r JOIN sessions s ON s.session_id=r.session_id AND s.run_id=r.run_id WHERE r.status='queued' AND s.status='queued' ORDER BY r.created_at,r.rowid LIMIT 1").fetchone()
@@ -90,10 +92,11 @@ class AnalysisWorker:
             conn.execute("UPDATE analysis_runs SET status='analyzing', started_at=CURRENT_TIMESTAMP WHERE run_id=?", (job["run_id"],))
             conn.execute("UPDATE sessions SET status='analyzing',current_stage='starting',error_message=NULL WHERE session_id=?", (job["session_id"],))
         try:
-            AgenticLoopManager.execute_analysis(
-                job["session_id"], TargetConfiguration(**json.loads(job["target_config"])),
-                run_id=job["run_id"], checkpoint=lambda: self.checkpoint(job["session_id"], job["run_id"])
-            )
+            target = TargetConfiguration(**json.loads(job["target_config"]))
+            query = StructuredQueryParser().parse(target.free_text_description or "Locate a person.")
+            manager = OpenVocabularySearchManager if should_use_generic_search(query) else AgenticLoopManager
+            manager.execute_analysis(job["session_id"], target, run_id=job["run_id"],
+                checkpoint=lambda: self.checkpoint(job["session_id"], job["run_id"]))
         except Exception as exc:
             message = str(exc) or type(exc).__name__
             with get_db_connection() as conn:

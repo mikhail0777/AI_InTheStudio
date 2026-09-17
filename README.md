@@ -1,6 +1,6 @@
 ﻿# AI(EYE) in the sky
 
-Local post-flight person detection and evidence review with optional DJI SRT telemetry.
+Local post-flight natural-language video search and evidence review with optional DJI SRT telemetry.
 
 ## Run
 
@@ -26,6 +26,18 @@ The segmentation model is already installed in this workspace. Runtime does not 
 models or switch detectors. Missing weights or inference failures stop the job explicitly.
 
 ## Matching behavior
+
+Queries whose primary entity is a supported generic class (the first vertical slice is a
+color-qualified car) use semantic frame/clip retrieval followed by YOLO segmentation,
+masked color evidence, track deduplication, and ranked clips. Required attributes are gates:
+a high-confidence car with conflicting color evidence remains an unlikely match. Generic
+results include annotated frames, playable clips, component evidence, model provenance,
+and correct/incorrect feedback controls. `AIEYE_MAX_RESULT_TRACKS` bounds generated result
+clips (default 10), and `AIEYE_RESULT_CLIP_WIDTH` bounds clip width (default 1280).
+
+Person/clothing searches continue to use the established specialized module during the
+incremental migration. They share the same sessions, queue, feedback, reporting, and video
+index infrastructure; later phases migrate their verification into the generic pipeline.
 
 - YOLO detects people and backpacks. Zero people is a valid result; there is no HOG fallback.
 - Backpack masks are excluded from approximate upper/lower clothing bands. These bands

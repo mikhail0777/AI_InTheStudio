@@ -24,6 +24,7 @@ init_db()
 os.makedirs(os.path.join(DATA_DIR, "uploads"), exist_ok=True)
 os.makedirs(os.path.join(DATA_DIR, "crops"), exist_ok=True)
 os.makedirs(os.path.join(DATA_DIR, "reports"), exist_ok=True)
+os.makedirs(os.path.join(DATA_DIR, "evidence"), exist_ok=True)
 
 app = FastAPI(
     title="AI(EYE) in the sky API",
@@ -57,6 +58,7 @@ async def local_origin_guard(request: Request, call_next):
 # Static files mount
 app.mount("/uploads", StaticFiles(directory=os.path.join(DATA_DIR, "uploads")), name="uploads")
 app.mount("/crops", StaticFiles(directory=os.path.join(DATA_DIR, "crops")), name="crops")
+app.mount("/evidence", StaticFiles(directory=os.path.join(DATA_DIR, "evidence")), name="evidence")
 
 # Include API Router
 app.include_router(api_router)

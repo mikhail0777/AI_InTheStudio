@@ -106,7 +106,8 @@ def init_db():
 
     # Additive migrations retain earlier flights and their human review decisions.
     migrations = {
-        "sessions": {"run_id": "TEXT", "error_message": "TEXT", "search_query": "JSON"},
+        "sessions": {"run_id": "TEXT", "error_message": "TEXT", "search_query": "JSON",
+                     "search_id": "TEXT", "index_id": "TEXT"},
         "detections": {"run_id": "TEXT", "payload": "JSON"},
         "tracks": {"payload": "JSON"},
     }

@@ -37,9 +37,9 @@ export const TargetForm: React.FC<TargetFormProps> = ({ onStartSession, isProces
           <input id="telemetry-upload" type="file" accept=".srt" className="input-slot" onChange={e => setSrtFile(e.target.files?.[0] || null)} />
           <small className="muted">SRT from the same recording supplies drone position and altitude.</small>
         </div>
-        <div><label className="field-label" htmlFor="target-description">Who are you looking for?</label>
-          <textarea id="target-description" className="input-slot search-description" rows={5} value={description} onChange={e => setDescription(e.target.value)} placeholder="For example: person wearing a green long-sleeve top, black pants, and a black backpack." required />
-          <small className="muted">Describe clothing colors and a backpack. Results only show people whose visible evidence supports the description.</small>
+        <div><label className="field-label" htmlFor="target-description">What would you like to find in this video?</label>
+          <textarea id="target-description" className="input-slot search-description" rows={5} value={description} onChange={e => setDescription(e.target.value)} placeholder="A woman pushing a stroller, a yellow car, or a person placing a package near a door." required />
+          <small className="muted">Describe a visible entity, attribute, action, or relationship in ordinary language.</small>
         </div>
         {error && <p role="alert" className="error-message">{error}</p>}
         <button type="submit" className="btn-industrial btn-primary" disabled={isProcessing}><Play size={18} />{isProcessing ? 'Analysis in progress' : 'Analyze recording'}</button>

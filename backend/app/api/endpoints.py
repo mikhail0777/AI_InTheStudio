@@ -9,10 +9,12 @@ from fastapi.responses import FileResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 from app.database import get_db_connection
 from app.models.schemas import TargetConfiguration, SessionStatus, TrackResult, HumanFeedbackInput, AgentLogEntry, GPSPoint
+from app.models.open_vocabulary import SearchResult
 from app.services.video_service import VideoService
 from app.services.telemetry_service import TelemetryService
 from app.services.agentic_loop import AgenticLoopManager, DATA_DIR, load_tracks
 from app.services.analysis_worker import queue_analysis, control_analysis
+from app.services.generic_search import OpenVocabularySearchManager, load_search_results
 
 router = APIRouter(prefix="/api")
 MAX_VIDEO_BYTES = int(os.environ.get("AIEYE_MAX_VIDEO_BYTES", 4 * 1024**3))
@@ -183,6 +185,7 @@ def get_session_status(session_id: str):
     with get_db_connection() as conn:
         logs = conn.execute("SELECT timestamp,step,message,level FROM agent_logs WHERE session_id=? ORDER BY id",(session_id,)).fetchall()
         tracks = conn.execute("SELECT COUNT(*) FROM tracks WHERE session_id=?",(session_id,)).fetchone()[0]
+        results_count = conn.execute("SELECT COUNT(*) FROM search_results WHERE search_id=?", (row["search_id"],)).fetchone()[0] if row["search_id"] else 0
         detections = conn.execute("SELECT COUNT(*) FROM detections WHERE session_id=? AND (run_id=? OR (? IS NULL AND run_id IS NULL))",(session_id,row["run_id"],row["run_id"])).fetchone()[0]
         samples = conn.execute("SELECT COUNT(*) planned,SUM(status='sampled') sampled,MAX(CASE WHEN status='sampled' THEN timestamp_seconds END) latest FROM frame_samples WHERE run_id=?",(row["run_id"],)).fetchone()
     video = json.loads(row["video_metadata"]) if row["video_metadata"] else {}
@@ -190,6 +193,8 @@ def get_session_status(session_id: str):
         current_stage=row["current_stage"],total_duration_seconds=video.get("duration_seconds",0),
         current_timestamp_seconds=samples["latest"] or 0,people_detected_count=detections,unique_tracks_count=tracks,
         search_plan=json.loads(row["search_plan"]) if row["search_plan"] else None,
+        search_query=json.loads(row["search_query"]) if row["search_query"] else None,
+        results_count=results_count,
         agent_logs=[AgentLogEntry(**dict(item)) for item in logs],run_id=row["run_id"],
         frames_sampled=samples["sampled"] or 0,frames_planned=samples["planned"] or 0,error_message=row["error_message"])
 
@@ -198,6 +203,20 @@ def get_session_status(session_id: str):
 def get_tracks(session_id: str):
     get_session(session_id)
     return load_tracks(session_id)
+
+
+@router.get("/sessions/{session_id}/results",response_model=List[SearchResult])
+def get_results(session_id: str):
+    get_session(session_id)
+    return load_search_results(session_id)
+
+
+@router.post("/sessions/{session_id}/results/{result_id}/feedback",response_model=SearchResult)
+def submit_result_feedback(session_id: str,result_id: str,feedback: HumanFeedbackInput):
+    try:
+        return OpenVocabularySearchManager.apply_feedback(session_id,result_id,feedback)
+    except (LookupError,RuntimeError) as error:
+        _translate_queue_error(error)
 
 
 @router.get("/sessions/{session_id}/tracks/{track_id}",response_model=TrackResult)
@@ -221,7 +240,11 @@ def get_report(session_id: str):
     row = get_session(session_id)
     if row["status"] != "completed":
         raise HTTPException(409,"A completed analysis is required before exporting a report.")
-    AgenticLoopManager.regenerate_report(session_id)
+    if row["search_id"]:
+        from app.services.generic_report import generate_generic_report
+        generate_generic_report(session_id)
+    else:
+        AgenticLoopManager.regenerate_report(session_id)
     return FileResponse(os.path.join(DATA_DIR,"reports",f"report_{session_id}.html"),media_type="text/html",
                         headers={"Cache-Control":"no-store"})
 

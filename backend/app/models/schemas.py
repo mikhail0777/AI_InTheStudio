@@ -1,5 +1,6 @@
 from typing import List, Dict, Optional, Any, Literal
 from pydantic import BaseModel, Field
+from app.models.open_vocabulary import SearchQuery
 
 class TargetConfiguration(BaseModel):
     free_text_description: str = Field(default="", max_length=4000)
@@ -133,6 +134,9 @@ class SessionStatus(BaseModel):
     total_duration_seconds: float = 0.0
     people_detected_count: int = 0
     unique_tracks_count: int = 0
+    entity_counts: Dict[str, int] = Field(default_factory=dict)
+    results_count: int = 0
+    search_query: Optional[SearchQuery] = None
     search_plan: Optional[SearchPlan] = None
     agent_logs: List[AgentLogEntry] = Field(default_factory=list)
     run_id: Optional[str] = None

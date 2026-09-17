@@ -1,4 +1,4 @@
-import { TargetConfiguration, SessionStatus, TrackResult, GPSPoint } from './types';
+import { TargetConfiguration, SessionStatus, TrackResult, GPSPoint, SearchResult } from './types';
 
 const API_BASE = '/api';
 
@@ -76,6 +76,26 @@ export async function getSessionStatus(sessionId: string): Promise<SessionStatus
 
 export async function getTracks(sessionId: string): Promise<TrackResult[]> {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/tracks`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function getResults(sessionId: string): Promise<SearchResult[]> {
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}/results`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function submitResultFeedback(
+  sessionId: string,
+  resultId: string,
+  status: 'confirmed' | 'rejected' | 'needs_research',
+  notes?: string
+): Promise<SearchResult> {
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}/results/${encodeURIComponent(resultId)}/feedback`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status, notes })
+  });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }

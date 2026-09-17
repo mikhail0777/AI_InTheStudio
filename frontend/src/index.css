@@ -377,6 +377,11 @@ button:focus-visible, a:focus-visible, .map-marker:focus-visible { outline: 2px 
 .track-summary p { color: #637185; line-height: 1.5; }
 .track-actions { border-top: 1px solid #e6eaf0; padding-top: 12px; display: flex; gap: 8px; margin-top: auto; }
 .track-actions button:first-child, .track-actions button:nth-child(2) { flex: 1; }
+.result-frame { width: 100%; aspect-ratio: 16/9; object-fit: contain; background: #111923; }
+.result-clip { width: 100%; max-height: 320px; background: #111923; }
+.evidence-supported { color: #256449 !important; }
+.evidence-conflicting { color: #9a3d2c !important; }
+.evidence-missing, .evidence-uncertain, .evidence-unsupported { color: #637185 !important; }
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 42px 24px; color: #637185; grid-column: 1 / -1; }
 .empty-state p { font-size: 13px; max-width: 480px; }
 .video-stage { aspect-ratio: 16/9; background: #111923; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center; }

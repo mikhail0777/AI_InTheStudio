@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { GPSPoint, TargetConfiguration, SessionStatus, TrackResult } from './types';
-import { createSession, uploadVideo, uploadTelemetry, startAnalysis, getSessionStatus, getTelemetry, getTracks, submitHumanFeedback, pauseAnalysis, resumeAnalysis, cancelAnalysis } from './api';
+import { GPSPoint, TargetConfiguration, SessionStatus, TrackResult, SearchResult } from './types';
+import { createSession, uploadVideo, uploadTelemetry, startAnalysis, getSessionStatus, getTelemetry, getTracks, getResults, submitHumanFeedback, submitResultFeedback, pauseAnalysis, resumeAnalysis, cancelAnalysis } from './api';
 import { Header } from './components/Header';
 import { TargetForm } from './components/TargetForm';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -10,6 +10,7 @@ import { AgentActivityFeed } from './components/AgentActivityFeed';
 import { TelemetryMap } from './components/TelemetryMap';
 import { SARReportModal } from './components/SARReportModal';
 import { isReviewCandidate } from './review';
+import { ResultCard } from './components/ResultCard';
 
 const activeStatuses = ['queued', 'analyzing', 'paused'];
 const messageOf = (error: unknown) => error instanceof Error ? error.message : 'Unexpected error. Please try again.';
@@ -18,6 +19,7 @@ export const App: React.FC = () => {
   const [session, setSession] = useState<SessionStatus | null>(null);
   const [monitoredSessionId, setMonitoredSessionId] = useState<string | null>(null);
   const [tracks, setTracks] = useState<TrackResult[]>([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [telemetry, setTelemetry] = useState<GPSPoint[]>([]);
   const [selectedTrack, setSelectedTrack] = useState<TrackResult | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -42,9 +44,10 @@ export const App: React.FC = () => {
         if (disposed) return;
         const finished = ['completed', 'error', 'cancelled'].includes(latest.status);
         if (finished) {
-          const [results, points] = await Promise.all([getTracks(monitoredSessionId), getTelemetry(monitoredSessionId)]);
+          const [legacyTracks, genericResults, points] = await Promise.all([getTracks(monitoredSessionId), getResults(monitoredSessionId), getTelemetry(monitoredSessionId)]);
           if (disposed) return;
-          setTracks(results);
+          setTracks(legacyTracks);
+          setResults(genericResults);
           setTelemetry(points);
         }
         setSession(latest);
@@ -64,7 +67,7 @@ export const App: React.FC = () => {
     if (isProcessing) return;
     generation.current += 1;
     setIsUploading(true); setError(''); setConnectionError(''); setMonitoredSessionId(null);
-    setTracks([]); setTelemetry([]); setSelectedTrack(null); setVideoUrl(null); setJumpTimestamp(null);
+    setTracks([]); setResults([]); setTelemetry([]); setSelectedTrack(null); setVideoUrl(null); setJumpTimestamp(null);
     setShowReportModal(false);
     try {
       setUploadStage('Creating session');
@@ -99,6 +102,17 @@ export const App: React.FC = () => {
     } catch (failure) { if (requestGeneration === generation.current) setError(`Review could not be saved. ${messageOf(failure)}`); }
   };
 
+  const handleResultFeedback = async (resultId: string, status: 'confirmed' | 'rejected' | 'needs_research', notes?: string) => {
+    if (!session) return;
+    const requestGeneration = generation.current;
+    try {
+      const updated = await submitResultFeedback(session.session_id, resultId, status, notes);
+      if (requestGeneration !== generation.current) return;
+      setResults(previous => previous.map(result => result.result_id === resultId ? updated : result));
+      setError('');
+    } catch (failure) { if (requestGeneration === generation.current) setError(`Review could not be saved. ${messageOf(failure)}`); }
+  };
+
   const handleControl = async (action: 'pause' | 'resume' | 'cancel') => {
     if (!session || controlPending) return;
     setControlPending(true);
@@ -114,16 +128,18 @@ export const App: React.FC = () => {
   const handleNewMission = () => {
     if (isProcessing) return;
     generation.current += 1;
-    setMonitoredSessionId(null); setSession(null); setTracks([]); setTelemetry([]); setSelectedTrack(null);
+    setMonitoredSessionId(null); setSession(null); setTracks([]); setResults([]); setTelemetry([]); setSelectedTrack(null);
     setVideoUrl(null); setJumpTimestamp(null); setError(''); setConnectionError(''); setShowReportModal(false);
   };
   const jumpTo = (seconds: number) => setJumpTimestamp({ seconds, key: Date.now() });
   const matchingTracks = tracks.filter(isReviewCandidate);
+  const matchingResults = results.filter(result => result.human_feedback !== 'rejected');
+  const hasGenericSearch = !!session?.search_query;
   const emptyDetail = isProcessing ? 'Candidates will appear when processing finishes.'
-    : session?.status === 'completed' ? 'No person had enough visible evidence to match the description.'
+    : session?.status === 'completed' ? 'No matching event was found in the analyzed frames. This does not establish that it is absent from the full video.'
     : session?.status === 'error' ? 'Processing stopped. Review the error above and retry with a new analysis.'
     : session?.status === 'cancelled' ? 'Analysis was cancelled. Start a new analysis to process the recording.'
-    : 'Describe who you are looking for and attach a recording.';
+    : 'Describe what you would like to find and attach a recording.';
 
   return <div className="app-shell">
     <Header status={session} onNewMission={handleNewMission} onOpenReport={() => setShowReportModal(true)} isProcessing={isProcessing} isUploading={isUploading} controlPending={controlPending} onControl={handleControl} />
@@ -137,14 +153,15 @@ export const App: React.FC = () => {
       <div className="layout-column">
         <VideoPlayer videoUrl={videoUrl} tracks={matchingTracks} status={session} selectedTrack={selectedTrack} onSelectTrack={setSelectedTrack} jumpTimestamp={jumpTimestamp?.seconds} jumpKey={jumpTimestamp?.key} />
         <section className="card-module sightings-panel">
-          <div className="row-between sightings-heading"><div><h2>Matching people</h2><p className="muted">{matchingTracks.length} results supported by visible evidence</p></div></div>
-          <div className="sightings-grid">{matchingTracks.length ? matchingTracks.map(track => <TrackCard key={track.track_id} track={track} isSelected={selectedTrack?.track_id === track.track_id} onSelect={() => setSelectedTrack(track)} onJumpToTime={jumpTo} onFeedback={handleFeedback} />)
-            : <div className="empty-state"><strong>{isProcessing ? 'Processing recording' : 'No candidate sightings'}</strong><p>{emptyDetail}</p></div>}</div>
+          <div className="row-between sightings-heading"><div><h2>{hasGenericSearch ? 'Ranked search results' : 'Matching people'}</h2><p className="muted">{hasGenericSearch ? `${matchingResults.length} localized candidates, including conflicts for review` : `${matchingTracks.length} results supported by required visible evidence`}</p></div></div>
+          <div className="sightings-grid">{hasGenericSearch && matchingResults.length ? matchingResults.map(result => <ResultCard key={result.result_id} result={result} onJumpToTime={jumpTo} onFeedback={handleResultFeedback} />)
+            : !hasGenericSearch && matchingTracks.length ? matchingTracks.map(track => <TrackCard key={track.track_id} track={track} isSelected={selectedTrack?.track_id === track.track_id} onSelect={() => setSelectedTrack(track)} onJumpToTime={jumpTo} onFeedback={handleFeedback} />)
+            : <div className="empty-state"><strong>{isProcessing ? 'Processing recording' : 'No matching events'}</strong><p>{emptyDetail}</p></div>}</div>
         </section>
       </div>
       <div className="activity-column"><AgentActivityFeed logs={session?.agent_logs || []} currentStage={uploadStage || session?.current_stage || 'idle'} /></div>
     </main>
     <TrackDetailModal track={selectedTrack} onClose={() => setSelectedTrack(null)} onFeedback={handleFeedback} />
-    {showReportModal && <SARReportModal status={session} tracks={tracks} onClose={() => setShowReportModal(false)} />}
+    {showReportModal && <SARReportModal status={session} tracks={tracks} results={results} onClose={() => setShowReportModal(false)} />}
   </div>;
 };

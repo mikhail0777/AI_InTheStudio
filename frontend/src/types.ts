@@ -118,6 +118,12 @@ export interface SessionStatus {
   total_duration_seconds: number;
   people_detected_count: number;
   unique_tracks_count: number;
+  entity_counts?: Record<string, number>;
+  results_count?: number;
+  search_query?: {
+    original_text: string;
+    entities: Array<{ entity_id: string; name: string; entity_type?: string | null }>;
+  } | null;
   search_plan?: SearchPlan | null;
   agent_logs: AgentLogEntry[];
 }
@@ -136,4 +142,67 @@ export interface SARReport {
   has_telemetry: boolean;
   unsearched_intervals: Array<{ start_seconds: number; end_seconds: number }>;
   actionable_recommendations: string[];
+}
+
+export interface ModelProvenance {
+  provider: string;
+  model_name: string;
+  model_version: string;
+  device: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface EntityDetection {
+  detection_id: string;
+  frame_id?: string | null;
+  frame_idx: number;
+  timestamp_seconds: number;
+  label: string;
+  bbox: number[];
+  confidence: number;
+  visibility: number;
+  crop_path?: string | null;
+  mask_path?: string | null;
+  attributes: Record<string, unknown>;
+  provenance: ModelProvenance;
+}
+
+export interface EntityTrack {
+  track_id: string;
+  label: string;
+  start_seconds: number;
+  end_seconds: number;
+  detections: EntityDetection[];
+  attributes: Record<string, unknown>;
+}
+
+export interface EvidenceAssessment {
+  criterion_id: string;
+  kind: 'entity' | 'attribute' | 'action' | 'relationship' | 'temporal' | 'quality';
+  assessment: 'supported' | 'conflicting' | 'missing' | 'uncertain' | 'unsupported';
+  score?: number | null;
+  explanation: string;
+  timestamps: number[];
+  entity_track_ids: string[];
+  evidence_paths: string[];
+  provenance?: ModelProvenance | null;
+}
+
+export interface SearchResult {
+  result_id: string;
+  search_id: string;
+  start_seconds: number;
+  end_seconds: number;
+  best_timestamp_seconds: number;
+  classification: 'strong_match' | 'possible_match' | 'unlikely_match' | 'insufficient_visibility' | 'unsupported_query';
+  overall_score: number;
+  component_scores: Record<string, number>;
+  entities: EntityTrack[];
+  evidence: EvidenceAssessment[];
+  explanation: string;
+  best_frame_path?: string | null;
+  clip_path?: string | null;
+  model_provenance: ModelProvenance[];
+  human_feedback?: 'confirmed' | 'rejected' | 'needs_research' | null;
+  human_notes?: string | null;
 }
