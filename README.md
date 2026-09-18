@@ -22,6 +22,8 @@ npm.cmd run dev
 
 Open http://localhost:5173. The main workflow is one description field, a required video,
 and optional matching SRT telemetry. After installation, `run_aieye.bat` starts both services.
+Run `run_aieye.bat --check` to verify Python/Node dependencies and pinned model integrity
+without starting anything, or `run_aieye.bat --no-browser` to start without opening the UI.
 The segmentation model is already installed in this workspace. The installer also fetches
 the pinned SigLIP retrieval and OWLv2 grounding safetensors. Runtime does not download models
 or switch providers. Missing weights or inference failures stop the job explicitly.
