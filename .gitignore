@@ -13,6 +13,9 @@ backend/data/
 *.mp4
 *.pt
 backend/models/owlv2/
+backend/models/trocr-small-printed/
+backend/models/easyocr/
+.tmp-tests/
 *.db
 node_modules/
 frontend/dist/

@@ -14,6 +14,12 @@ class QueryParserTests(unittest.TestCase):
         self.assertEqual(query.entities[0].attributes[0].value, "yellow")
         self.assertEqual(query.required_evidence_ids, ["car", "car.color"])
 
+    def test_license_plate_is_preserved_as_required_evidence(self):
+        query = self.parser.parse("find a car with the license plate DBYC622 in the video")
+        self.assertEqual(query.entities[0].attributes[0].name, "license_plate")
+        self.assertEqual(query.entities[0].attributes[0].value, "DBYC622")
+        self.assertEqual(query.required_evidence_ids, ["car", "car.license_plate"])
+
     def test_relationship_and_temporal_action_retain_participants(self):
         query = self.parser.parse("A woman pushing a stroller near a building")
         self.assertEqual(query.actions[0].action, "pushing")

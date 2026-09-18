@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import subprocess
 import time
 import uuid
 from typing import Dict, List, Sequence
@@ -24,6 +25,7 @@ from app.services.semantic_retrieval import SemanticRetrievalService
 from app.services.temporal_verifier import MultiFrameEvidenceVerifier
 from app.services.video_indexer import VideoIndexer
 from app.services.visual_features import color_match_score
+from app.services.license_plate_reader import LicensePlateReader, normalize_plate
 
 
 def _iou(a, b):
@@ -106,41 +108,28 @@ def localize_entities(frames, query: SearchQuery, session_id: str, evidence_root
 
 
 def _extract_clip(video_path: str, start: float, end: float, destination: Path):
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        raise ValueError("Source video could not be opened for clip extraction.")
-    fps = float(cap.get(cv2.CAP_PROP_FPS))
-    source_width, source_height = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)), int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    max_width = max(320, int(os.environ.get("AIEYE_RESULT_CLIP_WIDTH", "1280")))
-    scale = min(1.0, max_width / max(1, source_width))
-    width, height = int(source_width * scale), int(source_height * scale)
-    width -= width % 2
-    height -= height % 2
-    if fps <= 0 or width <= 0 or height <= 0:
-        cap.release()
-        raise ValueError("Source video has invalid clip metadata.")
+    if end <= start:
+        raise ValueError("Result clip interval must have positive duration.")
     destination.parent.mkdir(parents=True, exist_ok=True)
-    writer = cv2.VideoWriter(str(destination), cv2.VideoWriter_fourcc(*"mp4v"), fps, (width, height))
-    if not writer.isOpened():
-        cap.release()
-        raise OSError("Could not create result clip.")
-    cap.set(cv2.CAP_PROP_POS_FRAMES, max(0, int(start * fps)))
-    written = 0
+    temporary = destination.with_suffix(".encoding.mp4")
     try:
-        while cap.get(cv2.CAP_PROP_POS_FRAMES) / fps <= end:
-            ok, frame = cap.read()
-            if not ok or frame is None:
-                break
-            if scale < 1:
-                frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
-            writer.write(frame)
-            written += 1
+        from imageio_ffmpeg import get_ffmpeg_exe
+        max_width = max(320, int(os.environ.get("AIEYE_RESULT_CLIP_WIDTH", "1280")))
+        command = [
+            get_ffmpeg_exe(), "-hide_banner", "-loglevel", "error", "-y",
+            "-ss", f"{start:.3f}", "-i", str(video_path), "-t", f"{end - start:.3f}",
+            "-vf", f"scale='min({max_width},iw)':-2", "-an", "-c:v", "libx264",
+            "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart", str(temporary),
+        ]
+        subprocess.run(command, check=True, capture_output=True, timeout=180)
+        if not temporary.is_file() or temporary.stat().st_size == 0:
+            raise OSError("Browser-compatible result clip was not created.")
+        os.replace(temporary, destination)
+    except (OSError, subprocess.SubprocessError) as error:
+        raise OSError("Could not create browser-compatible H.264 result clip.") from error
     finally:
-        writer.release()
-        cap.release()
-    if not written:
-        destination.unlink(missing_ok=True)
-        raise ValueError("No frames were available for the result clip.")
+        temporary.unlink(missing_ok=True)
 
 
 def load_search_results(session_id: str) -> List[SearchResult]:
@@ -227,17 +216,28 @@ class OpenVocabularySearchManager:
             frame_rows = conn.execute("SELECT frame_id,frame_idx,timestamp_seconds,image_path FROM indexed_frames WHERE index_id=?",
                                       (index.index_id,)).fetchall()
         frame_by_path = {str(Path(item["image_path"]).resolve()): item for item in frame_rows}
+        has_plate_query = any(attribute.name == "license_plate" for entity in query.entities
+                              for attribute in entity.attributes)
         frames = []
-        for path, candidate in best_by_path.items():
-            frame = frame_by_path.get(str(Path(path).resolve()))
-            if frame:
-                frames.append(CandidateFrame(
-                    frame_id=frame["frame_id"], frame_idx=frame["frame_idx"],
-                    timestamp_seconds=frame["timestamp_seconds"], image_path=frame["image_path"],
-                    semantic_similarity=candidate.semantic_similarity,
-                ))
-                if len(frames) >= profile.localization_frame_limit:
-                    break
+        if has_plate_query:
+            # Text-specific searches must scan the timeline; image/text retrieval cannot reliably
+            # distinguish one short alphanumeric identifier from another.
+            frames = [CandidateFrame(
+                frame_id=frame["frame_id"], frame_idx=frame["frame_idx"],
+                timestamp_seconds=frame["timestamp_seconds"], image_path=frame["image_path"],
+                semantic_similarity=0.0,
+            ) for frame in frame_rows]
+        else:
+            for path, candidate in best_by_path.items():
+                frame = frame_by_path.get(str(Path(path).resolve()))
+                if frame:
+                    frames.append(CandidateFrame(
+                        frame_id=frame["frame_id"], frame_idx=frame["frame_idx"],
+                        timestamp_seconds=frame["timestamp_seconds"], image_path=frame["image_path"],
+                        semantic_similarity=candidate.semantic_similarity,
+                    ))
+                    if len(frames) >= profile.localization_frame_limit:
+                        break
         frames.sort(key=lambda item: item.timestamp_seconds)
         cls._status(session_id, 50, "entity_localization")
         evidence_root = Path(database.DB_DIR) / "evidence"
@@ -258,6 +258,8 @@ class OpenVocabularySearchManager:
             profile.result_track_limit,
             max(1, int(os.environ.get("AIEYE_MAX_RESULT_TRACKS", str(profile.result_track_limit)))),
         )
+        if has_plate_query:
+            max_tracks = max(max_tracks, int(os.environ.get("AIEYE_MAX_PLATE_TRACKS", "50")))
         tracks = sorted(tracks, key=lambda track: _track_priority(query, track), reverse=True)[:max_tracks]
         cls._status(session_id, 75, "evidence_ranking")
         stage_started = time.perf_counter()
@@ -308,6 +310,10 @@ class OpenVocabularySearchManager:
               tracks: Sequence[Sequence], evidence_root: Path,
               semantic_provenance: ModelProvenance, result_limit=None) -> List[SearchResult]:
         result_limit = max(1, int(result_limit or os.environ.get("AIEYE_MAX_RESULT_TRACKS", "10")))
+        plate_constraints = [attribute for entity in query.entities for attribute in entity.attributes
+                             if attribute.name == "license_plate"]
+        if plate_constraints:
+            cls._read_license_plates(session_id, tracks)
         needs_event_ranking = (
             len(query.entities) > 1 or query.actions or query.relationships
             or any((entity.quantity or 1) > 1 or entity.negative for entity in query.entities)
@@ -315,6 +321,12 @@ class OpenVocabularySearchManager:
         )
         if needs_event_ranking:
             event_results = build_event_results(query, search_id, video.duration_seconds, tracks)
+            if plate_constraints:
+                requested = {normalize_plate(item.value) for item in plate_constraints}
+                event_results = [result for result in event_results if result.classification == "strong_match"
+                                 and requested.issubset({normalize_plate(reading.get("text", ""))
+                                     for entity in result.entities for detection in entity.detections
+                                     for reading in detection.attributes.get("license_plate_readings", [])})]
             return cls._materialize_events(
                 event_results[:result_limit],
                 session_id, video, evidence_root, semantic_provenance,
@@ -430,6 +442,43 @@ class OpenVocabularySearchManager:
             ))
         return sorted(output, key=lambda item: item.overall_score, reverse=True)
 
+    @staticmethod
+    def _read_license_plates(session_id, tracks, reader=None):
+        reader = reader or LicensePlateReader()
+        frame_cache = {}
+        with database.get_db_connection() as conn:
+            rows = conn.execute(
+                "SELECT frame_id,image_path FROM indexed_frames WHERE index_id=(SELECT index_id FROM sessions WHERE session_id=?)",
+                (session_id,),
+            ).fetchall()
+        paths = {row["frame_id"]: row["image_path"] for row in rows}
+        for track in tracks:
+            # Read several of the clearest/largest observations. Plate characters that are
+            # ambiguous in one frame often become exact a frame later as the camera moves.
+            selected = sorted(
+                track,
+                key=lambda item: ((item.bbox[2] - item.bbox[0]) * (item.bbox[3] - item.bbox[1]),
+                                  item.visibility, item.confidence),
+                reverse=True,
+            )[:6]
+            for detection in track:
+                if detection not in selected:
+                    detection.attributes["license_plate_readings"] = []
+                    continue
+                path = paths.get(detection.frame_id)
+                if not path:
+                    detection.attributes["license_plate_readings"] = []
+                    continue
+                if path not in frame_cache:
+                    frame_cache[path] = cv2.imread(path)
+                frame = frame_cache[path]
+                readings = reader.read_vehicle(frame, detection.bbox) if frame is not None else []
+                detection.attributes["license_plate_readings"] = [
+                    {"text": item.text, "confidence": round(item.confidence, 4), "bbox": item.bbox}
+                    for item in readings
+                ]
+                detection.attributes["license_plate_provenance"] = reader.provenance.model_dump()
+
     @classmethod
     def _materialize_events(cls, results, session_id, video, evidence_root, semantic_provenance):
         directory = evidence_root / session_id
@@ -460,6 +509,14 @@ class OpenVocabularySearchManager:
                 cv2.rectangle(image, (x1, y1), (x2, y2), color, 5)
                 cv2.putText(image, f"{track.label} {observation.confidence:.2f}",
                             (x1, max(30, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, 1, color, 3)
+                for reading in observation.attributes.get("license_plate_readings", []):
+                    plate_bbox = reading.get("bbox", [])
+                    if len(plate_bbox) != 4:
+                        continue
+                    px1, py1, px2, py2 = map(int, plate_bbox)
+                    cv2.rectangle(image, (px1, py1), (px2, py2), (40, 255, 40), 4)
+                    cv2.putText(image, reading.get("text", ""), (px1, max(30, py1 - 8)),
+                                cv2.FONT_HERSHEY_SIMPLEX, .9, (40, 255, 40), 3)
             annotated = directory / f"event_{number}_frame.jpg"
             clip = directory / f"event_{number}_clip.mp4"
             if not cv2.imwrite(str(annotated), image):

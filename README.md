@@ -25,7 +25,8 @@ and optional matching SRT telemetry. After installation, `run_aieye.bat` starts 
 Run `run_aieye.bat --check` to verify Python/Node dependencies and pinned model integrity
 without starting anything, or `run_aieye.bat --no-browser` to start without opening the UI.
 The segmentation model is already installed in this workspace. The installer also fetches
-the pinned SigLIP retrieval and OWLv2 grounding safetensors. Runtime does not download models
+the pinned SigLIP retrieval and OWLv2 grounding safetensors plus the local FastALPR plate
+detector and recognizer. Runtime does not download models
 or switch providers. Missing weights or inference failures stop the job explicitly.
 
 ## Matching behavior
@@ -37,6 +38,17 @@ a high-confidence car with conflicting color evidence remains an unlikely match.
 results include annotated frames, playable clips, component evidence, model provenance,
 and correct/incorrect feedback controls. `AIEYE_MAX_RESULT_TRACKS` bounds generated result
 clips (default 10), and `AIEYE_RESULT_CLIP_WIDTH` bounds clip width (default 1280).
+New clips are encoded as browser-compatible H.264/yuv420p with fast-start metadata. Result
+images open at full size, timestamps seek the original recording, and selecting a result overlays
+its sampled entity boxes during original-footage playback. Event results that reuse any participant
+track in the same time interval are collapsed to the strongest supported interpretation.
+
+License-plate queries such as `find a car with license plate DBYC622` scan the complete indexed
+timeline rather than relying on semantic retrieval. A purpose-built plate detector and OCR model
+read several large observations from each vehicle track. Plate text is normalized for punctuation
+and case, but a result is returned only when the complete requested identifier is read exactly;
+wrong or unreadable plates cannot be promoted by car confidence or semantic similarity.
+`AIEYE_MAX_PLATE_TRACKS` bounds tracks sent to OCR (default 50).
 
 Interaction queries such as `a person pushing a stroller` also use the generic path. The
 application combines YOLO person masks with OWLv2 phrase boxes, tracks both entities, and

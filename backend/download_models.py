@@ -55,6 +55,13 @@ def main():
     print(f'Model: {OWLV2_MODEL_ID}@{OWLV2_REVISION}')
     print(f'Cache: {owl_snapshot}')
     print(f'SHA256: {owl_hash}')
+    from fast_alpr import ALPR
+    plate_reader = ALPR(
+        detector_model='yolo-v9-t-384-license-plate-end2end',
+        ocr_model='cct-xs-v2-global-model', ocr_device='cpu',
+    )
+    print(f'Model: {plate_reader.detector.detector.model._model_path}')
+    print(f'Model: {plate_reader.ocr.ocr_model.model._model_path}')
 
 
 if __name__ == '__main__':

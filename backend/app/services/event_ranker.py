@@ -5,9 +5,10 @@ from statistics import mean
 from typing import Sequence
 import uuid
 
-from app.models.open_vocabulary import EntityTrack, EvidenceAssessment, SearchQuery, SearchResult
+from app.models.open_vocabulary import EntityTrack, EvidenceAssessment, ModelProvenance, SearchQuery, SearchResult
 from app.services.temporal_verifier import MultiFrameEvidenceVerifier
 from app.services.visual_features import color_match_score
+from app.services.license_plate_reader import normalize_plate
 
 
 def _matches(label, entity):
@@ -71,16 +72,42 @@ def _attribute_evidence(entity, selected):
                 )
                 explanation = f"Requested {attribute.value}; strongest localized color coverage was {round(raw * 100)}%."
                 score = support
+        elif attribute.name == "license_plate":
+            expected = normalize_plate(attribute.value)
+            readings = [reading for detection in detections
+                        for reading in detection.attributes.get("license_plate_readings", [])]
+            exact = [reading for reading in readings if normalize_plate(reading.get("text", "")) == expected]
+            if exact:
+                assessment, score = "supported", max(float(item.get("confidence", 0.0)) for item in exact)
+                explanation = f"License plate {expected} was read in {len(exact)} localized observation(s)."
+            elif readings:
+                assessment, score = "conflicting", 0.0
+                observed = ", ".join(sorted({normalize_plate(item.get("text", "")) for item in readings}))
+                explanation = f"Requested plate {expected}; OCR read {observed or 'different text'}."
+            else:
+                assessment, score = "uncertain", None
+                explanation = f"Requested plate {expected}, but no plate text was readable."
+            scores = [score or 0.0 for _ in detections]
         else:
             assessment, score = "uncertain", None
             explanation = f"The visible attribute '{attribute.value}' has no specialized verifier yet."
+        evidence_provenance = detections[0].provenance if detections else None
+        if attribute.name == "license_plate" and detections:
+            serialized = next((item.attributes.get("license_plate_provenance") for item in detections
+                               if item.attributes.get("license_plate_provenance")), None)
+            if serialized:
+                evidence_provenance = ModelProvenance(**serialized)
         evidence.append(EvidenceAssessment(
             criterion_id=attribute.criterion_id, kind="attribute", assessment=assessment,
             score=score, explanation=explanation,
-            timestamps=[item.timestamp_seconds for item, value in zip(detections, scores) if value >= .3],
+            timestamps=([item.timestamp_seconds for item in detections
+                         if any(normalize_plate(reading.get("text", "")) == normalize_plate(attribute.value)
+                                for reading in item.attributes.get("license_plate_readings", []))]
+                        if attribute.name == "license_plate" else
+                        [item.timestamp_seconds for item, value in zip(detections, scores) if value >= .3]),
             entity_track_ids=[track.track_id for track in selected],
             evidence_paths=[item.crop_path for item in detections if item.crop_path],
-            provenance=detections[0].provenance if detections else None,
+            provenance=evidence_provenance,
         ))
     return evidence
 
@@ -171,6 +198,13 @@ def build_event_results(query: SearchQuery, search_id: str, duration: float,
                 provenance[key] = detection.provenance
         provenance[(verifier.provenance.provider, verifier.provenance.model_name,
                     verifier.provenance.model_version)] = verifier.provenance
+        for track in combination:
+            for detection in track.detections:
+                serialized = detection.attributes.get("license_plate_provenance")
+                if serialized:
+                    plate_provenance = ModelProvenance(**serialized)
+                    provenance[(plate_provenance.provider, plate_provenance.model_name,
+                                plate_provenance.model_version)] = plate_provenance
         explanation = (f"{classification.replace('_', ' ').title()}: "
                        + "; ".join(item.explanation for item in constraint_evidence))
         results.append(SearchResult(
@@ -190,8 +224,9 @@ def build_event_results(query: SearchQuery, search_id: str, duration: float,
     ), reverse=True)
     deduplicated = []
     for result in ranked:
+        result_track_ids = {entity.track_id for entity in result.entities}
         duplicate = any(
-            prior.entities[0].track_id == result.entities[0].track_id
+            result_track_ids.intersection(entity.track_id for entity in prior.entities)
             and min(prior.end_seconds, result.end_seconds) > max(prior.start_seconds, result.start_seconds)
             for prior in deduplicated
         )

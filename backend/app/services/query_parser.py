@@ -20,6 +20,10 @@ ENTITY_ALIASES: Dict[str, Tuple[str, str]] = {
 }
 QUANTITIES = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5}
 VISIBLE_ATTRIBUTES = {"large", "small", "damaged"}
+LICENSE_PLATE_PATTERN = re.compile(
+    r"\b(?:licen[cs]e\s+plate|number\s+plate|plate)\s*(?:number|no\.?|#|is|of)?\s*[:#-]?\s*([a-z0-9][a-z0-9-]{2,9})\b",
+    re.IGNORECASE,
+)
 ACTIONS = {"pushing": "pushing", "pushes": "pushing", "running": "running", "carrying": "carrying",
            "entering": "entering", "enters": "entering", "falling": "falling", "placing": "placing",
            "leaving": "leaving", "opens": "opening", "picking": "picking_up"}
@@ -43,6 +47,11 @@ class StructuredQueryParser:
         if not original:
             raise ValueError("Describe what to find in the video.")
         words = _tokens(original)
+        plate_match = LICENSE_PLATE_PATTERN.search(original)
+        requested_plate = (re.sub(r"[^A-Z0-9]", "", plate_match.group(1).upper())
+                           if plate_match else None)
+        if requested_plate and not 4 <= len(requested_plate) <= 10:
+            requested_plate = None
         entities = []
         positions = []
         counts: Dict[str, int] = {}
@@ -75,6 +84,11 @@ class StructuredQueryParser:
                         criterion_id=f"{entity_id}.{attribute}", entity_id=entity_id,
                         name="visible_attribute", value=attribute, required=True, negative=False,
                     ))
+            if requested_plate and entity_type in {"car", "vehicle", "truck"}:
+                attributes.append(AttributeConstraint(
+                    criterion_id=f"{entity_id}.license_plate", entity_id=entity_id,
+                    name="license_plate", value=requested_plate, required=True, negative=False,
+                ))
             entities.append(EntityMention(
                 entity_id=entity_id, name=name, entity_type=entity_type,
                 quantity=quantity, required=True, negative=negative, attributes=attributes,

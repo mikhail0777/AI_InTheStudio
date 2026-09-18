@@ -20,6 +20,8 @@ MODEL_HASHES = {
     "yolo": "1caa81c0195412efa411b632bcfb8c184939dddb6ae41f6a80c41b211ff257c3",
     "owlv2": "e1e130b9e404cf91a75ad45644c1da9d7fa5284085eecc864266a6923efb99e7",
     "siglip": "2c63cb7d1f2e95ba501893cbb8faeb4ea9a3af295498d35097126228659c2af8",
+    "plate_detector": "888397b96d761c89db40bc9c305838e8652660f5e282c2cadebbe8d2951a77a8",
+    "plate_ocr": "8031afb5fdc6b4d80462c9d542f1284ebd2cfddf5dbacd62609848d7e2855f44",
 }
 SIGLIP_MODEL_ID = "google/siglip-base-patch16-224"
 SIGLIP_REVISION = "7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed"
@@ -130,6 +132,11 @@ def run_preflight() -> None:
     ):
         siglip_cached_file(filename)
     verify_file(siglip_weight, MODEL_HASHES["siglip"], "SigLIP model")
+    model_cache = Path.home() / ".cache"
+    plate_detector = model_cache / "open-image-models" / "yolo-v9-t-384-license-plate-end2end" / "yolo-v9-t-384-license-plates-end2end.onnx"
+    plate_ocr = model_cache / "fast-plate-ocr" / "cct-xs-v2-global-model" / "cct_xs_v2_global.onnx"
+    verify_file(plate_detector, MODEL_HASHES["plate_detector"], "license-plate detector")
+    verify_file(plate_ocr, MODEL_HASHES["plate_ocr"], "license-plate OCR model")
     print(f"[OK] Python {sys.version.split()[0]}, Node.js {node_version}, npm, dependencies, and models verified.")
 
 

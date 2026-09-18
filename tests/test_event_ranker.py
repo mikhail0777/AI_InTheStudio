@@ -46,6 +46,15 @@ class EventRankerTests(unittest.TestCase):
         results = build_event_results(self.query, "search", 10, [person, stroller_a, stroller_b])
         self.assertEqual(len(results), 1)
 
+    def test_one_object_does_not_create_duplicate_events_for_nearby_actors(self):
+        query = StructuredQueryParser().parse("a person pushing a stroller")
+        person_a = detections("person", [[0, 0, 30, 50], [5, 0, 35, 50], [10, 0, 40, 50]])
+        person_b = detections("person", [[2, 0, 32, 50], [7, 0, 37, 50], [12, 0, 42, 50]])
+        stroller = detections("stroller", [[20, 15, 55, 50], [25, 15, 60, 50], [30, 15, 65, 50]])
+        results = build_event_results(query, "search", 10, [person_a, person_b, stroller])
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0].classification, "strong_match")
+
     def test_quantity_requires_distinct_tracks(self):
         query = StructuredQueryParser().parse("two people near a car")
         person_a = detections("person", [[0, 0, 20, 40], [2, 0, 22, 40]])
@@ -80,6 +89,24 @@ class EventRankerTests(unittest.TestCase):
         self.assertEqual(build_event_results(query, "search", 10, [car])[0].classification, "strong_match")
         self.assertEqual(build_event_results(query, "search", 10, [car, dog])[0].classification,
                          "unlikely_match")
+
+    def test_license_plate_requires_exact_ocr_evidence(self):
+        query = StructuredQueryParser().parse("find a car with license plate DBYC622")
+        matching = detections("car", [[0, 0, 60, 40], [2, 0, 62, 40]])
+        matching[0].attributes["license_plate_readings"] = [
+            {"text": "DBYC-622", "confidence": .94, "bbox": [10, 20, 35, 28]},
+        ]
+        wrong = detections("car", [[0, 0, 60, 40], [2, 0, 62, 40]])
+        wrong[0].attributes["license_plate_readings"] = [
+            {"text": "ABC123", "confidence": .97, "bbox": [10, 20, 35, 28]},
+        ]
+        unreadable = detections("car", [[0, 0, 60, 40], [2, 0, 62, 40]])
+        self.assertEqual(build_event_results(query, "search", 10, [matching])[0].classification,
+                         "strong_match")
+        self.assertEqual(build_event_results(query, "search", 10, [wrong])[0].classification,
+                         "unlikely_match")
+        self.assertEqual(build_event_results(query, "search", 10, [unreadable])[0].classification,
+                         "insufficient_visibility")
 
 
 if __name__ == "__main__":
