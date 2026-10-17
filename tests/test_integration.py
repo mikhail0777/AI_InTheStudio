@@ -93,6 +93,20 @@ class IntegrationTests(unittest.TestCase):
         self.assertEqual(self.client.post(self.base+'/cancel').json()['status'],'cancelled')
         self.assertFalse(analysis_worker.AnalysisWorker().run_once())
 
+    def test_completed_or_uploaded_case_can_be_deleted_with_its_recording(self):
+        with database.get_db_connection() as conn:
+            upload = conn.execute("SELECT video_metadata FROM sessions WHERE session_id=?", (self.session,)).fetchone()
+        uploaded_path = Path(json.loads(upload["video_metadata"])["filepath"])
+        self.assertTrue(uploaded_path.is_file())
+        response = self.client.delete(self.base)
+        self.assertEqual(response.status_code, 200, response.text)
+        self.assertFalse(uploaded_path.exists())
+        self.assertEqual(self.client.get(self.base + '/status').status_code, 404)
+
+    def test_active_case_must_be_cancelled_before_deletion(self):
+        self.assertEqual(self.client.post(self.base + '/analyze').status_code, 200)
+        self.assertEqual(self.client.delete(self.base).status_code, 409)
+
     def test_detector_failure_stops_job(self):
         def fail(**kwargs): raise RuntimeError('model missing test')
         self.run_worker(fail)

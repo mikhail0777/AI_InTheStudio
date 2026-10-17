@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 from importlib import metadata
+from packaging.requirements import Requirement
 import os
 from pathlib import Path
 import shutil
@@ -46,8 +47,13 @@ def pinned_requirements(path: Path) -> list[tuple[str, str]]:
     requirements = []
     for raw_line in path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip().lstrip("\ufeff")
-        if line and not line.startswith("#") and "==" in line:
-            requirements.append(tuple(part.strip() for part in line.split("==", 1)))
+        if line and not line.startswith("#"):
+            requirement = Requirement(line)
+            if requirement.marker and not requirement.marker.evaluate():
+                continue
+            pinned = next((item.version for item in requirement.specifier if item.operator == "=="), None)
+            if pinned:
+                requirements.append((requirement.name, pinned))
     return requirements
 
 
@@ -111,33 +117,34 @@ def run_preflight() -> None:
             raise RuntimeError("Frontend dependencies are missing. Run: cd frontend && npm.cmd install")
 
     verify_python_packages()
-    yolo_path = Path(os.environ.get(
-        "AIEYE_MODEL_PATH", str(BACKEND / "models" / "yolo11s-seg.pt"),
-    )).resolve()
-    owl_path = Path(os.environ.get(
-        "AIEYE_GROUNDING_MODEL_PATH", str(BACKEND / "models" / "owlv2"),
-    )).resolve()
-    verify_file(yolo_path, MODEL_HASHES["yolo"], "YOLO model")
-    verify_file(owl_path / "model.safetensors", MODEL_HASHES["owlv2"], "OWLv2 model")
-    for filename in (
-        "config.json", "preprocessor_config.json", "tokenizer_config.json",
-        "special_tokens_map.json", "vocab.json", "merges.txt",
-    ):
-        if not (owl_path / filename).is_file():
-            raise RuntimeError(f"The local OWLv2 model is missing {filename}.")
-    siglip_weight = siglip_cached_file("model.safetensors")
-    for filename in (
-        "config.json", "preprocessor_config.json", "tokenizer_config.json",
-        "special_tokens_map.json", "tokenizer.json", "spiece.model",
-    ):
-        siglip_cached_file(filename)
-    verify_file(siglip_weight, MODEL_HASHES["siglip"], "SigLIP model")
     model_cache = Path.home() / ".cache"
     plate_detector = model_cache / "open-image-models" / "yolo-v9-t-384-license-plate-end2end" / "yolo-v9-t-384-license-plates-end2end.onnx"
     plate_ocr = model_cache / "fast-plate-ocr" / "cct-xs-v2-global-model" / "cct_xs_v2_global.onnx"
     verify_file(plate_detector, MODEL_HASHES["plate_detector"], "license-plate detector")
     verify_file(plate_ocr, MODEL_HASHES["plate_ocr"], "license-plate OCR model")
-    print(f"[OK] Python {sys.version.split()[0]}, Node.js {node_version}, npm, dependencies, and models verified.")
+    if os.environ.get("LOTTRACE_ENABLE_LEGACY_MODELS") == "1":
+        yolo_path = Path(os.environ.get(
+            "AIEYE_MODEL_PATH", str(BACKEND / "models" / "yolo11s-seg.pt"),
+        )).resolve()
+        owl_path = Path(os.environ.get(
+            "AIEYE_GROUNDING_MODEL_PATH", str(BACKEND / "models" / "owlv2"),
+        )).resolve()
+        verify_file(yolo_path, MODEL_HASHES["yolo"], "YOLO model")
+        verify_file(owl_path / "model.safetensors", MODEL_HASHES["owlv2"], "OWLv2 model")
+        for filename in (
+            "config.json", "preprocessor_config.json", "tokenizer_config.json",
+            "special_tokens_map.json", "vocab.json", "merges.txt",
+        ):
+            if not (owl_path / filename).is_file():
+                raise RuntimeError(f"The local OWLv2 model is missing {filename}.")
+        siglip_weight = siglip_cached_file("model.safetensors")
+        for filename in (
+            "config.json", "preprocessor_config.json", "tokenizer_config.json",
+            "special_tokens_map.json", "tokenizer.json", "spiece.model",
+        ):
+            siglip_cached_file(filename)
+        verify_file(siglip_weight, MODEL_HASHES["siglip"], "SigLIP model")
+    print(f"[OK] Python {sys.version.split()[0]}, Node.js {node_version}, npm, dependencies, and LotTrace plate models verified.")
 
 
 def port_is_free(host: str, port: int) -> bool:

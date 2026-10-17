@@ -1,4 +1,5 @@
 """Explicit model installation. Runtime never downloads or changes detectors."""
+import argparse
 from pathlib import Path
 import hashlib
 import urllib.request
@@ -13,6 +14,22 @@ OWLV2_SHA256 = 'e1e130b9e404cf91a75ad45644c1da9d7fa5284085eecc864266a6923efb99e7
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--all", action="store_true",
+        help="Also install the legacy generic YOLO, SigLIP, and OWLv2 research models.",
+    )
+    args = parser.parse_args()
+    from fast_alpr import ALPR
+    plate_reader = ALPR(
+        detector_model='yolo-v9-t-384-license-plate-end2end',
+        ocr_model='cct-xs-v2-global-model', ocr_device='cpu',
+    )
+    print(f'Model: {plate_reader.detector.detector.model._model_path}')
+    print(f'Model: {plate_reader.ocr.ocr_model.model._model_path}')
+    if not args.all:
+        print('LotTrace vehicle MVP models are installed. Use --all for legacy generic search models.')
+        return
     destination = Path(__file__).resolve().parent / 'models' / 'yolo11s-seg.pt'
     destination.parent.mkdir(parents=True, exist_ok=True)
     if not destination.exists():
@@ -55,14 +72,5 @@ def main():
     print(f'Model: {OWLV2_MODEL_ID}@{OWLV2_REVISION}')
     print(f'Cache: {owl_snapshot}')
     print(f'SHA256: {owl_hash}')
-    from fast_alpr import ALPR
-    plate_reader = ALPR(
-        detector_model='yolo-v9-t-384-license-plate-end2end',
-        ocr_model='cct-xs-v2-global-model', ocr_device='cpu',
-    )
-    print(f'Model: {plate_reader.detector.detector.model._model_path}')
-    print(f'Model: {plate_reader.ocr.ocr_model.model._model_path}')
-
-
 if __name__ == '__main__':
     main()

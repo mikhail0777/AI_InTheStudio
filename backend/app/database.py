@@ -236,6 +236,45 @@ def init_db():
         )
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS candidates_by_rank ON search_candidates(search_id, rank)")
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS vehicle_sightings (
+            sighting_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            search_id TEXT NOT NULL,
+            requested_plate TEXT NOT NULL,
+            observed_plate TEXT NOT NULL,
+            plate_match_mode TEXT NOT NULL,
+            match_kind TEXT NOT NULL,
+            ocr_confidence REAL NOT NULL,
+            similarity REAL NOT NULL,
+            first_seen_seconds REAL NOT NULL,
+            last_seen_seconds REAL NOT NULL,
+            best_timestamp_seconds REAL NOT NULL,
+            captured_at TEXT,
+            after_hours INTEGER,
+            camera_name TEXT,
+            camera_role TEXT NOT NULL DEFAULT 'unknown',
+            event_type TEXT NOT NULL DEFAULT 'observed',
+            vehicle_make TEXT,
+            vehicle_model TEXT,
+            vehicle_year INTEGER,
+            vehicle_color TEXT,
+            vehicle_body_type TEXT,
+            source_filename TEXT,
+            evidence_frame TEXT,
+            evidence_clip TEXT,
+            review_status TEXT,
+            review_notes TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(session_id) REFERENCES sessions(session_id),
+            FOREIGN KEY(search_id) REFERENCES searches(search_id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS vehicle_sightings_by_plate ON vehicle_sightings(observed_plate, requested_plate)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS vehicle_sightings_by_time ON vehicle_sightings(captured_at, best_timestamp_seconds)")
+    sighting_columns = {row[1] for row in cursor.execute("PRAGMA table_info(vehicle_sightings)")}
+    if "after_hours" not in sighting_columns:
+        cursor.execute("ALTER TABLE vehicle_sightings ADD COLUMN after_hours INTEGER")
 
     conn.commit()
     conn.close()

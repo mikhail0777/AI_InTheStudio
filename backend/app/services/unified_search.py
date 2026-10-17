@@ -8,6 +8,7 @@ from app.models.schemas import TargetConfiguration
 from app.services.agentic_loop import AgenticLoopManager, load_tracks
 from app.services.generic_search import OpenVocabularySearchManager
 from app.services.query_parser import StructuredQueryParser, should_use_generic_search
+from app.services.vehicle_investigation import VehicleInvestigationManager, is_plate_investigation
 
 
 class UnifiedSearchManager:
@@ -18,6 +19,10 @@ class UnifiedSearchManager:
         parsed = StructuredQueryParser().parse(
             target.free_text_description or "Locate a person.", target.processing_mode,
         )
+        if target.plate_number or is_plate_investigation(parsed):
+            return VehicleInvestigationManager.execute_analysis(
+                session_id, target, run_id=run_id, checkpoint=checkpoint,
+            )
         if should_use_generic_search(parsed):
             return OpenVocabularySearchManager.execute_analysis(
                 session_id, target, run_id=run_id, checkpoint=checkpoint,

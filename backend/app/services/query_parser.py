@@ -50,7 +50,7 @@ class StructuredQueryParser:
         plate_match = LICENSE_PLATE_PATTERN.search(original)
         requested_plate = (re.sub(r"[^A-Z0-9]", "", plate_match.group(1).upper())
                            if plate_match else None)
-        if requested_plate and not 4 <= len(requested_plate) <= 10:
+        if requested_plate and not 3 <= len(requested_plate) <= 10:
             requested_plate = None
         entities = []
         positions = []

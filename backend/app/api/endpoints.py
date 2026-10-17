@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import shutil
 import uuid
 from pathlib import Path
 from typing import List, Optional
@@ -15,6 +16,7 @@ from app.services.telemetry_service import TelemetryService
 from app.services.agentic_loop import AgenticLoopManager, DATA_DIR, load_tracks
 from app.services.analysis_worker import queue_analysis, control_analysis
 from app.services.generic_search import OpenVocabularySearchManager, load_search_results
+from app.services.vehicle_sightings import list_sightings
 
 router = APIRouter(prefix="/api")
 MAX_VIDEO_BYTES = int(os.environ.get("AIEYE_MAX_VIDEO_BYTES", 4 * 1024**3))
@@ -27,6 +29,17 @@ def get_session(session_id):
     if not row:
         raise HTTPException(404, "Session not found.")
     return row
+
+
+def _remove_session_path(path: Path):
+    root = Path(DATA_DIR).resolve()
+    target = path.resolve()
+    if target == root or root not in target.parents:
+        raise RuntimeError("Refusing to remove a path outside the application data directory.")
+    if target.is_dir():
+        shutil.rmtree(target)
+    elif target.exists():
+        target.unlink()
 
 
 def _reserve_upload(session_id):
@@ -75,12 +88,17 @@ async def _save_upload(session_id, upload, allowed_extensions, limit):
 
 @router.post("/sessions", response_model=SessionStatus)
 def create_session(target_config: Optional[TargetConfiguration] = None):
-    session_id = f"flight_{uuid.uuid4().hex}"
-    target_config = target_config or TargetConfiguration(free_text_description="Locate a person.")
+    session_id = f"case_{uuid.uuid4().hex}"
+    # Preserve the legacy API default for existing automation; the dealership UI always
+    # supplies an explicit vehicle query.
+    if target_config is None:
+        target_config = TargetConfiguration(free_text_description="Locate a person.")
+    elif not target_config.free_text_description.strip():
+        target_config = target_config.model_copy(update={"free_text_description": "Locate a person."})
     with get_db_connection() as conn:
         conn.execute("INSERT INTO sessions(session_id,status,progress_percent,current_stage,target_config) VALUES (?,?,?,?,?)",
                      (session_id,"created",0.0,"created",json.dumps(target_config.model_dump(mode="json"))))
-    AgenticLoopManager.log_agent_event(session_id,"INIT","Created a local analysis session.")
+    AgenticLoopManager.log_agent_event(session_id,"INIT","Created a local dealership video investigation.")
     return SessionStatus(session_id=session_id,status="created",current_stage="created")
 
 
@@ -204,6 +222,38 @@ def get_session_status(session_id: str):
         frames_sampled=samples["sampled"] or 0,frames_planned=samples["planned"] or 0,error_message=row["error_message"])
 
 
+@router.delete("/sessions/{session_id}")
+def delete_session(session_id: str):
+    row = get_session(session_id)
+    if row["status"] in ("queued", "analyzing", "paused", "uploading"):
+        raise HTTPException(409, "Pause or cancel the active investigation before deleting it.")
+    with get_db_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute("DELETE FROM vehicle_sightings WHERE session_id=?", (session_id,))
+        search_ids = [item[0] for item in conn.execute(
+            "SELECT search_id FROM searches WHERE session_id=?", (session_id,),
+        ).fetchall()]
+        run_ids = [item[0] for item in conn.execute(
+            "SELECT run_id FROM analysis_runs WHERE session_id=?", (session_id,),
+        ).fetchall()]
+        for search_id in search_ids:
+            conn.execute("DELETE FROM search_candidates WHERE search_id=?", (search_id,))
+            conn.execute("DELETE FROM search_results WHERE search_id=?", (search_id,))
+        if search_ids:
+            conn.execute("DELETE FROM searches WHERE session_id=?", (session_id,))
+        for run_id in run_ids:
+            conn.execute("DELETE FROM frame_samples WHERE run_id=?", (run_id,))
+        conn.execute("DELETE FROM analysis_runs WHERE session_id=?", (session_id,))
+        for table in ("tracks", "detections", "telemetry", "agent_logs"):
+            conn.execute(f"DELETE FROM {table} WHERE session_id=?", (session_id,))
+        conn.execute("DELETE FROM sessions WHERE session_id=?", (session_id,))
+    data_root = Path(DATA_DIR)
+    for folder in ("uploads", "crops", "evidence"):
+        _remove_session_path(data_root / folder / session_id)
+    _remove_session_path(data_root / "reports" / f"report_{session_id}.html")
+    return {"status": "deleted", "session_id": session_id}
+
+
 @router.get("/sessions/{session_id}/tracks",response_model=List[TrackResult])
 def get_tracks(session_id: str):
     get_session(session_id)
@@ -219,9 +269,30 @@ def get_results(session_id: str):
 @router.post("/sessions/{session_id}/results/{result_id}/feedback",response_model=SearchResult)
 def submit_result_feedback(session_id: str,result_id: str,feedback: HumanFeedbackInput):
     try:
-        return OpenVocabularySearchManager.apply_feedback(session_id,result_id,feedback)
+        result = OpenVocabularySearchManager.apply_feedback(session_id,result_id,feedback)
+        with get_db_connection() as conn:
+            conn.execute(
+                "UPDATE vehicle_sightings SET review_status=?,review_notes=? WHERE sighting_id=? AND session_id=?",
+                (feedback.status, feedback.notes, result_id, session_id),
+            )
+        return result
     except (LookupError,RuntimeError) as error:
         _translate_queue_error(error)
+
+
+@router.get("/vehicle-sightings")
+def get_vehicle_sightings(plate: Optional[str] = None, make: Optional[str] = None,
+                          model: Optional[str] = None, year: Optional[int] = None,
+                          color: Optional[str] = None, body_type: Optional[str] = None,
+                          camera: Optional[str] = None, date_from: Optional[str] = None,
+                          date_to: Optional[str] = None, after_hours_only: bool = False,
+                          limit: int = 200):
+    """Search the persistent dealership sighting ledger across recordings."""
+    return list_sightings(
+        plate=plate, make=make, model=model, year=year, color=color,
+        body_type=body_type, camera=camera, date_from=date_from, date_to=date_to,
+        after_hours_only=after_hours_only, limit=limit,
+    )
 
 
 @router.get("/sessions/{session_id}/tracks/{track_id}",response_model=TrackResult)

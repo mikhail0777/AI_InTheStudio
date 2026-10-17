@@ -27,9 +27,9 @@ os.makedirs(os.path.join(DATA_DIR, "reports"), exist_ok=True)
 os.makedirs(os.path.join(DATA_DIR, "evidence"), exist_ok=True)
 
 app = FastAPI(
-    title="AI(EYE) in the sky API",
-    description="Agentic Post-Flight Drone-Footage Analysis Platform for Search and Rescue Operations",
-    version="1.1.0",
+    title="LotTrace API",
+    description="Local dealership vehicle and licence-plate video investigation",
+    version="0.1.0",
     lifespan=lifespan,
 )
 
@@ -66,9 +66,9 @@ app.include_router(api_router)
 @app.get("/")
 def read_root():
     return {
-        "app": "AI(EYE) in the sky",
+        "app": "LotTrace",
         "status": "online",
-        "description": "Agentic SAR drone footage analysis platform"
+        "description": "Local dealership vehicle video investigator"
     }
 
 if __name__ == "__main__":

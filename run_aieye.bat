@@ -1,6 +1,6 @@
 @echo off
 setlocal EnableExtensions DisableDelayedExpansion
-title AI(EYE) in the sky - Mission Control Launcher
+title LotTrace - Dealership Video Investigator
 color 0A
 
 set "ROOT_DIR=%~dp0"
@@ -14,7 +14,7 @@ if not "%~1"=="" if /I not "%~1"=="--check" if /I not "%~1"=="--no-browser" goto
 if not "%~2"=="" goto usage
 
 echo ======================================================================
-echo           AI(EYE) in the sky - Local Development Launcher
+echo           LotTrace - Local Dealership Video Investigator
 echo ======================================================================
 echo.
 
@@ -45,7 +45,7 @@ if errorlevel 1 goto frontend_port_busy
 
 echo.
 echo Starting Backend API server on port 8000...
-start "AI(EYE) Backend" /D "%ROOT_DIR%\backend" cmd.exe /k ""%PYTHON_EXE%" -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
+start "LotTrace Backend" /D "%ROOT_DIR%\backend" cmd.exe /k ""%PYTHON_EXE%" -m uvicorn app.main:app --host 127.0.0.1 --port 8000"
 if errorlevel 1 goto backend_launch_failed
 
 echo Waiting for the Backend API health check...
@@ -53,7 +53,7 @@ echo Waiting for the Backend API health check...
 if errorlevel 1 goto backend_health_failed
 
 echo Starting Frontend UI on port 5173...
-start "AI(EYE) Frontend" /D "%ROOT_DIR%\frontend" cmd.exe /k "npm.cmd run dev -- --host 127.0.0.1 --port 5173 --strictPort"
+start "LotTrace Frontend" /D "%ROOT_DIR%\frontend" cmd.exe /k "npm.cmd run dev -- --host 127.0.0.1 --port 5173 --strictPort"
 if errorlevel 1 goto frontend_launch_failed
 
 echo Waiting for the Frontend UI health check...
@@ -67,7 +67,7 @@ if "%OPEN_BROWSER%"=="1" (
 
 echo.
 echo ======================================================================
-echo [OK] AI(EYE) in the sky is ready.
+echo [OK] LotTrace is ready.
 echo.
 echo  - Web UI:       http://127.0.0.1:5173
 echo  - Backend Docs: http://127.0.0.1:8000/docs

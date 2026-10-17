@@ -26,6 +26,24 @@ class TargetConfiguration(BaseModel):
     negative_attributes: List[str] = Field(default_factory=list)
     min_alert_confidence: float = Field(default=0.60, ge=0, le=1)
     reference_photo_path: Optional[str] = None
+    # Dealership investigation fields. Vehicle appearance values are recorded as
+    # operator-supplied context until a calibrated vehicle classifier is enabled.
+    plate_number: Optional[str] = Field(default=None, max_length=16)
+    plate_match_mode: Literal["exact", "partial"] = "exact"
+    vehicle_make: Optional[str] = Field(default=None, max_length=80)
+    vehicle_model: Optional[str] = Field(default=None, max_length=80)
+    vehicle_year: Optional[int] = Field(default=None, ge=1900, le=2100)
+    vehicle_color: Optional[str] = Field(default=None, max_length=80)
+    vehicle_body_type: Optional[str] = Field(default=None, max_length=80)
+    camera_name: Optional[str] = Field(default=None, max_length=120)
+    camera_role: Literal[
+        "unknown", "lot_entry", "lot_exit", "service_entry", "service_exit", "lot_area"
+    ] = "unknown"
+    recorded_start_at: Optional[str] = Field(default=None, max_length=64)
+    business_open_time: Optional[str] = Field(default=None, max_length=5)
+    business_close_time: Optional[str] = Field(default=None, max_length=5)
+    search_start_seconds: Optional[float] = Field(default=None, ge=0)
+    search_end_seconds: Optional[float] = Field(default=None, ge=0)
 
 class AnalysisStrategy(BaseModel):
     broad_scan_fps: float = 1.0
