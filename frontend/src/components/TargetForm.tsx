@@ -1,59 +1,73 @@
 import React, { useState } from 'react';
 import { TargetConfiguration } from '../types';
-import { Search, FileVideo, Play } from 'lucide-react';
+import { Camera, CarFront, FileVideo, Search } from 'lucide-react';
 
-interface TargetFormProps {
-  onStartSession: (config: TargetConfiguration, videoFile: File, srtFile?: File) => void;
-  isProcessing: boolean;
-}
+interface Props { onStartSession: (config: TargetConfiguration, videoFile: File) => void; isProcessing: boolean; }
+const normalizePlate = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+const colors = ['Black', 'White', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Yellow', 'Orange', 'Brown', 'Beige / Tan', 'Gold', 'Bronze', 'Purple', 'Pink', 'Burgundy / Maroon', 'Teal / Turquoise', 'Two-tone', 'Other / Unknown'];
+const makes = ['Acura', 'Audi', 'BMW', 'Buick', 'Cadillac', 'Chevrolet', 'Chrysler', 'Dodge', 'Ford', 'Genesis', 'GMC', 'Honda', 'Hyundai', 'Infiniti', 'Jeep', 'Kia', 'Land Rover', 'Lexus', 'Lincoln', 'Mazda', 'Mercedes-Benz', 'Mitsubishi', 'Nissan', 'Porsche', 'Ram', 'Subaru', 'Tesla', 'Toyota', 'Volkswagen', 'Volvo'];
 
-export const TargetForm: React.FC<TargetFormProps> = ({ onStartSession, isProcessing }) => {
-  const [description, setDescription] = useState('');
+export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing }) => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [srtFile, setSrtFile] = useState<File | null>(null);
+  const [plate, setPlate] = useState('');
+  const [plateMode, setPlateMode] = useState<'exact' | 'partial'>('exact');
+  const [color, setColor] = useState(''); const [bodyType, setBodyType] = useState('');
+  const [make, setMake] = useState(''); const [model, setModel] = useState(''); const [year, setYear] = useState('');
+  const [cameraName, setCameraName] = useState('');
+  const [cameraRole, setCameraRole] = useState<NonNullable<TargetConfiguration['camera_role']>>('unknown');
+  const [recordedStart, setRecordedStart] = useState('');
+  const [businessOpen, setBusinessOpen] = useState('08:00'); const [businessClose, setBusinessClose] = useState('20:00');
+  const [fromSeconds, setFromSeconds] = useState(''); const [toSeconds, setToSeconds] = useState('');
   const [processingMode, setProcessingMode] = useState<'fast' | 'balanced' | 'thorough'>('balanced');
   const [error, setError] = useState('');
 
   const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault();
-    setError('');
-    if (!videoFile) { setError('Select an MP4, MOV, or MKV recording.'); return; }
-    if (videoFile.size > 2 * 1024 ** 3) { setError('The recording must be smaller than 2 GB.'); return; }
+    event.preventDefault(); setError('');
+    const normalizedPlate = normalizePlate(plate);
+    if (!videoFile) return setError('Select an MP4, MOV, or MKV security recording.');
+    if (videoFile.size > 4 * 1024 ** 3) return setError('The recording must be smaller than 4 GB.');
+    if (normalizedPlate.length < 3 || normalizedPlate.length > 10) return setError('Enter 3–10 letters or numbers for a full or partial licence plate.');
+    if (fromSeconds && toSeconds && Number(toSeconds) <= Number(fromSeconds)) return setError('The end of the search window must be after the start.');
+    const description = [color, year, make, model, bodyType || 'vehicle', `with licence plate ${normalizedPlate}`].filter(Boolean).join(' ');
     onStartSession({
-      free_text_description: description.trim(),
-      processing_mode: processingMode,
-      required_attributes: [], optional_attributes: [], negative_attributes: [],
-      min_alert_confidence: 0.65,
-    }, videoFile, srtFile || undefined);
+      free_text_description: description, processing_mode: processingMode,
+      required_attributes: [], optional_attributes: [], negative_attributes: [], min_alert_confidence: 0.65,
+      plate_number: normalizedPlate, plate_match_mode: plateMode, vehicle_make: make || undefined,
+      vehicle_model: model || undefined, vehicle_year: year ? Number(year) : undefined,
+      vehicle_color: color || undefined, vehicle_body_type: bodyType || undefined,
+      camera_name: cameraName || undefined, camera_role: cameraRole,
+      recorded_start_at: recordedStart || undefined, business_open_time: businessOpen,
+      business_close_time: businessClose, search_start_seconds: fromSeconds ? Number(fromSeconds) : undefined,
+      search_end_seconds: toSeconds ? Number(toSeconds) : undefined,
+    }, videoFile);
   };
 
-  return <section className="card-module">
-    <h2 className="icon-line" style={{ fontSize: '1.25rem', marginBottom: 20 }}><Search size={20} /> Search profile</h2>
-    <form onSubmit={handleSubmit}>
-      <fieldset disabled={isProcessing} className="target-fields">
-        <div><label className="field-label" htmlFor="video-upload"><FileVideo size={15} /> Flight recording</label>
-          <input id="video-upload" type="file" accept=".mp4,.mov,.mkv" className="input-slot" onChange={e => setVideoFile(e.target.files?.[0] || null)} required />
-          <small className="muted">MP4, MOV, or MKV · Up to 2 GB</small>
-        </div>
-        <div><label className="field-label" htmlFor="telemetry-upload">Drone telemetry (optional)</label>
-          <input id="telemetry-upload" type="file" accept=".srt" className="input-slot" onChange={e => setSrtFile(e.target.files?.[0] || null)} />
-          <small className="muted">SRT from the same recording supplies drone position and altitude.</small>
-        </div>
-        <div><label className="field-label" htmlFor="target-description">What would you like to find in this video?</label>
-          <textarea id="target-description" className="input-slot search-description" rows={5} value={description} onChange={e => setDescription(e.target.value)} placeholder="A woman pushing a stroller, a yellow car, or a person placing a package near a door." required />
-          <small className="muted">Describe a visible entity, attribute, action, or relationship in ordinary language.</small>
-        </div>
-        <div><label className="field-label" htmlFor="processing-mode">Processing mode</label>
-          <select id="processing-mode" className="input-slot" value={processingMode} onChange={event => setProcessingMode(event.target.value as typeof processingMode)}>
-            <option value="fast">Fast · smallest evidence shortlist</option>
-            <option value="balanced">Balanced · recommended</option>
-            <option value="thorough">Thorough · widest evidence search</option>
-          </select>
-          <small className="muted">Modes change index density, retrieval breadth, localization frames, batching, and result limits.</small>
-        </div>
-        {error && <p role="alert" className="error-message">{error}</p>}
-        <button type="submit" className="btn-industrial btn-primary" disabled={isProcessing}><Play size={18} />{isProcessing ? 'Analysis in progress' : 'Analyze recording'}</button>
-      </fieldset>
-    </form>
+  return <section className="card-module investigation-form">
+    <div className="section-kicker"><CarFront size={17} /> New investigation</div>
+    <h2>Search recorded vehicle footage</h2>
+    <p className="muted form-intro">Plate OCR drives matching. Vehicle details are searchable case metadata and must be visually confirmed.</p>
+    <form onSubmit={handleSubmit}><fieldset disabled={isProcessing} className="target-fields">
+      <div className="form-section"><h3><FileVideo size={15} /> Recording</h3>
+        <label className="field-label" htmlFor="video-upload">Security recording</label>
+        <input id="video-upload" type="file" accept=".mp4,.mov,.mkv" className="input-slot" onChange={e => setVideoFile(e.target.files?.[0] || null)} required />
+        <div className="form-row compact-row"><div><label className="field-label">Recording begins</label><input className="input-slot" type="datetime-local" value={recordedStart} onChange={e => setRecordedStart(e.target.value)} /></div><div><label className="field-label">Camera name</label><input className="input-slot" value={cameraName} onChange={e => setCameraName(e.target.value)} placeholder="North gate" /></div></div>
+        <label className="field-label">Camera role</label><select className="input-slot" value={cameraRole} onChange={e => setCameraRole(e.target.value as typeof cameraRole)}><option value="unknown">Unspecified / general view</option><option value="lot_entry">Lot entrance</option><option value="lot_exit">Lot exit</option><option value="service_entry">Service entrance</option><option value="service_exit">Service exit</option><option value="lot_area">Inventory / lot area</option></select>
+        <div className="form-row compact-row"><div><label className="field-label">Business opens</label><input className="input-slot" type="time" value={businessOpen} onChange={e => setBusinessOpen(e.target.value)} /></div><div><label className="field-label">Business closes</label><input className="input-slot" type="time" value={businessClose} onChange={e => setBusinessClose(e.target.value)} /></div></div>
+      </div>
+      <div className="form-section"><h3><Search size={15} /> Plate search</h3>
+        <label className="field-label" htmlFor="plate">Licence plate or known fragment</label><input id="plate" className="input-slot plate-input" value={plate} maxLength={12} onChange={e => setPlate(e.target.value.toUpperCase())} placeholder="Example: ABCD123" required />
+        <div className="segmented-control"><button type="button" aria-pressed={plateMode === 'exact'} onClick={() => setPlateMode('exact')}>Full plate</button><button type="button" aria-pressed={plateMode === 'partial'} onClick={() => setPlateMode('partial')}>Partial plate</button></div>
+        <div className="form-row compact-row"><div><label className="field-label">From second</label><input className="input-slot" type="number" min="0" step="0.1" value={fromSeconds} onChange={e => setFromSeconds(e.target.value)} placeholder="Start" /></div><div><label className="field-label">To second</label><input className="input-slot" type="number" min="0" step="0.1" value={toSeconds} onChange={e => setToSeconds(e.target.value)} placeholder="End" /></div></div>
+      </div>
+      <div className="form-section"><h3><Camera size={15} /> Vehicle profile</h3>
+        <div className="form-row compact-row"><div><label className="field-label">Make</label><input list="vehicle-makes" className="input-slot" value={make} onChange={e => setMake(e.target.value)} placeholder="Any make" /><datalist id="vehicle-makes">{makes.map(item => <option key={item} value={item} />)}</datalist></div><div><label className="field-label">Model</label><input className="input-slot" value={model} onChange={e => setModel(e.target.value)} placeholder="Model" /></div></div>
+        <div className="form-row compact-row"><div><label className="field-label">Year</label><input className="input-slot" type="number" min="1900" max="2100" value={year} onChange={e => setYear(e.target.value)} placeholder="Approx. year" /></div><div><label className="field-label">Colour</label><input list="vehicle-colors" className="input-slot" value={color} onChange={e => setColor(e.target.value)} placeholder="Any colour" /><datalist id="vehicle-colors">{colors.map(item => <option key={item} value={item} />)}</datalist></div></div>
+        <label className="field-label">Body type</label><select className="input-slot" value={bodyType} onChange={e => setBodyType(e.target.value)}><option value="">Any vehicle</option><option>Sedan</option><option>SUV / Crossover</option><option>Pickup truck</option><option>Coupe</option><option>Hatchback</option><option>Wagon</option><option>Minivan</option><option>Cargo van</option><option>Convertible</option><option>Motorcycle</option><option>Commercial truck</option><option>Other / Unknown</option></select>
+      </div>
+      <div><label className="field-label">Scan depth</label><select className="input-slot" value={processingMode} onChange={e => setProcessingMode(e.target.value as typeof processingMode)}><option value="fast">Fast · 1 plate scan/second</option><option value="balanced">Balanced · 2 plate scans/second</option><option value="thorough">Thorough · 4 plate scans/second</option></select></div>
+      <p className="form-hint">Make, model, year, colour and body type are not automatically verified by the current plate model. They are retained for case history and visual review.</p>
+      {error && <p role="alert" className="error-message">{error}</p>}
+      <button type="submit" className="btn-industrial btn-primary" disabled={isProcessing}><Search size={18} />{isProcessing ? 'Investigation in progress' : 'Search recording'}</button>
+    </fieldset></form>
   </section>;
 };

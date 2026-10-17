@@ -1,4 +1,4 @@
-import { TargetConfiguration, SessionStatus, TrackResult, GPSPoint, SearchResult } from './types';
+import { TargetConfiguration, SessionStatus, SearchResult, VehicleSighting } from './types';
 
 const API_BASE = '/api';
 
@@ -11,7 +11,6 @@ export async function createSession(target_config?: TargetConfiguration): Promis
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
-
 export async function uploadVideo(sessionId: string, file: File): Promise<any> {
   const formData = new FormData();
   formData.append('file', file);
@@ -23,25 +22,8 @@ export async function uploadVideo(sessionId: string, file: File): Promise<any> {
   return res.json();
 }
 
-export async function getTelemetry(sessionId: string): Promise<GPSPoint[]> {
-  const res = await fetch(`${API_BASE}/sessions/${sessionId}/telemetry`);
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
 export async function cancelAnalysis(sessionId: string): Promise<any> {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/cancel`, { method: 'POST' });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-export async function uploadTelemetry(sessionId: string, file: File): Promise<any> {
-  const formData = new FormData();
-  formData.append('file', file);
-  const res = await fetch(`${API_BASE}/sessions/${sessionId}/telemetry`, {
-    method: 'POST',
-    body: formData
-  });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
@@ -74,16 +56,25 @@ export async function getSessionStatus(sessionId: string): Promise<SessionStatus
   return res.json();
 }
 
-export async function getTracks(sessionId: string): Promise<TrackResult[]> {
-  const res = await fetch(`${API_BASE}/sessions/${sessionId}/tracks`);
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
 export async function getResults(sessionId: string): Promise<SearchResult[]> {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/results`);
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+export async function getVehicleSightings(filters: Record<string, string | number | boolean | undefined>): Promise<VehicleSighting[]> {
+  const params = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') params.set(key, String(value));
+  });
+  const res = await fetch(`${API_BASE}/vehicle-sightings?${params}`);
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function deleteSession(sessionId: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/sessions/${sessionId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(await res.text());
 }
 
 export async function submitResultFeedback(
@@ -94,21 +85,6 @@ export async function submitResultFeedback(
 ): Promise<SearchResult> {
   const res = await fetch(`${API_BASE}/sessions/${sessionId}/results/${encodeURIComponent(resultId)}/feedback`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status, notes })
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-}
-
-export async function submitHumanFeedback(
-  sessionId: string,
-  trackId: number,
-  status: 'confirmed' | 'rejected' | 'needs_research',
-  notes?: string
-): Promise<TrackResult> {
-  const res = await fetch(`${API_BASE}/sessions/${sessionId}/tracks/${trackId}/feedback`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status, notes })
   });
   if (!res.ok) throw new Error(await res.text());

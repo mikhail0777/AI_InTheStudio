@@ -1,5 +1,5 @@
 {
-  "name": "aerofind-agent-frontend",
+  "name": "lottrace-frontend",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -17,8 +17,9 @@
   "devDependencies": {
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react": "^6.1.2",
+    "source-map-js": "^1.2.2",
     "typescript": "^5.2.2",
-    "vite": "^5.1.6"
+    "vite": "^8.3.4"
   }
 }

@@ -21,6 +21,40 @@ export interface TargetConfiguration {
   optional_attributes: string[];
   negative_attributes: string[];
   min_alert_confidence: number;
+  plate_number?: string;
+  plate_match_mode?: 'exact' | 'partial';
+  vehicle_make?: string;
+  vehicle_model?: string;
+  vehicle_year?: number;
+  vehicle_color?: string;
+  vehicle_body_type?: string;
+  camera_name?: string;
+  camera_role?: 'unknown' | 'lot_entry' | 'lot_exit' | 'service_entry' | 'service_exit' | 'lot_area';
+  recorded_start_at?: string;
+  business_open_time?: string;
+  business_close_time?: string;
+  search_start_seconds?: number;
+  search_end_seconds?: number;
+}
+
+export interface VehicleSighting {
+  sighting_id: string;
+  session_id: string;
+  requested_plate: string;
+  observed_plate: string;
+  match_kind: 'exact' | 'partial' | 'review_candidate';
+  captured_at?: string | null;
+  best_timestamp_seconds: number;
+  camera_name?: string | null;
+  event_type: string;
+  after_hours?: number | null;
+  vehicle_make?: string | null;
+  vehicle_model?: string | null;
+  vehicle_year?: number | null;
+  vehicle_color?: string | null;
+  vehicle_body_type?: string | null;
+  evidence_frame?: string | null;
+  review_status?: string | null;
 }
 
 export interface AnalysisStrategy {
@@ -54,52 +88,6 @@ export interface VideoMetadata {
   creation_timestamp: string;
 }
 
-export interface AttributeDetail {
-  expected: string;
-  observed: string;
-  score?: number | null;
-  visibility: 'clear' | 'partial' | 'not_visible' | 'obscured';
-  assessment?: 'match' | 'conflict' | 'unknown';
-  method?: string;
-  evidence_timestamps?: number[];
-  evidence_paths?: string[];
-}
-
-export interface GPSPoint {
-  timestamp_seconds: number;
-  latitude: number;
-  longitude: number;
-  altitude_m?: number | null;
-  relative_altitude_m?: number | null;
-  source?: string;
-  telemetry_match_offset_seconds?: number | null;
-}
-
-export interface TrackResult {
-  session_id: string;
-  track_id: number;
-  first_seen_seconds: number;
-  last_seen_seconds: number;
-  best_timestamp_seconds: number;
-  classification: 'strong_match' | 'possible_match' | 'unlikely_match' | 'insufficient_visibility';
-  person_detection_confidence: number;
-  appearance_similarity: number;
-  evidence_quality: number;
-  final_ranking_score: number;
-  observations_analyzed: number;
-  attributes: Record<string, AttributeDetail>;
-  matching_evidence: string[];
-  conflicting_evidence: string[];
-  unknown_attributes: string[];
-  requires_human_review: boolean;
-  explanation: string;
-  best_frame_path: string;
-  cropped_samples: string[];
-  human_feedback?: 'confirmed' | 'rejected' | 'needs_research' | null;
-  human_notes?: string | null;
-  gps_location?: GPSPoint | null;
-}
-
 export interface AgentLogEntry {
   timestamp: string;
   step: string;
@@ -129,22 +117,6 @@ export interface SessionStatus {
   stage_timings?: Record<string, number>;
   search_plan?: SearchPlan | null;
   agent_logs: AgentLogEntry[];
-}
-
-export interface SARReport {
-  session_id: string;
-  mission_name: string;
-  generated_at: string;
-  target_description: TargetConfiguration;
-  search_plan: SearchPlan;
-  video_info: VideoMetadata;
-  total_frames_sampled: number;
-  total_people_detected: number;
-  unique_tracks_count: number;
-  ranked_sightings: TrackResult[];
-  has_telemetry: boolean;
-  unsearched_intervals: Array<{ start_seconds: number; end_seconds: number }>;
-  actionable_recommendations: string[];
 }
 
 export interface ModelProvenance {
