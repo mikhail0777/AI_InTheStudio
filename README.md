@@ -1,10 +1,24 @@
-﻿# AI(EYE) in the sky
+# LotTrace
 
-Local post-flight natural-language video search and evidence review with optional DJI SRT telemetry.
+Local dealership video investigation for finding vehicles in recorded security footage.
 
-## Run
+LotTrace is an operator-review tool, not an autonomous identification or enforcement system. Its first commercial slice is intentionally narrow: upload a dealership recording, search for a full or partial licence plate, review timestamped sightings, build a cross-recording vehicle history, and export an evidence report.
 
-Python 3.10+ and Node.js are required. From the repository root:
+## MVP workflow
+
+1. Upload an MP4, MOV, or MKV recording exported from an existing camera/NVR.
+2. Enter a full plate or a known fragment and optional make, model, year, colour, and body type.
+3. Identify the camera and its role (lot/service entry, exit, or general area) and optionally set the recording's real start time.
+4. Select Fast, Balanced, or Thorough scan depth and an optional time window.
+5. Review supported and review-only OCR sightings against the original footage.
+6. Search the persistent sighting ledger by partial plate and vehicle profile, then export a printable evidence report.
+7. Delete the case from the header when its approved retention period ends; this removes the uploaded recording, ledger entries, and generated evidence.
+
+Plate searches use a dedicated dense scan rather than semantic keyframe retrieval. Full frames and overlapping tiles are read locally, OCR observations are grouped into time-based sightings, and common OCR confusions are shown as possible matches without being relabelled as exact reads. A supported result requires repeated or high-confidence full/partial plate evidence.
+
+## Run locally
+
+Python 3.10–3.14 and Node.js are supported. From the repository root:
 
 ```powershell
 python -m pip install -r backend/requirements.txt
@@ -20,97 +34,42 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open http://localhost:5173. The main workflow is one description field, a required video,
-and optional matching SRT telemetry. After installation, `run_aieye.bat` starts both services.
-Run `run_aieye.bat --check` to verify Python/Node dependencies and pinned model integrity
-without starting anything, or `run_aieye.bat --no-browser` to start without opening the UI.
-The segmentation model is already installed in this workspace. The installer also fetches
-the pinned SigLIP retrieval and OWLv2 grounding safetensors plus the local FastALPR plate
-detector and recognizer. Runtime does not download models
-or switch providers. Missing weights or inference failures stop the job explicitly.
+Open `http://localhost:5173`. After dependencies and models are installed, `run_aieye.bat` can start both services.
 
-## Matching behavior
+## Scan depth
 
-Queries whose primary entity is a supported generic class (the first vertical slice is a
-color-qualified car) use semantic frame/clip retrieval followed by YOLO segmentation,
-masked color evidence, track deduplication, and ranked clips. Required attributes are gates:
-a high-confidence car with conflicting color evidence remains an unlikely match. Generic
-results include annotated frames, playable clips, component evidence, model provenance,
-and correct/incorrect feedback controls. `AIEYE_MAX_RESULT_TRACKS` bounds generated result
-clips (default 10), and `AIEYE_RESULT_CLIP_WIDTH` bounds clip width (default 1280).
-New clips are encoded as browser-compatible H.264/yuv420p with fast-start metadata. Result
-images open at full size, timestamps seek the original recording, and selecting a result overlays
-its sampled entity boxes during original-footage playback. Event results that reuse any participant
-track in the same time interval are collapsed to the strongest supported interpretation.
+- **Fast:** 1 sampled frame per second; no tiled OCR.
+- **Balanced:** 2 sampled frames per second with tiled OCR.
+- **Thorough:** 4 sampled frames per second with tiled OCR.
 
-License-plate queries such as `find a car with license plate DBYC622` scan the complete indexed
-timeline rather than relying on semantic retrieval. A purpose-built plate detector and OCR model
-read several large observations from each vehicle track. Plate text is normalized for punctuation
-and case, but a result is returned only when the complete requested identifier is read exactly;
-wrong or unreadable plates cannot be promoted by car confidence or semantic similarity.
-`AIEYE_MAX_PLATE_TRACKS` bounds tracks sent to OCR (default 50).
+Set `AIEYE_PLATE_SCAN_FPS` to override the selected cadence (0.1–15 FPS). Set `AIEYE_PLATE_REVIEW_SIMILARITY` to tune which non-exact OCR strings enter the review queue; the default is `0.78`. These settings affect recall, runtime, and the number of false review candidates. They do not change the definition of an exact match.
 
-Interaction queries such as `a person pushing a stroller` also use the generic path. The
-application combines YOLO person masks with OWLv2 phrase boxes, tracks both entities, and
-requires repeated person-stroller contact plus coordinated multi-frame motion before calling
-the action supported. Mere co-visibility or proximity remains uncertain or conflicting.
-`AIEYE_MAX_EVENT_COMBINATIONS` bounds combinatorial event verification (default 500).
+## Evidence policy
 
-All searches now enter through one worker and publish the same structured query/result
-contract. Person/clothing searches retain the established appearance verifier as an optional
-specialist provider, while generic entities and interactions use the open-vocabulary path.
-Legacy track, feedback, and report routes remain available during compatibility migration.
+- Exact, partial, and review-candidate OCR reads remain distinct in stored evidence.
+- Repeated reads must come from distinct sampled frames.
+- Every sighting links to the original timestamp, an annotated frame, and a saved clip.
+- Operator confirmations and rejections are retained with the investigation.
+- “No result” means no supported sighting was found at the selected scan depth; it does not prove absence.
+- No facial recognition is used by the dealership MVP.
 
-Structured generic queries support quantities, negative entities, per-entity colors,
-spatial relationships, running, pushing, and carrying. Interaction claims require repeated
-localized evidence; unsupported visible attributes remain explicitly uncertain instead of
-being inferred from semantic similarity.
+## Pilot limitations
 
-Choose `fast`, `balanced`, or `thorough` in the search form. These modes use progressively
-denser reusable indexes and larger bounded retrieval, localization, batching, and result
-budgets. Completed searches expose per-stage timings and device provenance; the result view
-supports classification, entity, score, and time filters plus annotated frames, clip playback,
-feedback, and evidence-report export.
+This is a local pilot build, not a network-ready multi-tenant service. It binds to localhost and has no account system. Do not expose it directly to a LAN or the internet. Before operational use:
 
-- YOLO detects people and backpacks. Zero people is a valid result; there is no HOG fallback.
-- Backpack masks are excluded from approximate upper/lower clothing bands. These bands
-  are estimates for upright people, not garment recognition. Occluded, small, or wide
-  silhouettes can remain unknown. Stationary people are eligible for review.
-- Up to six quality-ranked crops, separated by at least 0.75 seconds, support each track.
-  Temporal separation limits neighboring frames; it does not prove independent views.
-- Person evidence must pass a separate gate. Color or sharpness cannot compensate for
-  insufficient person evidence. Visible conflicts block promotion.
-- The configured `min_alert_confidence` is an internal color-support threshold, not a
-  measured accuracy or identity probability. It applies to both candidate categories.
-- The interface shows supported candidates and operator-flagged tracks only. Low-similarity
-  and limited-evidence tracks remain internal. One card represents one track; track
-  fragmentation can still produce separate cards for the same person.
-- Simple descriptions can supply clothing colors/backpack attributes; selected fields
-  override those extractions. Hair, identity, gender, and garment styles are not evaluated.
-  Arbitrary required/negative constraints remain explicit and prevent automatic promotion.
-- Each assessed attribute links to its supporting crops. Scores and model provenance remain
-  available through the API; the operator UI uses evidence labels instead of percentages.
-- SRT coordinates locate the aircraft, not the person's ground position. Missing altitude
-  is preserved as unknown. Existing flights and review decisions are retained.
+- obtain written authorization for the footage and document the business purpose;
+- define access, retention, deletion, and disclosure policies;
+- benchmark representative dealership footage across day, night, glare, rain, snow, temporary plates, dealer plates, camera angles, and vehicle speeds;
+- measure plate-search recall and false review candidates per video hour;
+- require an operator to verify evidence before contacting a customer, employee, insurer, or law-enforcement agency.
 
-Large frames are analyzed once in full and again as overlapping native-resolution tiles.
-This preserves scene context while improving recall for distant people without lowering the
-person-confidence gate. Duplicate detections from overlapping views are removed class-wise.
+The existing generic person/object research pipeline remains in the backend for regression compatibility, but it is not part of the LotTrace MVP interface.
 
-Configuration: `AIEYE_MODEL_PATH`, `AIEYE_IMAGE_SIZE` (default 1280),
-`AIEYE_ENABLE_TILING` (default true), `AIEYE_TILE_OVERLAP` (default 0.20),
-`AIEYE_CPU_THREADS` (default 4), and `AIEYE_DATA_DIR` (default backend/data).
-The application is intended for a local workstation and has no account login system.
+Make, model, year, colour, and body type are currently operator-supplied metadata, not machine-verified attributes. Automatic damage comparison is also not implemented; it requires paired views, controlled camera geometry, labelled data, and its own validation. See `docs/DEALERSHIP_MVP_ARCHITECTURE.md` for the live-camera extension boundary and production roadmap.
 
-The open-vocabulary index uses a revision-pinned local SigLIP model for frame and aggregated
-clip embeddings. `python backend/download_models.py` installs its safetensor weights
-explicitly; runtime inference is offline-only and never downloads a model. Configure
-`AIEYE_EMBEDDING_BATCH_SIZE` to bound embedding memory (default 2 on CPU and 8 on CUDA).
+## Commercial licensing
 
-Entities outside YOLO's fixed taxonomy use revision-pinned OWLv2 phrase grounding. Its
-Apache-2.0 620 MB safetensor is stored under ignored `backend/models/owlv2`, hash-checked,
-and loaded only when a query needs grounding. `AIEYE_GROUNDING_BATCH_SIZE` defaults to 2;
-`AIEYE_GROUNDING_MODEL_PATH` can select another compatible, locally installed snapshot.
+The generic colour-only vehicle path currently uses Ultralytics YOLO. Review its AGPL/commercial licensing requirements before any proprietary deployment. The plate-first path uses FastALPR and its model dependencies; maintain a complete third-party software and model licence inventory before selling or distributing the product. This repository does not yet include a product licence or legal terms.
 
 ## Verify
 
@@ -121,14 +80,4 @@ cd frontend
 npm.cmd run build
 ```
 
-Completed searches can be measured against operator labels with
-`scripts/evaluate_labeled_search.py`; copy `evaluation/manifest.example.json` and supply the
-search session ID, event intervals, required labels, condition tags, and optional boxes. Reports
-retain explicit counts and return unavailable metrics as `null` rather than inventing accuracy.
-See `docs/PHASE10_EVALUATION_HARDENING.md` for the measured example and limitations.
-
-`test_e2e.py` is an optional HTTP smoke test against a running backend and generated demo
-video. Synthetic drawings are not a detector accuracy benchmark. Before operational use,
-label representative real recordings (including tires, stationary people, occlusions,
-and empty scenes) and measure missed people and false candidate alerts per video hour.
-No measured precision/recall claim is made by this implementation.
+The test suite uses synthetic media and mocked detections. It verifies application behavior, not real-world recognition accuracy. Real accuracy claims require labelled dealership recordings and the evaluation workflow under `evaluation/` and `scripts/evaluate_labeled_search.py`.

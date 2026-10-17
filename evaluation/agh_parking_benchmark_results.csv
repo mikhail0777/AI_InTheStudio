@@ -1,0 +1,6 @@
+source,ground_truth_plate,duration_seconds,sampled_frames,frames_with_any_read,frames_with_exact_read,clip_exact_match,exact_rate_among_read_frames,first_exact_seconds,elapsed_seconds
+src1,KMI77EV,20.52,21,21,21,true,1.0000,0.0,0.994
+src4,KR154GK,20.52,21,19,18,true,0.9474,1.0,2.101
+src10,KR701KN,20.60,21,16,16,true,1.0000,3.0,2.062
+src27,KLI05659,20.52,21,18,17,true,0.9444,4.0,2.112
+src30,W67045W,20.52,21,20,18,true,0.9000,2.0,2.183
