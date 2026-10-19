@@ -122,14 +122,14 @@ def run_preflight() -> None:
     plate_ocr = model_cache / "fast-plate-ocr" / "cct-xs-v2-global-model" / "cct_xs_v2_global.onnx"
     verify_file(plate_detector, MODEL_HASHES["plate_detector"], "license-plate detector")
     verify_file(plate_ocr, MODEL_HASHES["plate_ocr"], "license-plate OCR model")
+    yolo_path = Path(os.environ.get(
+        "AIEYE_MODEL_PATH", str(BACKEND / "models" / "yolo11s-seg.pt"),
+    )).resolve()
+    verify_file(yolo_path, MODEL_HASHES["yolo"], "vehicle detection model")
     if os.environ.get("LOTTRACE_ENABLE_LEGACY_MODELS") == "1":
-        yolo_path = Path(os.environ.get(
-            "AIEYE_MODEL_PATH", str(BACKEND / "models" / "yolo11s-seg.pt"),
-        )).resolve()
         owl_path = Path(os.environ.get(
             "AIEYE_GROUNDING_MODEL_PATH", str(BACKEND / "models" / "owlv2"),
         )).resolve()
-        verify_file(yolo_path, MODEL_HASHES["yolo"], "YOLO model")
         verify_file(owl_path / "model.safetensors", MODEL_HASHES["owlv2"], "OWLv2 model")
         for filename in (
             "config.json", "preprocessor_config.json", "tokenizer_config.json",

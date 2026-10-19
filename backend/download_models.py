@@ -5,6 +5,7 @@ import hashlib
 import urllib.request
 
 MODEL_URL = 'https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11s-seg.pt'
+YOLO_SHA256 = '1caa81c0195412efa411b632bcfb8c184939dddb6ae41f6a80c41b211ff257c3'
 SIGLIP_MODEL_ID = 'google/siglip-base-patch16-224'
 SIGLIP_REVISION = '7fd15f0689c79d79e38b1c2e2e2370a7bf2761ed'
 SIGLIP_SHA256 = '2c63cb7d1f2e95ba501893cbb8faeb4ea9a3af295498d35097126228659c2af8'
@@ -27,9 +28,6 @@ def main():
     )
     print(f'Model: {plate_reader.detector.detector.model._model_path}')
     print(f'Model: {plate_reader.ocr.ocr_model.model._model_path}')
-    if not args.all:
-        print('LotTrace vehicle MVP models are installed. Use --all for legacy generic search models.')
-        return
     destination = Path(__file__).resolve().parent / 'models' / 'yolo11s-seg.pt'
     destination.parent.mkdir(parents=True, exist_ok=True)
     if not destination.exists():
@@ -41,8 +39,14 @@ def main():
             temporary.replace(destination)
         finally:
             temporary.unlink(missing_ok=True)
+    yolo_hash = hashlib.sha256(destination.read_bytes()).hexdigest()
+    if yolo_hash != YOLO_SHA256:
+        raise RuntimeError(f'Unexpected YOLO weight hash: {yolo_hash}')
     print(f'Model: {destination}')
-    print(f'SHA256: {hashlib.sha256(destination.read_bytes()).hexdigest()}')
+    print(f'SHA256: {yolo_hash}')
+    if not args.all:
+        print('LotTrace plate and vehicle models are installed. Use --all for legacy research models.')
+        return
     from huggingface_hub import snapshot_download
     snapshot = Path(snapshot_download(
         repo_id=SIGLIP_MODEL_ID, revision=SIGLIP_REVISION,
