@@ -36,6 +36,12 @@ class VehicleRecognizerTests(unittest.TestCase):
         self.assertEqual(observation.color, "red")
         self.assertEqual(observation.bbox, [10, 10, 210, 150])
 
+    def test_recognize_all_returns_unassociated_vehicles(self):
+        observations = VehicleRecognizer("unused", provider=FakeProvider()).recognize_all(
+            image_path="frame.jpg", session_id="case", frame_idx=12, timestamp_seconds=1.2,
+        )
+        self.assertEqual([(item.category, item.color) for item in observations], [("car", "red")])
+
     def test_unassociated_plate_does_not_inherit_vehicle_attributes(self):
         observation = VehicleRecognizer("unused", provider=FakeProvider()).recognize(
             image_path="frame.jpg", plate_bbox=[260, 100, 320, 125],

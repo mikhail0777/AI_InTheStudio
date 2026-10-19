@@ -52,25 +52,8 @@ class VehicleRecognizer:
     def __init__(self, evidence_root: str, provider=None):
         self.provider = provider or YoloDetectionProvider(evidence_root)
 
-    def recognize(self, *, image_path: str, plate_bbox: Sequence[float], session_id: str,
-                  frame_idx: int, timestamp_seconds: float) -> Optional[VehicleObservation]:
-        frame = CandidateFrame(
-            frame_id=f"vehicle_{frame_idx}", frame_idx=frame_idx,
-            timestamp_seconds=timestamp_seconds, image_path=str(Path(image_path)),
-            semantic_similarity=1.0,
-        )
-        detections = self.provider.detect([frame], ["vehicle"], session_id, min_confidence=.25)
-        associated = [item for item in detections if _contains_plate(item.bbox, plate_bbox)]
-        if not associated:
-            return None
-        # Prefer the tightest containing detection; confidence breaks near-ties.
-        detection: EntityDetection = min(
-            associated,
-            key=lambda item: (
-                (item.bbox[2] - item.bbox[0]) * (item.bbox[3] - item.bbox[1]),
-                -item.confidence,
-            ),
-        )
+    @staticmethod
+    def _observation(detection: EntityDetection) -> VehicleObservation:
         colors = {
             str(name): float(value)
             for name, value in (detection.attributes.get("colors") or {}).items()
@@ -82,4 +65,32 @@ class VehicleRecognizer:
             color_confidence=color_confidence, colors=colors,
             crop_path=detection.crop_path, mask_path=detection.mask_path,
             provenance=detection.provenance,
+        )
+
+    def recognize_all(self, *, image_path: str, session_id: str, frame_idx: int,
+                      timestamp_seconds: float) -> list[VehicleObservation]:
+        frame = CandidateFrame(
+            frame_id=f"vehicle_{frame_idx}", frame_idx=frame_idx,
+            timestamp_seconds=timestamp_seconds, image_path=str(Path(image_path)),
+            semantic_similarity=1.0,
+        )
+        detections = self.provider.detect([frame], ["vehicle"], session_id, min_confidence=.25)
+        return [self._observation(item) for item in detections]
+
+    def recognize(self, *, image_path: str, plate_bbox: Sequence[float], session_id: str,
+                  frame_idx: int, timestamp_seconds: float) -> Optional[VehicleObservation]:
+        observations = self.recognize_all(
+            image_path=image_path, session_id=session_id, frame_idx=frame_idx,
+            timestamp_seconds=timestamp_seconds,
+        )
+        associated = [item for item in observations if _contains_plate(item.bbox, plate_bbox)]
+        if not associated:
+            return None
+        # Prefer the tightest containing detection; confidence breaks near-ties.
+        return min(
+            associated,
+            key=lambda item: (
+                (item.bbox[2] - item.bbox[0]) * (item.bbox[3] - item.bbox[1]),
+                -item.confidence,
+            ),
         )
