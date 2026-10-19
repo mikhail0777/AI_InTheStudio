@@ -2,19 +2,21 @@
 
 Local dealership video investigation for finding vehicles in recorded security footage.
 
-LotTrace is an operator-review tool, not an autonomous identification or enforcement system. Its first commercial slice is intentionally narrow: upload a dealership recording, search for a full or partial licence plate, review timestamped sightings, build a cross-recording vehicle history, and export an evidence report.
+LotTrace is an operator-review tool, not an autonomous identification or enforcement system. Its first commercial slice is intentionally narrow: upload a dealership recording, search by a full/partial licence plate or a visible vehicle profile, review timestamped sightings, build a cross-recording vehicle history, and export an evidence report.
 
 ## MVP workflow
 
 1. Upload an MP4, MOV, or MKV recording exported from an existing camera/NVR.
-2. Enter a full plate or a known fragment and optional make, model, year, colour, and body type.
+2. Enter a full/partial plate, or leave the plate blank and provide the vehicle details you know.
 3. Identify the camera and its role (lot/service entry, exit, or general area) and optionally set the recording's real start time.
 4. Select Fast, Balanced, or Thorough scan depth and an optional time window.
-5. Review supported and review-only OCR sightings against the original footage.
+5. Review supported and review-only vehicle/plate sightings against the original footage.
 6. Search the persistent sighting ledger by partial plate and vehicle profile, then export a printable evidence report.
 7. Delete the case from the header when its approved retention period ends; this removes the uploaded recording, ledger entries, and generated evidence.
 
-Plate searches use a dedicated dense scan rather than semantic keyframe retrieval. Full frames and overlapping tiles are read locally, OCR observations are grouped into time-based sightings, and common OCR confusions are shown as possible matches without being relabelled as exact reads. A supported result requires repeated or high-confidence full/partial plate evidence.
+Plate searches use a dedicated dense scan rather than semantic keyframe retrieval. Full frames and overlapping tiles are read locally, OCR observations are grouped into time-based sightings, and common OCR confusions are shown as possible matches without being relabelled as exact reads. A guarded second pass can recover weak reads from mirrored camera footage; the transformation is retained in the evidence record. A supported plate result also requires the plate to be associated with a detected vehicle.
+
+When no plate is known, a second dense path detects cars, trucks, buses, and motorcycles, groups repeated observations, and filters by mask-derived colour and coarse vehicle category. It does not use the plate filename, requested profile, or another answer key as detector input.
 
 ## Run locally
 
@@ -42,7 +44,7 @@ Open `http://localhost:5173`. After dependencies and models are installed, `run_
 - **Balanced:** 2 sampled frames per second with tiled OCR.
 - **Thorough:** 4 sampled frames per second with tiled OCR.
 
-Set `AIEYE_PLATE_SCAN_FPS` to override the selected cadence (0.1–15 FPS). Set `AIEYE_PLATE_REVIEW_SIMILARITY` to tune which non-exact OCR strings enter the review queue; the default is `0.78`. These settings affect recall, runtime, and the number of false review candidates. They do not change the definition of an exact match.
+Set `AIEYE_PLATE_SCAN_FPS` to override the plate cadence (0.1–15 FPS). Set `AIEYE_PLATE_REVIEW_SIMILARITY` to tune which non-exact OCR strings enter the review queue; the default is `0.78`. `AIEYE_PLATE_MIRROR_FALLBACK` enables the guarded mirrored-camera pass, and `AIEYE_PLATE_MIRROR_THRESHOLD` controls when it runs (default `0.72`). These settings affect recall, runtime, and the number of false review candidates. They do not change the definition of an exact match.
 
 ## Evidence policy
 
@@ -65,7 +67,7 @@ This is a local pilot build, not a network-ready multi-tenant service. It binds 
 
 The existing generic person/object research pipeline remains in the backend for regression compatibility, but it is not part of the LotTrace MVP interface.
 
-Make, model, year, colour, and body type are currently operator-supplied metadata, not machine-verified attributes. Automatic damage comparison is also not implemented; it requires paired views, controlled camera geometry, labelled data, and its own validation. See `docs/DEALERSHIP_MVP_ARCHITECTURE.md` for the live-camera extension boundary and production roadmap.
+Vehicle presence, a coarse detector category, and mask-derived colour are machine observations. Sedan versus SUV versus coupe, make, model, model year, and trim are not yet machine-verified; they remain requested profile details for visual review. Automatic damage comparison is also not implemented; it requires paired views, controlled camera geometry, labelled data, and its own validation. See `docs/DEALERSHIP_MVP_ARCHITECTURE.md` for the live-camera extension boundary and production roadmap.
 
 ## Commercial licensing
 
