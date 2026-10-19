@@ -45,7 +45,7 @@ export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing }) =>
   return <section className="card-module investigation-form">
     <div className="section-kicker"><CarFront size={17} /> New investigation</div>
     <h2>Search recorded vehicle footage</h2>
-    <p className="muted form-intro">Plate OCR drives matching. Vehicle details are searchable case metadata and must be visually confirmed.</p>
+    <p className="muted form-intro">Plate OCR drives matching. LotTrace also verifies that the plate belongs to a detected vehicle and records its observed colour and category.</p>
     <form onSubmit={handleSubmit}><fieldset disabled={isProcessing} className="target-fields">
       <div className="form-section"><h3><FileVideo size={15} /> Recording</h3>
         <label className="field-label" htmlFor="video-upload">Security recording</label>
@@ -65,7 +65,7 @@ export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing }) =>
         <label className="field-label">Body type</label><select className="input-slot" value={bodyType} onChange={e => setBodyType(e.target.value)}><option value="">Any vehicle</option><option>Sedan</option><option>SUV / Crossover</option><option>Pickup truck</option><option>Coupe</option><option>Hatchback</option><option>Wagon</option><option>Minivan</option><option>Cargo van</option><option>Convertible</option><option>Motorcycle</option><option>Commercial truck</option><option>Other / Unknown</option></select>
       </div>
       <div><label className="field-label">Scan depth</label><select className="input-slot" value={processingMode} onChange={e => setProcessingMode(e.target.value as typeof processingMode)}><option value="fast">Fast · 1 plate scan/second</option><option value="balanced">Balanced · 2 plate scans/second</option><option value="thorough">Thorough · 4 plate scans/second</option></select></div>
-      <p className="form-hint">Make, model, year, colour and body type are not automatically verified by the current plate model. They are retained for case history and visual review.</p>
+      <p className="form-hint">Vehicle category and colour are AI observations when visibility permits. Make, model and year remain requested profile details until visually confirmed.</p>
       {error && <p role="alert" className="error-message">{error}</p>}
       <button type="submit" className="btn-industrial btn-primary" disabled={isProcessing}><Search size={18} />{isProcessing ? 'Investigation in progress' : 'Search recording'}</button>
     </fieldset></form>

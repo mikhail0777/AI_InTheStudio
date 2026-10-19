@@ -34,7 +34,8 @@ export const VehicleHistoryPanel: React.FC<Props> = ({ sightings, plate, onSearc
       <p>{item.event_type.split('_').join(' ')}{item.camera_name ? ` · ${item.camera_name}` : ''}</p>
       {item.after_hours === 1 && <span className="after-hours-badge">After hours</span>}
       <small><MapPin size={12} />{item.captured_at ? new Date(item.captured_at).toLocaleString() : `Recording +${item.best_timestamp_seconds.toFixed(1)}s`}</small>
-      {(item.vehicle_year || item.vehicle_make || item.vehicle_model || item.vehicle_color || item.vehicle_body_type) && <small>{[item.vehicle_year, item.vehicle_color, item.vehicle_make, item.vehicle_model, item.vehicle_body_type].filter(Boolean).join(' · ')}</small>}
+      {(item.vehicle_color || item.vehicle_body_type) && <small>AI observed: {[item.vehicle_color, item.vehicle_body_type].filter(Boolean).join(' · ')}{item.vehicle_detection_confidence ? ` · ${(item.vehicle_detection_confidence * 100).toFixed(0)}% vehicle confidence` : ''}</small>}
+      {(item.requested_vehicle_year || item.requested_vehicle_make || item.requested_vehicle_model || item.requested_vehicle_color || item.requested_vehicle_body_type) && <small>Requested profile: {[item.requested_vehicle_year, item.requested_vehicle_color, item.requested_vehicle_make, item.requested_vehicle_model, item.requested_vehicle_body_type].filter(Boolean).join(' · ')}</small>}
     </article>)}</div>}
   </section>;
 };

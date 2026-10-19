@@ -53,6 +53,13 @@ export interface VehicleSighting {
   vehicle_year?: number | null;
   vehicle_color?: string | null;
   vehicle_body_type?: string | null;
+  vehicle_detection_confidence?: number | null;
+  vehicle_color_confidence?: number | null;
+  requested_vehicle_make?: string | null;
+  requested_vehicle_model?: string | null;
+  requested_vehicle_year?: number | null;
+  requested_vehicle_color?: string | null;
+  requested_vehicle_body_type?: string | null;
   evidence_frame?: string | null;
   review_status?: string | null;
 }

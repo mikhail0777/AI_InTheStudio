@@ -26,6 +26,11 @@ export const ResultCard: React.FC<Props> = ({ result, onJumpToTime, onSelectResu
   }));
   const requestedPlate = result.entities.map(entity => entity.attributes.requested_plate).find(Boolean);
   const observedPlates = Array.from(new Set(plateReadings.map(reading => reading.text).filter(Boolean)));
+  const observedVehicle = result.entities.map(entity => ({
+    color: entity.attributes.vehicle_color,
+    category: entity.attributes.vehicle_body_type,
+    detected: entity.attributes.vehicle_detected,
+  })).find(item => item.detected);
 
   return <article className="card-module track-card result-card">
     <div className="row-between">
@@ -39,6 +44,7 @@ export const ResultCard: React.FC<Props> = ({ result, onJumpToTime, onSelectResu
     <div className="track-summary">
       <button className="result-time-link" onClick={playOriginal}><Clock size={15} />{formatTime(result.start_seconds)}–{formatTime(result.end_seconds)} · play at {formatTime(result.best_timestamp_seconds)}</button>
       {!!observedPlates.length && <div className="plate-readout"><span>OCR read</span><strong>{observedPlates.join(' · ')}</strong></div>}
+      {observedVehicle && <div className="vehicle-observation"><span>AI-observed vehicle</span><strong>{[observedVehicle.color, observedVehicle.category].filter(Boolean).join(' · ') || 'Vehicle detected'}</strong></div>}
       <span className="muted">Evidence score {(result.overall_score * 100).toFixed(0)}% · {labels[result.classification]}</span>
       <strong>{result.explanation}</strong>
       {result.evidence.map(item => <p key={item.criterion_id} className={`evidence-${item.assessment}`}>{item.explanation}</p>)}
