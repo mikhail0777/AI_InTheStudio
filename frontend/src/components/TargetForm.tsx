@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { Camera, CarFront, Check, ChevronDown, FileVideo, Search, UploadCloud } from 'lucide-react';
 import { TargetConfiguration } from '../types';
 
-interface Props { onStartSession: (config: TargetConfiguration, videoFile: File) => void; isProcessing: boolean; }
+interface Props { onStartSession: (config: TargetConfiguration, videoFile: File) => void; isProcessing: boolean; onPreviewFile?: (file: File | null) => void; }
 const normalizePlate = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '');
 const colors = ['Black', 'White', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Yellow', 'Orange', 'Brown', 'Beige / Tan', 'Gold', 'Bronze', 'Purple', 'Pink', 'Burgundy / Maroon', 'Teal / Turquoise', 'Two-tone', 'Other / Unknown'];
 const makes = ['Acura', 'Audi', 'BMW', 'Buick', 'Cadillac', 'Chevrolet', 'Chrysler', 'Dodge', 'Ford', 'Genesis', 'GMC', 'Honda', 'Hyundai', 'Infiniti', 'Jeep', 'Kia', 'Land Rover', 'Lexus', 'Lincoln', 'Mazda', 'Mercedes-Benz', 'Mitsubishi', 'Nissan', 'Porsche', 'Ram', 'Subaru', 'Tesla', 'Toyota', 'Volkswagen', 'Volvo'];
 
-export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing }) => {
+export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing, onPreviewFile }) => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [plate, setPlate] = useState('');
   const [plateMode, setPlateMode] = useState<'exact' | 'partial'>('exact');
@@ -48,7 +48,7 @@ export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing }) =>
     <p className="muted form-intro">Add the footage, then enter only what you know. Search by plate, vehicle details, or both.</p>
     <form onSubmit={handleSubmit}><fieldset disabled={isProcessing} className="target-fields">
       <div className="form-section"><div className="form-section-title"><span>1</span><h3><FileVideo size={15} /> Recording</h3></div>
-        <label className={`upload-dropzone ${videoFile ? 'has-file' : ''}`} htmlFor="video-upload"><input id="video-upload" type="file" accept=".mp4,.mov,.mkv" onChange={e => setVideoFile(e.target.files?.[0] || null)} required /><div className="upload-icon">{videoFile ? <Check size={21} /> : <UploadCloud size={21} />}</div><div><strong>{videoFile ? videoFile.name : 'Choose a security recording'}</strong><span>{videoFile ? `${(videoFile.size / 1024 / 1024).toFixed(1)} MB · ready to scan` : 'MP4, MOV or MKV · up to 4 GB'}</span></div></label>
+        <label className={`upload-dropzone ${videoFile ? 'has-file' : ''}`} htmlFor="video-upload"><input id="video-upload" type="file" accept=".mp4,.mov,.mkv" onChange={e => { const file = e.target.files?.[0] || null; setVideoFile(file); onPreviewFile?.(file); }} required /><div className="upload-icon">{videoFile ? <Check size={21} /> : <UploadCloud size={21} />}</div><div><strong>{videoFile ? videoFile.name : 'Choose a security recording'}</strong><span>{videoFile ? `${(videoFile.size / 1024 / 1024).toFixed(1)} MB · ready to scan` : 'MP4, MOV or MKV · up to 4 GB'}</span></div></label>
         <details className="advanced-panel"><summary>Recording details <ChevronDown size={15} /></summary><div className="advanced-fields">
           <div className="form-row"><div><label className="field-label">Recording begins</label><input className="input-slot" type="datetime-local" value={recordedStart} onChange={e => setRecordedStart(e.target.value)} /></div><div><label className="field-label">Camera name</label><input className="input-slot" value={cameraName} onChange={e => setCameraName(e.target.value)} placeholder="North gate" /></div></div>
           <label className="field-label">Camera role</label><select className="input-slot" value={cameraRole} onChange={e => setCameraRole(e.target.value as typeof cameraRole)}><option value="unknown">Unspecified / general view</option><option value="lot_entry">Lot entrance</option><option value="lot_exit">Lot exit</option><option value="service_entry">Service entrance</option><option value="service_exit">Service exit</option><option value="lot_area">Inventory / lot area</option></select>

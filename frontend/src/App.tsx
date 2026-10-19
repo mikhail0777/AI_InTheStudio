@@ -14,6 +14,14 @@ const messageOf = (error: unknown) => error instanceof Error ? error.message : '
 
 export const App: React.FC = () => {
   const [view, setView] = useState<'search' | 'history'>('search');
+  const [previewFile, setPreviewFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState('');
+  useEffect(() => {
+    if (!previewFile) { setPreviewUrl(''); return; }
+    const url = URL.createObjectURL(previewFile);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [previewFile]);
   const [session, setSession] = useState<SessionStatus | null>(null);
   const [monitoredSessionId, setMonitoredSessionId] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -156,8 +164,9 @@ export const App: React.FC = () => {
     {isUploading && <div className="app-notice" role="status">{uploadStage}…</div>}
     {view === 'history' && <main className="history-workspace"><div className="page-intro"><span className="eyebrow">Your evidence library</span><h2>Every sighting.<br />One place to look.</h2><p>Search vehicle observations across your processed recordings.</p></div><VehicleHistoryPanel sightings={history} plate={activeConfig.current?.plate_number} onSearch={handleHistorySearch} /></main>}
     <main className={`workspace-layout ${session ? 'has-investigation' : 'start-workspace'} ${view === 'history' ? 'view-hidden' : ''}`}>
-      {!session && <section className="start-intro"><span className="intro-label"><span /> FROM FOOTAGE TO ANSWERS</span><h2>Find the moment.<br /><span>Follow the vehicle.</span></h2><p>A plate. A colour. A detail you remember.<br />Turn your security footage into evidence you can review.</p><div className="intro-process"><div><b>01</b><span>Add a recording</span></div><div><b>02</b><span>Describe the vehicle</span></div><div><b>03</b><span>Review the sightings</span></div></div><div className="local-note">Your footage stays on this computer.</div></section>}
-      <aside className="case-sidebar"><TargetForm onStartSession={handleStartSession} isProcessing={isProcessing} /></aside>
+      {!session && <section className="start-intro"><h2>Find the vehicle you're looking for.<br /><span>Get straight to the footage that matters.</span></h2><p>Search a recording by licence plate or vehicle details. Review every sighting in context.</p></section>}
+      <aside className="case-sidebar"><TargetForm onStartSession={handleStartSession} isProcessing={isProcessing} onPreviewFile={setPreviewFile} /></aside>
+      {!session && <section className="landing-preview" aria-label="Recording preview"><div className="preview-toolbar"><span className="preview-dots"><i /><i /><i /></span><span>Recording preview</span><span>{previewFile ? 'Ready to search' : 'Example footage'}</span></div><div className={`preview-image ${previewUrl ? 'has-video' : ''}`}>{previewUrl ? <video key={previewUrl} src={previewUrl} controls preload="metadata" aria-label="Preview selected recording" /> : <><img src="/example-recording.jpg" alt="Example security camera view of a car at a parking entrance" /><span className="preview-caption">Your next lead starts here.</span></>}</div><div className="preview-footer"><span>01 / Add footage</span><span>02 / Find a vehicle</span><span>03 / Review evidence</span></div><p>Private by default. Your recordings are processed on this computer.</p></section>}
       <div className={`evidence-workspace ${!session ? 'view-hidden' : ''}`}>
         <section className="workspace-heading">
           <div><span className="eyebrow">Investigation workspace</span><h2>Review vehicle evidence</h2><p>{session ? 'Inspect detections against the original recording before confirming a sighting.' : 'Upload footage and describe the vehicle you need to find.'}</p></div>
