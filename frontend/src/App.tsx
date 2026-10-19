@@ -140,7 +140,7 @@ export const App: React.FC = () => {
     && result.end_seconds >= startSeconds && result.start_seconds <= endSeconds);
   const supportedCount = results.filter(result => result.classification === 'strong_match').length;
   const emptyDetail = isProcessing ? 'Sightings will appear after the recording has been scanned.'
-    : session?.status === 'completed' ? 'No supported sighting was found at the selected scan depth. Try Thorough mode or verify that the plate is legible in the source footage.'
+    : session?.status === 'completed' ? 'No supported sighting was found at the selected scan depth. Try Thorough mode or verify that the plate or vehicle is clearly visible.'
     : session?.status === 'error' ? 'Processing stopped. Review the error and start a new investigation.'
     : session?.status === 'cancelled' ? 'Investigation cancelled. Existing evidence was retained.'
     : 'Add a security recording and the vehicle information you know.';
@@ -157,7 +157,7 @@ export const App: React.FC = () => {
         <section className="card-module sightings-panel">
           <div className="row-between sightings-heading"><div><div className="section-kicker">Evidence timeline</div><h2>Vehicle sightings</h2><p className="muted">{supportedCount} supported · {results.length - supportedCount} review-only · {results.length} total</p></div>
             <div className="result-filters" aria-label="Result filters">
-              <label className="filter-label">Evidence<select className="input-slot" value={classificationFilter} onChange={event => setClassificationFilter(event.target.value)}><option value="matches">Supported + possible</option><option value="strong_match">Supported plate match</option><option value="possible_match">Review-only</option><option value="all">All</option></select></label>
+              <label className="filter-label">Evidence<select className="input-slot" value={classificationFilter} onChange={event => setClassificationFilter(event.target.value)}><option value="matches">Supported + possible</option><option value="strong_match">Supported sighting</option><option value="possible_match">Review-only</option><option value="all">All</option></select></label>
               <label className="filter-label">From (s)<input className="input-slot" type="number" min="0" value={startTime} onChange={event => setStartTime(event.target.value)} /></label>
               <label className="filter-label">To (s)<input className="input-slot" type="number" min="0" value={endTime} onChange={event => setEndTime(event.target.value)} /></label>
             </div>

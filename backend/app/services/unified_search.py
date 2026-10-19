@@ -9,6 +9,7 @@ from app.services.agentic_loop import AgenticLoopManager, load_tracks
 from app.services.generic_search import OpenVocabularySearchManager
 from app.services.query_parser import StructuredQueryParser, should_use_generic_search
 from app.services.vehicle_investigation import VehicleInvestigationManager, is_plate_investigation
+from app.services.vehicle_scan import VehicleScanManager, is_vehicle_profile_search
 
 
 class UnifiedSearchManager:
@@ -21,6 +22,10 @@ class UnifiedSearchManager:
         )
         if target.plate_number or is_plate_investigation(parsed):
             return VehicleInvestigationManager.execute_analysis(
+                session_id, target, run_id=run_id, checkpoint=checkpoint,
+            )
+        if is_vehicle_profile_search(target):
+            return VehicleScanManager.execute_analysis(
                 session_id, target, run_id=run_id, checkpoint=checkpoint,
             )
         if should_use_generic_search(parsed):

@@ -30,7 +30,7 @@ export const VehicleHistoryPanel: React.FC<Props> = ({ sightings, plate, onSearc
       <button className="btn-industrial" disabled={pending}><Search size={14} />{pending ? 'Searching' : 'Search history'}</button>
     </form>
     {!sightings.length ? <p className="muted history-empty">No stored sightings match these filters. Complete recordings to build the ledger.</p> : <div className="history-list">{sightings.map(item => <article key={item.sighting_id} className="history-item">
-      <div><strong>{item.observed_plate}</strong><span className={`match-dot ${item.match_kind}`} /></div>
+      <div><strong>{item.observed_plate || 'No plate read'}</strong><span className={`match-dot ${item.match_kind}`} /></div>
       <p>{item.event_type.split('_').join(' ')}{item.camera_name ? ` · ${item.camera_name}` : ''}</p>
       {item.after_hours === 1 && <span className="after-hours-badge">After hours</span>}
       <small><MapPin size={12} />{item.captured_at ? new Date(item.captured_at).toLocaleString() : `Recording +${item.best_timestamp_seconds.toFixed(1)}s`}</small>

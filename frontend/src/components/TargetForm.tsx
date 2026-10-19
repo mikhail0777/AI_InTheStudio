@@ -26,13 +26,14 @@ export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing }) =>
     const normalizedPlate = normalizePlate(plate);
     if (!videoFile) return setError('Select an MP4, MOV, or MKV security recording.');
     if (videoFile.size > 4 * 1024 ** 3) return setError('The recording must be smaller than 4 GB.');
-    if (normalizedPlate.length < 3 || normalizedPlate.length > 10) return setError('Enter 3–10 letters or numbers for a full or partial licence plate.');
+    if (normalizedPlate && (normalizedPlate.length < 3 || normalizedPlate.length > 10)) return setError('Enter 3–10 letters or numbers for a full or partial licence plate.');
+    if (!normalizedPlate && !color && !bodyType && !make && !model && !year) return setError('Enter a plate or at least one vehicle detail.');
     if (fromSeconds && toSeconds && Number(toSeconds) <= Number(fromSeconds)) return setError('The end of the search window must be after the start.');
-    const description = [color, year, make, model, bodyType || 'vehicle', `with licence plate ${normalizedPlate}`].filter(Boolean).join(' ');
+    const description = [color, year, make, model, bodyType || 'vehicle', normalizedPlate ? `with licence plate ${normalizedPlate}` : ''].filter(Boolean).join(' ');
     onStartSession({
       free_text_description: description, processing_mode: processingMode,
       required_attributes: [], optional_attributes: [], negative_attributes: [], min_alert_confidence: 0.65,
-      plate_number: normalizedPlate, plate_match_mode: plateMode, vehicle_make: make || undefined,
+      plate_number: normalizedPlate || undefined, plate_match_mode: plateMode, vehicle_make: make || undefined,
       vehicle_model: model || undefined, vehicle_year: year ? Number(year) : undefined,
       vehicle_color: color || undefined, vehicle_body_type: bodyType || undefined,
       camera_name: cameraName || undefined, camera_role: cameraRole,
@@ -54,8 +55,8 @@ export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing }) =>
         <label className="field-label">Camera role</label><select className="input-slot" value={cameraRole} onChange={e => setCameraRole(e.target.value as typeof cameraRole)}><option value="unknown">Unspecified / general view</option><option value="lot_entry">Lot entrance</option><option value="lot_exit">Lot exit</option><option value="service_entry">Service entrance</option><option value="service_exit">Service exit</option><option value="lot_area">Inventory / lot area</option></select>
         <div className="form-row compact-row"><div><label className="field-label">Business opens</label><input className="input-slot" type="time" value={businessOpen} onChange={e => setBusinessOpen(e.target.value)} /></div><div><label className="field-label">Business closes</label><input className="input-slot" type="time" value={businessClose} onChange={e => setBusinessClose(e.target.value)} /></div></div>
       </div>
-      <div className="form-section"><h3><Search size={15} /> Plate search</h3>
-        <label className="field-label" htmlFor="plate">Licence plate or known fragment</label><input id="plate" className="input-slot plate-input" value={plate} maxLength={12} onChange={e => setPlate(e.target.value.toUpperCase())} placeholder="Example: ABCD123" required />
+      <div className="form-section"><h3><Search size={15} /> Plate search <span className="optional-label">optional</span></h3>
+        <label className="field-label" htmlFor="plate">Licence plate or known fragment</label><input id="plate" className="input-slot plate-input" value={plate} maxLength={12} onChange={e => setPlate(e.target.value.toUpperCase())} placeholder="Leave blank if unknown" />
         <div className="segmented-control"><button type="button" aria-pressed={plateMode === 'exact'} onClick={() => setPlateMode('exact')}>Full plate</button><button type="button" aria-pressed={plateMode === 'partial'} onClick={() => setPlateMode('partial')}>Partial plate</button></div>
         <div className="form-row compact-row"><div><label className="field-label">From second</label><input className="input-slot" type="number" min="0" step="0.1" value={fromSeconds} onChange={e => setFromSeconds(e.target.value)} placeholder="Start" /></div><div><label className="field-label">To second</label><input className="input-slot" type="number" min="0" step="0.1" value={toSeconds} onChange={e => setToSeconds(e.target.value)} placeholder="End" /></div></div>
       </div>
@@ -64,7 +65,7 @@ export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing }) =>
         <div className="form-row compact-row"><div><label className="field-label">Year</label><input className="input-slot" type="number" min="1900" max="2100" value={year} onChange={e => setYear(e.target.value)} placeholder="Approx. year" /></div><div><label className="field-label">Colour</label><input list="vehicle-colors" className="input-slot" value={color} onChange={e => setColor(e.target.value)} placeholder="Any colour" /><datalist id="vehicle-colors">{colors.map(item => <option key={item} value={item} />)}</datalist></div></div>
         <label className="field-label">Body type</label><select className="input-slot" value={bodyType} onChange={e => setBodyType(e.target.value)}><option value="">Any vehicle</option><option>Sedan</option><option>SUV / Crossover</option><option>Pickup truck</option><option>Coupe</option><option>Hatchback</option><option>Wagon</option><option>Minivan</option><option>Cargo van</option><option>Convertible</option><option>Motorcycle</option><option>Commercial truck</option><option>Other / Unknown</option></select>
       </div>
-      <div><label className="field-label">Scan depth</label><select className="input-slot" value={processingMode} onChange={e => setProcessingMode(e.target.value as typeof processingMode)}><option value="fast">Fast · 1 plate scan/second</option><option value="balanced">Balanced · 2 plate scans/second</option><option value="thorough">Thorough · 4 plate scans/second</option></select></div>
+      <div><label className="field-label">Scan depth</label><select className="input-slot" value={processingMode} onChange={e => setProcessingMode(e.target.value as typeof processingMode)}><option value="fast">Fast · 1 scan/second</option><option value="balanced">Balanced · 2 scans/second</option><option value="thorough">Thorough · 4 scans/second</option></select></div>
       <p className="form-hint">Vehicle category and colour are AI observations when visibility permits. Make, model and year remain requested profile details until visually confirmed.</p>
       {error && <p role="alert" className="error-message">{error}</p>}
       <button type="submit" className="btn-industrial btn-primary" disabled={isProcessing}><Search size={18} />{isProcessing ? 'Investigation in progress' : 'Search recording'}</button>

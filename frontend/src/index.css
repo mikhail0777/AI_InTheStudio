@@ -477,6 +477,7 @@ button:focus-visible, a:focus-visible, .map-marker:focus-visible { outline: 2px 
 .compact-row { gap: 10px; }
 .form-section { display: flex; flex-direction: column; gap: 10px; padding-bottom: 20px; border-bottom: 1px solid #e3e8ef; }
 .form-section h3 { display: flex; align-items: center; gap: 7px; color: #24364b; font-size: .78rem; letter-spacing: .02em; text-transform: uppercase; }
+.optional-label { margin-left: auto; color: #738196; font-size: 9px; font-weight: 700; letter-spacing: .08em; }
 .form-section .field-label { margin-bottom: -4px; }
 .segmented-control { display: grid; grid-template-columns: 1fr 1fr; padding: 3px; border: 1px solid #d6dde7; border-radius: 6px; background: #f2f5f8; }
 .segmented-control button { padding: 8px; border: 0; border-radius: 4px; background: transparent; color: #536176; font: 600 12px var(--font-sans); cursor: pointer; }

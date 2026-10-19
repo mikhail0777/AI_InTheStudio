@@ -42,7 +42,7 @@ export interface VehicleSighting {
   session_id: string;
   requested_plate: string;
   observed_plate: string;
-  match_kind: 'exact' | 'partial' | 'review_candidate';
+  match_kind: 'exact' | 'partial' | 'review_candidate' | 'vehicle_only';
   captured_at?: string | null;
   best_timestamp_seconds: number;
   camera_name?: string | null;
