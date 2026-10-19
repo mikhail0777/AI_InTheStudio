@@ -1,0 +1,44 @@
+{
+  "dataset": "videos\\License Plate Recognition.v13i.yolov8",
+  "images_evaluated": 1020,
+  "missing_labels": 0,
+  "invalid_images": 0,
+  "ground_truth_plates": 1085,
+  "predicted_plates": 1020,
+  "images_with_ground_truth": 1019,
+  "images_with_any_detection": 984,
+  "readable_ocr_predictions": 984,
+  "ocr_coverage_of_predictions": 0.9647,
+  "metrics": {
+    "iou_0.50": {
+      "true_positive": 995,
+      "false_positive": 25,
+      "false_negative": 90,
+      "precision": 0.9755,
+      "recall": 0.9171,
+      "f1": 0.9454,
+      "mean_matched_iou": 0.8053
+    },
+    "iou_0.70": {
+      "true_positive": 851,
+      "false_positive": 169,
+      "false_negative": 234,
+      "precision": 0.8343,
+      "recall": 0.7843,
+      "f1": 0.8086,
+      "mean_matched_iou": 0.833
+    }
+  },
+  "elapsed_seconds": 17.2,
+  "images_per_second": 59.302,
+  "model": {
+    "provider": "fast-alpr",
+    "model_name": "yolo-v9-t-384-license-plate-end2end+cct-xs-v2-global-model",
+    "model_version": "0.4.0",
+    "device": "cpu",
+    "metadata": {
+      "task": "automatic-license-plate-recognition"
+    }
+  },
+  "limitation": "Dataset labels contain plate boxes but no plate text; OCR character accuracy cannot be calculated."
+}
