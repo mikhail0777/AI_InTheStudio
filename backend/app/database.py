@@ -260,6 +260,13 @@ def init_db():
             vehicle_year INTEGER,
             vehicle_color TEXT,
             vehicle_body_type TEXT,
+            vehicle_detection_confidence REAL,
+            vehicle_color_confidence REAL,
+            requested_vehicle_make TEXT,
+            requested_vehicle_model TEXT,
+            requested_vehicle_year INTEGER,
+            requested_vehicle_color TEXT,
+            requested_vehicle_body_type TEXT,
             source_filename TEXT,
             evidence_frame TEXT,
             evidence_clip TEXT,
@@ -275,6 +282,18 @@ def init_db():
     sighting_columns = {row[1] for row in cursor.execute("PRAGMA table_info(vehicle_sightings)")}
     if "after_hours" not in sighting_columns:
         cursor.execute("ALTER TABLE vehicle_sightings ADD COLUMN after_hours INTEGER")
+    sighting_additions = {
+        "vehicle_detection_confidence": "REAL",
+        "vehicle_color_confidence": "REAL",
+        "requested_vehicle_make": "TEXT",
+        "requested_vehicle_model": "TEXT",
+        "requested_vehicle_year": "INTEGER",
+        "requested_vehicle_color": "TEXT",
+        "requested_vehicle_body_type": "TEXT",
+    }
+    for column, sql_type in sighting_additions.items():
+        if column not in sighting_columns:
+            cursor.execute(f"ALTER TABLE vehicle_sightings ADD COLUMN {column} {sql_type}")
 
     conn.commit()
     conn.close()

@@ -21,6 +21,7 @@ from app.services.generic_search import _extract_clip
 from app.services.license_plate_reader import LicensePlateReader, normalize_plate, plate_similarity
 from app.services.query_parser import StructuredQueryParser
 from app.services.vehicle_sightings import save_sighting
+from app.services.vehicle_recognizer import VehicleRecognizer
 
 
 MODE_SCAN_FPS = {"fast": 1.0, "balanced": 2.0, "thorough": 4.0}
@@ -123,6 +124,7 @@ class VehicleInvestigationManager:
         )
         _status(session_id, 5, "plate_scan")
         reader = LicensePlateReader()
+        vehicle_recognizer = VehicleRecognizer(str(Path(database.DB_DIR) / "evidence"))
         threshold = float(os.environ.get("AIEYE_PLATE_REVIEW_SIMILARITY", "0.78"))
         evidence_dir = Path(database.DB_DIR) / "evidence" / session_id
         evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -206,8 +208,25 @@ class VehicleInvestigationManager:
             image = cv2.imread(best["frame_path"])
             if image is None:
                 continue
+            vehicle = vehicle_recognizer.recognize(
+                image_path=best["frame_path"], plate_bbox=best["bbox"], session_id=session_id,
+                frame_idx=best["frame_idx"], timestamp_seconds=best["timestamp_seconds"],
+            )
+            if vehicle is None:
+                strong = False
+                classification = "possible_match"
             x1, y1, x2, y2 = best["bbox"]
             color = (44, 170, 70) if strong else (0, 170, 255)
+            if vehicle:
+                vx1, vy1, vx2, vy2 = map(int, vehicle.bbox)
+                cv2.rectangle(image, (vx1, vy1), (vx2, vy2), (220, 150, 40), 3)
+                vehicle_label = vehicle.category
+                if vehicle.color:
+                    vehicle_label = f"{vehicle.color} {vehicle_label}"
+                cv2.putText(
+                    image, vehicle_label.upper(), (max(0, vx1), max(28, vy1 - 10)),
+                    cv2.FONT_HERSHEY_SIMPLEX, .65, (220, 150, 40), 2,
+                )
             cv2.rectangle(image, (x1, y1), (x2, y2), color, 4)
             cv2.putText(
                 image, f"{best['text']} {'MATCH' if best['exact'] or best.get('partial') else 'REVIEW'}",
@@ -225,7 +244,8 @@ class VehicleInvestigationManager:
 
             detections = [EntityDetection(
                 detection_id=f"plate_{item['frame_idx']}_{position}", frame_idx=item["frame_idx"],
-                timestamp_seconds=item["timestamp_seconds"], label="vehicle", bbox=item["bbox"],
+                timestamp_seconds=item["timestamp_seconds"], label=vehicle.category if vehicle else "licence_plate",
+                bbox=vehicle.bbox if vehicle else item["bbox"],
                 confidence=max(0.0, min(1.0, item["confidence"])), visibility=max(.1, item["similarity"]),
                 attributes={
                     "license_plate_readings": [{"text": item["text"], "confidence": item["confidence"], "bbox": item["bbox"]}],
@@ -233,8 +253,12 @@ class VehicleInvestigationManager:
                     "plate_similarity": item["similarity"],
                     "plate_match_kind": ("exact" if item["exact"] else
                                          "partial" if item.get("partial") else "review_candidate"),
+                    "vehicle_detected": vehicle is not None,
+                    "vehicle_category": vehicle.category if vehicle else None,
+                    "vehicle_color": vehicle.color if vehicle else None,
+                    "vehicle_color_distribution": vehicle.colors if vehicle else {},
                 },
-                provenance=reader.provenance,
+                provenance=vehicle.provenance if vehicle else reader.provenance,
             ) for position, item in enumerate(sighting)]
             track = EntityTrack(
                 track_id=f"vehicle-sighting-{sighting_number}", label="vehicle",
@@ -242,9 +266,15 @@ class VehicleInvestigationManager:
                 attributes={
                     "requested_plate": requested_plate, "observed_plates": dict(observed_counts),
                     "plate_match_mode": target.plate_match_mode, "camera_name": target.camera_name,
-                    "camera_role": target.camera_role, "vehicle_make": target.vehicle_make,
-                    "vehicle_model": target.vehicle_model, "vehicle_year": target.vehicle_year,
-                    "vehicle_color": target.vehicle_color, "vehicle_body_type": target.vehicle_body_type,
+                    "camera_role": target.camera_role,
+                    "vehicle_detected": vehicle is not None,
+                    "vehicle_color": vehicle.color if vehicle else None,
+                    "vehicle_body_type": vehicle.category if vehicle else None,
+                    "requested_vehicle_make": target.vehicle_make,
+                    "requested_vehicle_model": target.vehicle_model,
+                    "requested_vehicle_year": target.vehicle_year,
+                    "requested_vehicle_color": target.vehicle_color,
+                    "requested_vehicle_body_type": target.vehicle_body_type,
                 },
             )
             if exact:
@@ -265,6 +295,11 @@ class VehicleInvestigationManager:
                     f"{repeated_frames} distinct sampled frame(s). This is not an exact plate match."
                 )
                 assessment = "uncertain"
+            if vehicle:
+                description = " ".join(value for value in (vehicle.color, vehicle.category) if value)
+                explanation += f" The plate is associated with a detected {description or 'vehicle'}."
+            else:
+                explanation += " No containing vehicle was detected, so this result remains review-only."
             plate_evidence = EvidenceAssessment(
                 criterion_id=plate_constraint.criterion_id if plate_constraint else "vehicle-1.license_plate",
                 kind="attribute", assessment=assessment,
@@ -297,13 +332,15 @@ class VehicleInvestigationManager:
                                   "ocr_confidence": round(confidence, 4),
                                   "multi_frame_support": round(repeat_support, 4)},
                 entities=[track], evidence=evidence, explanation=explanation,
-                best_frame_path=frame_url, clip_path=clip_url, model_provenance=[reader.provenance],
+                best_frame_path=frame_url, clip_path=clip_url,
+                model_provenance=[reader.provenance] + ([vehicle.provenance] if vehicle else []),
             ))
             save_sighting(
                 session_id=session_id, search_id=search_id, result_id=result_id, target=target,
                 video=video, observation=best, first_seen=first, last_seen=last,
                 frame_path=frame_url, clip_path=clip_url,
                 match_kind=("exact" if best["exact"] else "partial" if best.get("partial") else "review_candidate"),
+                vehicle=vehicle,
             )
 
         results.sort(key=lambda item: (item.classification == "strong_match", item.overall_score), reverse=True)

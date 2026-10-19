@@ -11,6 +11,7 @@ from app import database
 from app.models.open_vocabulary import ModelProvenance
 from app.models.schemas import TargetConfiguration, VideoMetadata
 from app.services.license_plate_reader import PlateReading
+from app.services.vehicle_recognizer import VehicleObservation
 from app.services.vehicle_investigation import VehicleInvestigationManager, _group_sightings, is_plate_investigation
 from app.services.query_parser import StructuredQueryParser
 from app.services.vehicle_sightings import after_hours
@@ -85,10 +86,27 @@ class VehicleInvestigationTests(unittest.TestCase):
                             return [PlateReading("ABC123", .6, [10, 20, 90, 45])]
                         return []
 
+                class FakeVehicleRecognizer:
+                    def __init__(self, evidence_root):
+                        pass
+
+                    def recognize(self, **kwargs):
+                        return VehicleObservation(
+                            bbox=[5, 5, 200, 160], category="car", confidence=.92,
+                            color="red", color_confidence=.68,
+                            colors={"red": .68, "black": .2, "grey": .12},
+                            crop_path="/evidence/case/car.jpg",
+                            mask_path="/evidence/case/car_mask.png",
+                            provenance=ModelProvenance(
+                                provider="test", model_name="vehicle", model_version="1"
+                            ),
+                        )
+
                 def fake_clip(source, start, end, destination):
                     Path(destination).write_bytes(b"test")
 
                 with patch("app.services.vehicle_investigation.LicensePlateReader", FakeReader), \
+                     patch("app.services.vehicle_investigation.VehicleRecognizer", FakeVehicleRecognizer), \
                      patch("app.services.vehicle_investigation._extract_clip", fake_clip):
                     results = VehicleInvestigationManager.execute_analysis(
                         "case", target, run_id="run", checkpoint=lambda: None,
@@ -101,7 +119,11 @@ class VehicleInvestigationTests(unittest.TestCase):
                 self.assertEqual(sighting["observed_plate"], "ABC123")
                 self.assertEqual(sighting["event_type"], "entered_service")
                 self.assertEqual(sighting["camera_name"], "Service lane 1")
-                self.assertEqual(sighting["vehicle_make"], "Tesla")
+                self.assertIsNone(sighting["vehicle_make"])
+                self.assertEqual(sighting["requested_vehicle_make"], "Tesla")
+                self.assertEqual(sighting["vehicle_color"], "red")
+                self.assertEqual(sighting["vehicle_body_type"], "car")
+                self.assertEqual(sighting["vehicle_detection_confidence"], .92)
                 self.assertEqual(sighting["after_hours"], 0)
                 self.assertTrue(sighting["captured_at"].startswith("2026-10-16T08:30:"))
 

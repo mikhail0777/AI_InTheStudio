@@ -43,7 +43,7 @@ def after_hours(captured: str | None, opening: str | None, closing: str | None) 
 def save_sighting(*, session_id: str, search_id: str, result_id: str,
                   target: TargetConfiguration, video: VideoMetadata, observation: dict[str, Any],
                   first_seen: float, last_seen: float, frame_path: str, clip_path: str,
-                  match_kind: str) -> None:
+                  match_kind: str, vehicle=None) -> None:
     absolute_time = captured_at(target.recorded_start_at, observation["timestamp_seconds"])
     with database.get_db_connection() as conn:
         conn.execute(
@@ -52,15 +52,22 @@ def save_sighting(*, session_id: str, search_id: str, result_id: str,
                match_kind,ocr_confidence,similarity,first_seen_seconds,last_seen_seconds,
                best_timestamp_seconds,captured_at,after_hours,camera_name,camera_role,event_type,
                vehicle_make,vehicle_model,vehicle_year,vehicle_color,vehicle_body_type,
+               vehicle_detection_confidence,vehicle_color_confidence,
+               requested_vehicle_make,requested_vehicle_model,requested_vehicle_year,
+               requested_vehicle_color,requested_vehicle_body_type,
                source_filename,evidence_frame,evidence_clip)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (result_id, session_id, search_id, target.plate_number or "", observation["text"],
              target.plate_match_mode, match_kind, observation["confidence"], observation["similarity"],
              first_seen, last_seen, observation["timestamp_seconds"],
              absolute_time, after_hours(absolute_time, target.business_open_time, target.business_close_time),
              target.camera_name, target.camera_role, EVENT_BY_CAMERA_ROLE[target.camera_role],
+             None, None, None,
+             vehicle.color if vehicle else None, vehicle.category if vehicle else None,
+             vehicle.confidence if vehicle else None, vehicle.color_confidence if vehicle else None,
              target.vehicle_make, target.vehicle_model, target.vehicle_year,
-             target.vehicle_color, target.vehicle_body_type, video.filename, frame_path, clip_path),
+             target.vehicle_color, target.vehicle_body_type,
+             video.filename, frame_path, clip_path),
         )
 
 
