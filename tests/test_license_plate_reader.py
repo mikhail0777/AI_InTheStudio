@@ -1,6 +1,9 @@
 import unittest
+from unittest.mock import patch
 
-from app.services.license_plate_reader import normalize_plate, plate_edit_distance, plate_similarity
+import numpy as np
+
+from app.services.license_plate_reader import LicensePlateReader, PlateReading, normalize_plate, plate_edit_distance, plate_similarity
 
 
 class PlateMatchingTests(unittest.TestCase):
@@ -21,6 +24,28 @@ class PlateMatchingTests(unittest.TestCase):
 
     def test_edit_distance_handles_insertions(self):
         self.assertEqual(plate_edit_distance("ABC123", "ABC0123"), 1)
+
+    def test_weak_read_triggers_mirror_recovery_and_restores_bbox(self):
+        reader = LicensePlateReader.__new__(LicensePlateReader)
+        frame = np.zeros((100, 300, 3), dtype=np.uint8)
+        with patch.object(reader, "_read_region", side_effect=[
+            [PlateReading("CPCJ000", .65, [20, 30, 80, 50])],
+            [PlateReading("60LD4379", .99, [40, 30, 120, 50])],
+        ]):
+            readings = reader.read_frame(frame, tiled=False)
+        recovered = next(item for item in readings if item.text == "60LD4379")
+        self.assertEqual(recovered.bbox, [180, 30, 260, 50])
+        self.assertEqual(recovered.source_variant, "horizontal_flip")
+
+    def test_confident_normal_read_skips_mirror_recovery(self):
+        reader = LicensePlateReader.__new__(LicensePlateReader)
+        frame = np.zeros((100, 300, 3), dtype=np.uint8)
+        with patch.object(reader, "_read_region", return_value=[
+            PlateReading("ABC123", .95, [20, 30, 80, 50])
+        ]) as read:
+            readings = reader.read_frame(frame, tiled=False)
+        self.assertEqual([item.text for item in readings], ["ABC123"])
+        read.assert_called_once()
 
 
 if __name__ == "__main__":

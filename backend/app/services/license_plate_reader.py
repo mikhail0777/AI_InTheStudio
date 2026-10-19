@@ -4,11 +4,13 @@ The reader deliberately separates raw OCR from matching policy.  A single noisy
 frame must never be treated as proof that a requested plate was present.
 """
 from dataclasses import dataclass
+import os
 import re
 import threading
 from typing import List, Sequence
 
 import numpy as np
+import cv2
 
 from app.models.open_vocabulary import ModelProvenance
 
@@ -28,6 +30,7 @@ class PlateReading:
     text: str
     confidence: float
     bbox: List[int]
+    source_variant: str = "original"
 
 
 _CONFUSABLE = str.maketrans({"O": "0", "Q": "0", "I": "1", "L": "1", "S": "5", "B": "8", "Z": "2"})
@@ -146,7 +149,7 @@ class LicensePlateReader:
         return output
 
     def read_frame(self, frame: np.ndarray, *, tiled: bool = True) -> List[PlateReading]:
-        """Read a full frame and overlapping tiles so small distant plates stay legible."""
+        """Read a full frame, tiles, and a guarded mirrored-camera recovery pass."""
         if frame is None or frame.size == 0:
             return []
         height, width = frame.shape[:2]
@@ -162,6 +165,21 @@ class LicensePlateReader:
             ]
             for x1, y1, x2, y2 in regions:
                 readings.extend(self._read_region(frame[y1:y2, x1:x2], x1, y1))
+        readings = self._deduplicate(readings)
+        mirror_enabled = os.environ.get("AIEYE_PLATE_MIRROR_FALLBACK", "true").lower() not in (
+            "0", "false", "no",
+        )
+        mirror_threshold = float(os.environ.get("AIEYE_PLATE_MIRROR_THRESHOLD", ".72"))
+        if not 0 <= mirror_threshold <= 1:
+            raise ValueError("AIEYE_PLATE_MIRROR_THRESHOLD must be between 0 and 1.")
+        if mirror_enabled and max((item.confidence for item in readings), default=0.0) < mirror_threshold:
+            for reading in self._read_region(cv2.flip(frame, 1)):
+                x1, y1, x2, y2 = reading.bbox
+                readings.append(PlateReading(
+                    text=reading.text, confidence=reading.confidence,
+                    bbox=[width - x2, y1, width - x1, y2],
+                    source_variant="horizontal_flip",
+                ))
         return self._deduplicate(readings)
 
     def read_vehicle(self, frame: np.ndarray, bbox: Sequence[float]) -> List[PlateReading]:

@@ -166,6 +166,7 @@ class VehicleInvestigationManager:
                             "confidence": reading.confidence,
                             "similarity": similarity,
                             "bbox": reading.bbox,
+                            "source_variant": reading.source_variant,
                             "exact": target.plate_match_mode == "exact" and normalize_plate(reading.text) == requested_plate,
                             "partial": partial_match,
                         })
@@ -248,7 +249,9 @@ class VehicleInvestigationManager:
                 bbox=vehicle.bbox if vehicle else item["bbox"],
                 confidence=max(0.0, min(1.0, item["confidence"])), visibility=max(.1, item["similarity"]),
                 attributes={
-                    "license_plate_readings": [{"text": item["text"], "confidence": item["confidence"], "bbox": item["bbox"]}],
+                    "license_plate_readings": [{"text": item["text"], "confidence": item["confidence"],
+                                                 "bbox": item["bbox"],
+                                                 "source_variant": item.get("source_variant", "original")}],
                     "requested_plate": requested_plate,
                     "plate_similarity": item["similarity"],
                     "plate_match_kind": ("exact" if item["exact"] else
