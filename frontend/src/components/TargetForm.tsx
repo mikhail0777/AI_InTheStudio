@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
+import { Camera, CarFront, Check, ChevronDown, FileVideo, Search, UploadCloud } from 'lucide-react';
 import { TargetConfiguration } from '../types';
-import { Camera, CarFront, FileVideo, Search } from 'lucide-react';
 
 interface Props { onStartSession: (config: TargetConfiguration, videoFile: File) => void; isProcessing: boolean; }
 const normalizePlate = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -43,32 +43,32 @@ export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing }) =>
     }, videoFile);
   };
 
-  return <section className="card-module investigation-form">
-    <div className="section-kicker"><CarFront size={17} /> New investigation</div>
-    <h2>Search recorded vehicle footage</h2>
-    <p className="muted form-intro">Plate OCR drives matching. LotTrace also verifies that the plate belongs to a detected vehicle and records its observed colour and category.</p>
+  return <section className="surface investigation-form">
+    <div className="form-heading"><div className="form-icon"><CarFront size={20} /></div><div><span className="eyebrow">Case setup</span><h2>Find a vehicle</h2></div></div>
+    <p className="muted form-intro">Add the footage, then enter only what you know. Search by plate, vehicle details, or both.</p>
     <form onSubmit={handleSubmit}><fieldset disabled={isProcessing} className="target-fields">
-      <div className="form-section"><h3><FileVideo size={15} /> Recording</h3>
-        <label className="field-label" htmlFor="video-upload">Security recording</label>
-        <input id="video-upload" type="file" accept=".mp4,.mov,.mkv" className="input-slot" onChange={e => setVideoFile(e.target.files?.[0] || null)} required />
-        <div className="form-row compact-row"><div><label className="field-label">Recording begins</label><input className="input-slot" type="datetime-local" value={recordedStart} onChange={e => setRecordedStart(e.target.value)} /></div><div><label className="field-label">Camera name</label><input className="input-slot" value={cameraName} onChange={e => setCameraName(e.target.value)} placeholder="North gate" /></div></div>
-        <label className="field-label">Camera role</label><select className="input-slot" value={cameraRole} onChange={e => setCameraRole(e.target.value as typeof cameraRole)}><option value="unknown">Unspecified / general view</option><option value="lot_entry">Lot entrance</option><option value="lot_exit">Lot exit</option><option value="service_entry">Service entrance</option><option value="service_exit">Service exit</option><option value="lot_area">Inventory / lot area</option></select>
-        <div className="form-row compact-row"><div><label className="field-label">Business opens</label><input className="input-slot" type="time" value={businessOpen} onChange={e => setBusinessOpen(e.target.value)} /></div><div><label className="field-label">Business closes</label><input className="input-slot" type="time" value={businessClose} onChange={e => setBusinessClose(e.target.value)} /></div></div>
+      <div className="form-section"><div className="form-section-title"><span>1</span><h3><FileVideo size={15} /> Recording</h3></div>
+        <label className={`upload-dropzone ${videoFile ? 'has-file' : ''}`} htmlFor="video-upload"><input id="video-upload" type="file" accept=".mp4,.mov,.mkv" onChange={e => setVideoFile(e.target.files?.[0] || null)} required /><div className="upload-icon">{videoFile ? <Check size={21} /> : <UploadCloud size={21} />}</div><div><strong>{videoFile ? videoFile.name : 'Choose a security recording'}</strong><span>{videoFile ? `${(videoFile.size / 1024 / 1024).toFixed(1)} MB · ready to scan` : 'MP4, MOV or MKV · up to 4 GB'}</span></div></label>
+        <details className="advanced-panel"><summary>Recording details <ChevronDown size={15} /></summary><div className="advanced-fields">
+          <div className="form-row"><div><label className="field-label">Recording begins</label><input className="input-slot" type="datetime-local" value={recordedStart} onChange={e => setRecordedStart(e.target.value)} /></div><div><label className="field-label">Camera name</label><input className="input-slot" value={cameraName} onChange={e => setCameraName(e.target.value)} placeholder="North gate" /></div></div>
+          <label className="field-label">Camera role</label><select className="input-slot" value={cameraRole} onChange={e => setCameraRole(e.target.value as typeof cameraRole)}><option value="unknown">Unspecified / general view</option><option value="lot_entry">Lot entrance</option><option value="lot_exit">Lot exit</option><option value="service_entry">Service entrance</option><option value="service_exit">Service exit</option><option value="lot_area">Inventory / lot area</option></select>
+          <div className="form-row"><div><label className="field-label">Business opens</label><input className="input-slot" type="time" value={businessOpen} onChange={e => setBusinessOpen(e.target.value)} /></div><div><label className="field-label">Business closes</label><input className="input-slot" type="time" value={businessClose} onChange={e => setBusinessClose(e.target.value)} /></div></div>
+        </div></details>
       </div>
-      <div className="form-section"><h3><Search size={15} /> Plate search <span className="optional-label">optional</span></h3>
-        <label className="field-label" htmlFor="plate">Licence plate or known fragment</label><input id="plate" className="input-slot plate-input" value={plate} maxLength={12} onChange={e => setPlate(e.target.value.toUpperCase())} placeholder="Leave blank if unknown" />
+      <div className="form-section"><div className="form-section-title"><span>2</span><h3><Search size={15} /> Known plate</h3><em>Optional</em></div>
+        <label className="field-label" htmlFor="plate">Licence plate or known fragment</label><input id="plate" className="input-slot plate-input" value={plate} maxLength={12} onChange={e => setPlate(e.target.value.toUpperCase())} placeholder="e.g. ABC1234" />
         <div className="segmented-control"><button type="button" aria-pressed={plateMode === 'exact'} onClick={() => setPlateMode('exact')}>Full plate</button><button type="button" aria-pressed={plateMode === 'partial'} onClick={() => setPlateMode('partial')}>Partial plate</button></div>
-        <div className="form-row compact-row"><div><label className="field-label">From second</label><input className="input-slot" type="number" min="0" step="0.1" value={fromSeconds} onChange={e => setFromSeconds(e.target.value)} placeholder="Start" /></div><div><label className="field-label">To second</label><input className="input-slot" type="number" min="0" step="0.1" value={toSeconds} onChange={e => setToSeconds(e.target.value)} placeholder="End" /></div></div>
+        <div className="form-row"><div><label className="field-label">From second</label><input className="input-slot" type="number" min="0" step="0.1" value={fromSeconds} onChange={e => setFromSeconds(e.target.value)} placeholder="Start" /></div><div><label className="field-label">To second</label><input className="input-slot" type="number" min="0" step="0.1" value={toSeconds} onChange={e => setToSeconds(e.target.value)} placeholder="End" /></div></div>
       </div>
-      <div className="form-section"><h3><Camera size={15} /> Vehicle profile</h3>
-        <div className="form-row compact-row"><div><label className="field-label">Make</label><input list="vehicle-makes" className="input-slot" value={make} onChange={e => setMake(e.target.value)} placeholder="Any make" /><datalist id="vehicle-makes">{makes.map(item => <option key={item} value={item} />)}</datalist></div><div><label className="field-label">Model</label><input className="input-slot" value={model} onChange={e => setModel(e.target.value)} placeholder="Model" /></div></div>
-        <div className="form-row compact-row"><div><label className="field-label">Year</label><input className="input-slot" type="number" min="1900" max="2100" value={year} onChange={e => setYear(e.target.value)} placeholder="Approx. year" /></div><div><label className="field-label">Colour</label><input list="vehicle-colors" className="input-slot" value={color} onChange={e => setColor(e.target.value)} placeholder="Any colour" /><datalist id="vehicle-colors">{colors.map(item => <option key={item} value={item} />)}</datalist></div></div>
+      <div className="form-section"><div className="form-section-title"><span>3</span><h3><Camera size={15} /> Vehicle details</h3><em>Optional</em></div>
+        <div className="form-row"><div><label className="field-label">Make</label><input list="vehicle-makes" className="input-slot" value={make} onChange={e => setMake(e.target.value)} placeholder="Any make" /><datalist id="vehicle-makes">{makes.map(item => <option key={item} value={item} />)}</datalist></div><div><label className="field-label">Model</label><input className="input-slot" value={model} onChange={e => setModel(e.target.value)} placeholder="Model" /></div></div>
+        <div className="form-row"><div><label className="field-label">Year</label><input className="input-slot" type="number" min="1900" max="2100" value={year} onChange={e => setYear(e.target.value)} placeholder="Approx." /></div><div><label className="field-label">Colour</label><input list="vehicle-colors" className="input-slot" value={color} onChange={e => setColor(e.target.value)} placeholder="Any colour" /><datalist id="vehicle-colors">{colors.map(item => <option key={item} value={item} />)}</datalist></div></div>
         <label className="field-label">Body type</label><select className="input-slot" value={bodyType} onChange={e => setBodyType(e.target.value)}><option value="">Any vehicle</option><option>Sedan</option><option>SUV / Crossover</option><option>Pickup truck</option><option>Coupe</option><option>Hatchback</option><option>Wagon</option><option>Minivan</option><option>Cargo van</option><option>Convertible</option><option>Motorcycle</option><option>Commercial truck</option><option>Other / Unknown</option></select>
       </div>
-      <div><label className="field-label">Scan depth</label><select className="input-slot" value={processingMode} onChange={e => setProcessingMode(e.target.value as typeof processingMode)}><option value="fast">Fast · 1 scan/second</option><option value="balanced">Balanced · 2 scans/second</option><option value="thorough">Thorough · 4 scans/second</option></select></div>
-      <p className="form-hint">Vehicle category and colour are AI observations when visibility permits. Make, model and year remain requested profile details until visually confirmed.</p>
+      <div><label className="field-label">Scan depth</label><div className="scan-options">{(['fast', 'balanced', 'thorough'] as const).map(mode => <button key={mode} type="button" aria-pressed={processingMode === mode} onClick={() => setProcessingMode(mode)}><strong>{mode}</strong><span>{mode === 'fast' ? 'Quick pass' : mode === 'balanced' ? 'Recommended' : 'Max coverage'}</span></button>)}</div></div>
+      <p className="form-hint">AI observations are leads, not conclusions. Confirm every result against the original footage.</p>
       {error && <p role="alert" className="error-message">{error}</p>}
-      <button type="submit" className="btn-industrial btn-primary" disabled={isProcessing}><Search size={18} />{isProcessing ? 'Investigation in progress' : 'Search recording'}</button>
+      <button type="submit" className="button button-primary start-search" disabled={isProcessing}><Search size={18} />{isProcessing ? 'Investigation in progress' : 'Start vehicle search'}</button>
     </fieldset></form>
   </section>;
 };

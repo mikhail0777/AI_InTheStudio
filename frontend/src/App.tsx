@@ -144,18 +144,23 @@ export const App: React.FC = () => {
     : session?.status === 'error' ? 'Processing stopped. Review the error and start a new investigation.'
     : session?.status === 'cancelled' ? 'Investigation cancelled. Existing evidence was retained.'
     : 'Add a security recording and the vehicle information you know.';
+  const reviewCount = results.filter(result => result.classification === 'possible_match').length;
 
   return <div className="app-shell">
     <Header status={session} onNewMission={handleNewMission} onOpenReport={() => setShowReportModal(true)} isProcessing={isProcessing} isUploading={isUploading} controlPending={controlPending} onControl={handleControl} onDeleteCase={handleDeleteCase} />
-    <div className="privacy-strip">Local processing · no facial recognition · operator review required before action</div>
+    <div className="trust-bar"><span>Processed locally</span><span>No facial recognition</span><span>Human review required</span></div>
     {(error || connectionError || session?.error_message) && <div className="app-notice error-message" role="alert">{error || connectionError || session?.error_message}</div>}
     {isUploading && <div className="app-notice" role="status">{uploadStage}…</div>}
-    <main className="layout-grid">
-      <div className="layout-column"><TargetForm onStartSession={handleStartSession} isProcessing={isProcessing} /><VehicleHistoryPanel sightings={history} plate={activeConfig.current?.plate_number} onSearch={handleHistorySearch} /></div>
-      <div className="layout-column">
+    <main className="workspace-layout">
+      <aside className="case-sidebar"><TargetForm onStartSession={handleStartSession} isProcessing={isProcessing} /><VehicleHistoryPanel sightings={history} plate={activeConfig.current?.plate_number} onSearch={handleHistorySearch} /></aside>
+      <div className="evidence-workspace">
+        <section className="workspace-heading">
+          <div><span className="eyebrow">Investigation workspace</span><h2>Review vehicle evidence</h2><p>{session ? 'Inspect detections against the original recording before confirming a sighting.' : 'Upload footage and describe the vehicle you need to find.'}</p></div>
+          <div className="workspace-stats" aria-label="Evidence summary"><div><strong>{results.length}</strong><span>Sightings</span></div><div><strong>{supportedCount}</strong><span>Supported</span></div><div><strong>{reviewCount}</strong><span>Review</span></div></div>
+        </section>
         <VideoPlayer videoUrl={videoUrl} status={session} selectedResult={selectedResult} jumpTimestamp={jumpTimestamp?.seconds} jumpKey={jumpTimestamp?.key} />
-        <section className="card-module sightings-panel">
-          <div className="row-between sightings-heading"><div><div className="section-kicker">Evidence timeline</div><h2>Vehicle sightings</h2><p className="muted">{supportedCount} supported · {results.length - supportedCount} review-only · {results.length} total</p></div>
+        <section className="surface sightings-panel">
+          <div className="row-between sightings-heading"><div><span className="eyebrow">Evidence timeline</span><h2>Vehicle sightings</h2><p className="muted">{supportedCount} supported · {reviewCount} needs review · {results.length} total</p></div>
             <div className="result-filters" aria-label="Result filters">
               <label className="filter-label">Evidence<select className="input-slot" value={classificationFilter} onChange={event => setClassificationFilter(event.target.value)}><option value="matches">Supported + possible</option><option value="strong_match">Supported sighting</option><option value="possible_match">Review-only</option><option value="all">All</option></select></label>
               <label className="filter-label">From (s)<input className="input-slot" type="number" min="0" value={startTime} onChange={event => setStartTime(event.target.value)} /></label>
@@ -165,8 +170,8 @@ export const App: React.FC = () => {
           <div className="sightings-grid">{matchingResults.length ? matchingResults.map(result => <ResultCard key={result.result_id} result={result} onJumpToTime={jumpTo} onSelectResult={setSelectedResult} onFeedback={handleResultFeedback} />)
             : <div className="empty-state"><strong>{isProcessing ? 'Scanning recording' : 'No vehicle sightings'}</strong><p>{emptyDetail}</p></div>}</div>
         </section>
+        <AgentActivityFeed logs={session?.agent_logs || []} currentStage={uploadStage || session?.current_stage || ''} />
       </div>
-      <div className="activity-column"><AgentActivityFeed logs={session?.agent_logs || []} currentStage={uploadStage || session?.current_stage || 'idle'} /></div>
     </main>
     {showReportModal && <SARReportModal status={session} results={results} onClose={() => setShowReportModal(false)} />}
   </div>;

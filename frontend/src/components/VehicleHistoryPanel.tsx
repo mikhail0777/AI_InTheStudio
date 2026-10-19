@@ -20,8 +20,8 @@ export const VehicleHistoryPanel: React.FC<Props> = ({ sightings, plate, onSearc
     try { await onSearch({ plate: plateFilter, make, model, year: year ? Number(year) : undefined, color, body_type: bodyType, after_hours_only: afterHoursOnly }); }
     finally { setPending(false); }
   };
-  return <section className="card-module history-panel">
-    <div className="row-between"><div><div className="section-kicker"><History size={16} /> Cross-recording search</div><h2>Vehicle history</h2></div><span className="history-count">{sightings.length}</span></div>
+  return <section className="surface history-panel">
+    <div className="row-between"><div><span className="eyebrow"><History size={14} /> Across recordings</span><h2>Vehicle history</h2></div><span className="history-count">{sightings.length}</span></div>
     <form className="history-search" onSubmit={submit}>
       <input className="input-slot plate-input" value={plateFilter} onChange={e => setPlateFilter(e.target.value.toUpperCase())} placeholder="Full or partial plate" />
       <div className="form-row"><input className="input-slot" value={make} onChange={e => setMake(e.target.value)} placeholder="Make" /><input className="input-slot" value={model} onChange={e => setModel(e.target.value)} placeholder="Model" /></div>

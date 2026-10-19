@@ -37,7 +37,7 @@ export const ResultCard: React.FC<Props> = ({ result, onJumpToTime, onSelectResu
         : labels[result.classification]
   );
 
-  return <article className="card-module track-card result-card">
+  return <article className="result-card">
     <div className="row-between">
       <span className="status-label">Sighting · {requestedPlate ? String(requestedPlate) : 'vehicle profile'}</span>
       <span className={`candidate-badge ${result.classification}`}>{resultLabel}</span>
@@ -65,7 +65,7 @@ export const ResultCard: React.FC<Props> = ({ result, onJumpToTime, onSelectResu
       <div className="evidence-lightbox-content" onClick={event => event.stopPropagation()}>
         <button className="lightbox-close" onClick={() => setShowImage(false)} aria-label="Close full-size evidence"><X size={22} /></button>
         <img src={result.best_frame_path} alt="Full-size annotated vehicle evidence" />
-        <button className="btn-industrial btn-primary" onClick={() => { setShowImage(false); playOriginal(); }}><PlayCircle size={17} />Play original at {formatTime(result.best_timestamp_seconds)}</button>
+        <button className="button button-primary" onClick={() => { setShowImage(false); playOriginal(); }}><PlayCircle size={17} />Play original at {formatTime(result.best_timestamp_seconds)}</button>
       </div>
     </div>}
   </article>;
