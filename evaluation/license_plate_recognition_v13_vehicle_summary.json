@@ -1,0 +1,38 @@
+{
+  "images_considered": 1020,
+  "images_with_any_vehicle_detection": 222,
+  "total_vehicle_detections": 579,
+  "images_with_plate_reading": 978,
+  "plate_readings_associated_with_vehicle": 160,
+  "association_rate_for_plate_readings": 0.1636,
+  "associated_categories": {
+    "car": 110,
+    "truck": 24,
+    "bus": 5,
+    "motorcycle": 21
+  },
+  "associated_dominant_colors": {
+    "grey": 45,
+    "black": 77,
+    "blue": 15,
+    "brown": 2,
+    "white": 8,
+    "green": 1,
+    "red": 9,
+    "yellow": 1
+  },
+  "mean_associated_vehicle_confidence": 0.502,
+  "elapsed_seconds": 204.388,
+  "images_per_second": 4.991,
+  "model": {
+    "provider": "ultralytics",
+    "model_name": "yolo11s-seg.pt",
+    "model_version": "1caa81c0195412efa411b632bcfb8c184939dddb6ae41f6a80c41b211ff257c3",
+    "device": "cpu",
+    "metadata": {
+      "task": "instance-segmentation",
+      "classes": "COCO"
+    }
+  },
+  "limitation": "This plate-focused dataset does not label vehicles; association is measured as production-path coverage, not vehicle-detection accuracy."
+}

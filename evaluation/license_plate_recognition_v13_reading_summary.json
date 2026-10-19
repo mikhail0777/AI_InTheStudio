@@ -1,0 +1,41 @@
+{
+  "images_directory": "C:\\Users\\Mikhail\\Downloads\\License Plate Recognition.v13i.yolov8\\test\\images",
+  "images_considered": 1020,
+  "images_evaluated": 1020,
+  "invalid_images": 0,
+  "images_with_reading": 978,
+  "images_without_reading": 42,
+  "image_read_coverage": 0.9588,
+  "total_readings": 1118,
+  "best_reading_source": {
+    "original": 951,
+    "horizontal_flip": 27
+  },
+  "best_confidence": {
+    "mean": 0.9701,
+    "median": 0.9998,
+    "p10": 0.9168,
+    "p90": 0.9999,
+    "at_least_0.72": 945,
+    "0.50_to_0.72": 29,
+    "below_0.50": 4
+  },
+  "elapsed_seconds": 22.552,
+  "images_per_second": 45.228,
+  "model": {
+    "provider": "fast-alpr",
+    "model_name": "yolo-v9-t-384-license-plate-end2end+cct-xs-v2-global-model",
+    "model_version": "0.4.0",
+    "device": "cpu",
+    "metadata": {
+      "task": "automatic-license-plate-recognition"
+    }
+  },
+  "limitation": "The dataset has plate bounding boxes but no character transcriptions; read coverage and confidence are not OCR text accuracy.",
+  "best_reading_localization": {
+    "images_with_ground_truth": 1019,
+    "matched_at_iou_0.50": 965,
+    "unmatched_or_no_read": 54,
+    "mirrored_best_matched_at_iou_0.50": 27
+  }
+}
