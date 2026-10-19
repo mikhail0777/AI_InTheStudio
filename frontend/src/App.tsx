@@ -13,6 +13,7 @@ const activeStatuses = ['queued', 'analyzing', 'paused'];
 const messageOf = (error: unknown) => error instanceof Error ? error.message : 'Unexpected error. Please try again.';
 
 export const App: React.FC = () => {
+  const [view, setView] = useState<'search' | 'history'>('search');
   const [session, setSession] = useState<SessionStatus | null>(null);
   const [monitoredSessionId, setMonitoredSessionId] = useState<string | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -64,6 +65,7 @@ export const App: React.FC = () => {
 
   const handleStartSession = async (config: TargetConfiguration, videoFile: File) => {
     if (isProcessing) return;
+    setView('search');
     generation.current += 1;
     setIsUploading(true); setError(''); setConnectionError(''); setMonitoredSessionId(null);
     setResults([]); setSelectedResult(null); setVideoUrl(null); setJumpTimestamp(null);
@@ -116,6 +118,7 @@ export const App: React.FC = () => {
 
   const handleNewMission = () => {
     if (isProcessing) return;
+    setView('search');
     generation.current += 1;
     setMonitoredSessionId(null); setSession(null); setResults([]); setSelectedResult(null);
     setVideoUrl(null); setJumpTimestamp(null); setError(''); setConnectionError(''); setShowReportModal(false);
@@ -148,12 +151,14 @@ export const App: React.FC = () => {
 
   return <div className="app-shell">
     <Header status={session} onNewMission={handleNewMission} onOpenReport={() => setShowReportModal(true)} isProcessing={isProcessing} isUploading={isUploading} controlPending={controlPending} onControl={handleControl} onDeleteCase={handleDeleteCase} />
-    <div className="trust-bar"><span>Processed locally</span><span>No facial recognition</span><span>Human review required</span></div>
+    <nav className="workspace-nav" aria-label="Workspace"><div><button aria-current={view === 'search' ? 'page' : undefined} onClick={() => setView('search')}>Investigation</button><button aria-current={view === 'history' ? 'page' : undefined} onClick={() => setView('history')}>Vehicle history</button></div><span><i /> Local workspace</span></nav>
     {(error || connectionError || session?.error_message) && <div className="app-notice error-message" role="alert">{error || connectionError || session?.error_message}</div>}
     {isUploading && <div className="app-notice" role="status">{uploadStage}…</div>}
-    <main className="workspace-layout">
-      <aside className="case-sidebar"><TargetForm onStartSession={handleStartSession} isProcessing={isProcessing} /><VehicleHistoryPanel sightings={history} plate={activeConfig.current?.plate_number} onSearch={handleHistorySearch} /></aside>
-      <div className="evidence-workspace">
+    {view === 'history' && <main className="history-workspace"><div className="page-intro"><span className="eyebrow">Your evidence library</span><h2>Every sighting.<br />One place to look.</h2><p>Search vehicle observations across your processed recordings.</p></div><VehicleHistoryPanel sightings={history} plate={activeConfig.current?.plate_number} onSearch={handleHistorySearch} /></main>}
+    <main className={`workspace-layout ${session ? 'has-investigation' : 'start-workspace'} ${view === 'history' ? 'view-hidden' : ''}`}>
+      {!session && <section className="start-intro"><span className="intro-label"><span /> FROM FOOTAGE TO ANSWERS</span><h2>Find the moment.<br /><span>Follow the vehicle.</span></h2><p>A plate. A colour. A detail you remember.<br />Turn your security footage into evidence you can review.</p><div className="intro-process"><div><b>01</b><span>Add a recording</span></div><div><b>02</b><span>Describe the vehicle</span></div><div><b>03</b><span>Review the sightings</span></div></div><div className="local-note">Your footage stays on this computer.</div></section>}
+      <aside className="case-sidebar"><TargetForm onStartSession={handleStartSession} isProcessing={isProcessing} /></aside>
+      <div className={`evidence-workspace ${!session ? 'view-hidden' : ''}`}>
         <section className="workspace-heading">
           <div><span className="eyebrow">Investigation workspace</span><h2>Review vehicle evidence</h2><p>{session ? 'Inspect detections against the original recording before confirming a sighting.' : 'Upload footage and describe the vehicle you need to find.'}</p></div>
           <div className="workspace-stats" aria-label="Evidence summary"><div><strong>{results.length}</strong><span>Sightings</span></div><div><strong>{supportedCount}</strong><span>Supported</span></div><div><strong>{reviewCount}</strong><span>Review</span></div></div>
