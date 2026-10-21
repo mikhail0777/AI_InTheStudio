@@ -21,9 +21,16 @@ backend/models/easyocr/
 *.db
 node_modules/
 frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
 frontend/node_modules/
 .npm
 *.log
+.runtime/
+/Ultralytics/
+evaluation/datasets/
+evaluation/downloads/
+evaluation/*_predictions.jsonl
 .vscode/
 .idea/
 .DS_Store
