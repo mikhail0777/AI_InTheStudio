@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 
 from app.services.plate_consensus import build_plate_consensus, rank_plate_candidates
-from app.services.plate_evidence import enhance_plate_crop, quality_metrics, save_plate_derivatives
+from app.services.plate_evidence import enhance_plate_crop, quality_metrics, rectify_plate_crop, save_plate_derivatives
 
 
 class PlateConsensusTests(unittest.TestCase):
@@ -61,6 +61,14 @@ class PlateConsensusTests(unittest.TestCase):
 
 
 class PlateEvidenceTests(unittest.TestCase):
+    def test_guarded_perspective_correction_rectifies_plate_quadrilateral(self):
+        crop = np.zeros((90, 240, 3), np.uint8)
+        polygon = np.array([[25, 24], [215, 12], [205, 68], [35, 78]], np.int32)
+        cv2.polylines(crop, [polygon], True, (255, 255, 255), 3)
+        rectified, applied = rectify_plate_crop(crop)
+        self.assertTrue(applied)
+        self.assertGreater(rectified.shape[1], rectified.shape[0] * 2)
+
     def test_enhancement_is_a_separate_image_and_derivatives_are_lossless(self):
         frame = np.full((100, 240, 3), 110, np.uint8)
         cv2.putText(frame, "ABC123", (45, 60), cv2.FONT_HERSHEY_SIMPLEX, 1, (240, 240, 240), 2)

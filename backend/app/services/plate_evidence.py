@@ -40,12 +40,47 @@ def quality_metrics(crop: np.ndarray) -> dict[str, float | int]:
     }
 
 
+def rectify_plate_crop(crop: np.ndarray) -> tuple[np.ndarray, bool]:
+    """Apply a guarded four-corner perspective correction when one is visible."""
+    if crop is None or crop.size == 0:
+        raise ValueError("A non-empty plate crop is required.")
+    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY) if crop.ndim == 3 else crop
+    edges = cv2.Canny(cv2.GaussianBlur(gray, (5, 5), 0), 60, 180)
+    minimum_area = crop.shape[0] * crop.shape[1] * .25
+    candidates = []
+    for contour in cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)[0]:
+        perimeter = cv2.arcLength(contour, True)
+        polygon = cv2.approxPolyDP(contour, .025 * perimeter, True)
+        if len(polygon) != 4 or not cv2.isContourConvex(polygon):
+            continue
+        area = abs(cv2.contourArea(polygon))
+        if area >= minimum_area:
+            candidates.append((area, polygon.reshape(4, 2).astype(np.float32)))
+    if not candidates:
+        return crop.copy(), False
+    points = max(candidates, key=lambda item: item[0])[1]
+    sums, differences = points.sum(axis=1), np.diff(points, axis=1).ravel()
+    ordered = np.array([
+        points[np.argmin(sums)], points[np.argmin(differences)],
+        points[np.argmax(sums)], points[np.argmax(differences)],
+    ], dtype=np.float32)
+    top_left, top_right, bottom_right, bottom_left = ordered
+    width = int(round(max(np.linalg.norm(bottom_right - bottom_left), np.linalg.norm(top_right - top_left))))
+    height = int(round(max(np.linalg.norm(top_right - bottom_right), np.linalg.norm(top_left - bottom_left))))
+    if width < 40 or height < 12 or not 1.5 <= width / max(1, height) <= 8:
+        return crop.copy(), False
+    destination = np.array([[0, 0], [width - 1, 0], [width - 1, height - 1], [0, height - 1]], np.float32)
+    matrix = cv2.getPerspectiveTransform(ordered, destination)
+    return cv2.warpPerspective(crop, matrix, (width, height), flags=cv2.INTER_CUBIC), True
+
+
 def enhance_plate_crop(crop: np.ndarray) -> np.ndarray:
     """Create a separate OCR derivative; never mutate the supplied crop."""
     if crop is None or crop.size == 0:
         raise ValueError("A non-empty plate crop is required.")
-    scale = max(1.0, 240.0 / max(1, crop.shape[1]))
-    enlarged = cv2.resize(crop, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    rectified, _ = rectify_plate_crop(crop)
+    scale = max(1.0, 240.0 / max(1, rectified.shape[1]))
+    enlarged = cv2.resize(rectified, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
     lab = cv2.cvtColor(enlarged, cv2.COLOR_BGR2LAB)
     light, a, b = cv2.split(lab)
     normalized = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(light)
@@ -58,6 +93,7 @@ def save_plate_derivatives(frame: np.ndarray, bbox, directory: Path, stem: str) 
     """Persist lossless raw and enhanced crops with auditable quality metadata."""
     directory.mkdir(parents=True, exist_ok=True)
     raw = crop_plate(frame, bbox)
+    _, was_rectified = rectify_plate_crop(raw)
     enhanced = enhance_plate_crop(raw)
     raw_path = directory / f"{stem}_raw.png"
     enhanced_path = directory / f"{stem}_enhanced.png"
@@ -68,5 +104,6 @@ def save_plate_derivatives(frame: np.ndarray, bbox, directory: Path, stem: str) 
         raise OSError("Could not save the enhanced plate derivative.")
     return {
         "raw_path": str(raw_path), "enhanced_path": str(enhanced_path),
-        "metrics": quality_metrics(raw), "enhanced_image": enhanced,
+        "metrics": {**quality_metrics(raw), "perspective_rectified": was_rectified},
+        "enhanced_image": enhanced,
     }
