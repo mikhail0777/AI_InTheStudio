@@ -76,6 +76,7 @@ def create_user(actor,email,display_name,role,password):
 
 def permitted(role,method,path):
     if method in ("GET","HEAD","OPTIONS"):return role in ROLE_LEVEL
+    if path=="/api/vehicle-events/from-track":return role in ("manager","administrator")
     if path.endswith("/review") or "/feedback" in path:return role in ("reviewer","manager","administrator")
     if path.startswith("/api/vehicles") or path.startswith("/api/cameras") or path.startswith("/api/retention"):return role in ("manager","administrator")
     if method=="DELETE":return role=="administrator"

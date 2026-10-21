@@ -447,6 +447,52 @@ def init_db():
     for column,default in (("inspections_days",1095),("incidents_days",2555)):
         if column not in retention_columns:cursor.execute(f"ALTER TABLE retention_policies ADD COLUMN {column} INTEGER NOT NULL DEFAULT {default}")
 
+    # Milestone A: configured gate crossings and immutable inventory events.
+    cursor.execute("""CREATE TABLE IF NOT EXISTS camera_boundaries (
+        boundary_id TEXT PRIMARY KEY, camera_id TEXT NOT NULL, name TEXT NOT NULL,
+        boundary_type TEXT NOT NULL CHECK(boundary_type IN ('entrance','exit')),
+        x1 REAL NOT NULL, y1 REAL NOT NULL, x2 REAL NOT NULL, y2 REAL NOT NULL,
+        travel_direction TEXT NOT NULL CHECK(travel_direction IN ('negative_to_positive','positive_to_negative')),
+        min_vehicle_width REAL NOT NULL DEFAULT 0.08, min_vehicle_height REAL NOT NULL DEFAULT 0.08,
+        min_visible_fraction REAL NOT NULL DEFAULT 0.65, active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(camera_id,name), FOREIGN KEY(camera_id) REFERENCES cameras(camera_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS vehicle_events (
+        event_id TEXT PRIMARY KEY, dealership_id TEXT NOT NULL, camera_id TEXT NOT NULL,
+        boundary_id TEXT NOT NULL, session_id TEXT, track_id TEXT NOT NULL,
+        event_type TEXT NOT NULL CHECK(event_type IN ('arrival','departure')),
+        occurred_at TEXT NOT NULL, timezone TEXT NOT NULL, direction_of_travel TEXT NOT NULL,
+        consensus_plate TEXT, plate_match_state TEXT NOT NULL,
+        matched_vehicle_id TEXT, review_state TEXT NOT NULL CHECK(review_state IN ('confirmed','requires_review')),
+        review_reason TEXT, recording_reference TEXT, best_vehicle_crop TEXT, best_plate_crop TEXT,
+        ocr_candidates_json JSON NOT NULL DEFAULT '[]', evidence_json JSON NOT NULL DEFAULT '{}',
+        model_manifest_json JSON NOT NULL DEFAULT '{}', idempotency_key TEXT NOT NULL UNIQUE,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(dealership_id) REFERENCES dealerships(dealership_id),
+        FOREIGN KEY(camera_id) REFERENCES cameras(camera_id),
+        FOREIGN KEY(boundary_id) REFERENCES camera_boundaries(boundary_id),
+        FOREIGN KEY(session_id) REFERENCES sessions(session_id),
+        FOREIGN KEY(matched_vehicle_id) REFERENCES vehicles(vehicle_id))""")
+    cursor.execute("CREATE INDEX IF NOT EXISTS vehicle_events_by_dealership ON vehicle_events(dealership_id,occurred_at DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS vehicle_events_by_vehicle ON vehicle_events(matched_vehicle_id,occurred_at DESC)")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS vehicle_event_observations (
+        event_id TEXT NOT NULL, observation_index INTEGER NOT NULL,
+        timestamp_seconds REAL NOT NULL, center_x REAL NOT NULL, center_y REAL NOT NULL,
+        width REAL NOT NULL, height REAL NOT NULL, visible_fraction REAL NOT NULL,
+        frame_reference TEXT, vehicle_crop_reference TEXT, plate_crop_reference TEXT,
+        PRIMARY KEY(event_id,observation_index), FOREIGN KEY(event_id) REFERENCES vehicle_events(event_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS vehicle_status_transitions (
+        transition_id TEXT PRIMARY KEY, vehicle_id TEXT NOT NULL, event_id TEXT NOT NULL UNIQUE,
+        previous_status TEXT NOT NULL, new_status TEXT NOT NULL CHECK(new_status IN ('on_lot','off_lot')),
+        occurred_at TEXT NOT NULL, evidence_json JSON NOT NULL DEFAULT '{}', created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(vehicle_id) REFERENCES vehicles(vehicle_id), FOREIGN KEY(event_id) REFERENCES vehicle_events(event_id))""")
+    cursor.execute("CREATE INDEX IF NOT EXISTS status_transitions_by_vehicle ON vehicle_status_transitions(vehicle_id,occurred_at DESC)")
+    for table in ("vehicle_events","vehicle_event_observations","vehicle_status_transitions"):
+        cursor.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_update
+            BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT, '{table} is immutable'); END""")
+        cursor.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_delete
+            BEFORE DELETE ON {table} BEGIN SELECT RAISE(ABORT, '{table} is immutable'); END""")
+
     conn.commit()
     conn.close()
 

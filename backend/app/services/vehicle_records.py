@@ -87,11 +87,15 @@ def timeline(user,vehicle_id):
         events=conn.execute("SELECT * FROM audit_events WHERE dealership_id=? AND ((entity_type='vehicle' AND entity_id=?) OR json_extract(source_identifiers,'$.vehicle_id')=?) ORDER BY created_at DESC",(user["dealership_id"],vehicle_id,vehicle_id)).fetchall()
         inspections=conn.execute("SELECT * FROM inspections WHERE vehicle_id=? ORDER BY captured_at DESC",(vehicle_id,)).fetchall()
         incidents=conn.execute("SELECT * FROM incidents WHERE vehicle_id=? ORDER BY created_at DESC",(vehicle_id,)).fetchall()
+        vehicle_events=conn.execute("SELECT * FROM vehicle_events WHERE matched_vehicle_id=? ORDER BY occurred_at DESC",(vehicle_id,)).fetchall()
+        transitions=conn.execute("SELECT * FROM vehicle_status_transitions WHERE vehicle_id=? ORDER BY occurred_at DESC",(vehicle_id,)).fetchall()
     items=[{"type":"sighting","at":row["captured_at"] or row["created_at"],"data":dict(row)} for row in sightings]
     items += [{"type":"plate_alias","at":row["created_at"],"data":dict(row)} for row in aliases]
     items += [{"type":"audit","at":row["created_at"],"data":dict(row)} for row in events]
     items += [{"type":"inspection","at":row["captured_at"],"data":dict(row)} for row in inspections]
     items += [{"type":"incident","at":row["created_at"],"data":dict(row)} for row in incidents]
+    items += [{"type":"vehicle_event","at":row["occurred_at"],"data":dict(row)} for row in vehicle_events]
+    items += [{"type":"status_transition","at":row["occurred_at"],"data":dict(row)} for row in transitions]
     return sorted(items,key=lambda item:item["at"] or "",reverse=True)
 
 def list_cameras(user):

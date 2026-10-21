@@ -19,7 +19,7 @@ from app.services.agentic_loop import AgenticLoopManager, DATA_DIR, load_tracks
 from app.services.analysis_worker import queue_analysis, queue_proxy, control_analysis
 from app.services.generic_search import OpenVocabularySearchManager, load_search_results
 from app.services.vehicle_sightings import list_sightings
-from app.services import governance, vehicle_records
+from app.services import governance, vehicle_records, vehicle_events
 from app.services import condition_incidents
 
 router = APIRouter(prefix="/api")
@@ -45,6 +45,21 @@ class ReasonInput(BaseModel):
     reason: str
 class CameraInput(BaseModel):
     name: str; role: str="unknown"; location: str|None=None; timezone: str="UTC"
+class BoundaryInput(BaseModel):
+    name: str = Field(min_length=1,max_length=120)
+    boundary_type: str; x1: float; y1: float; x2: float; y2: float; travel_direction: str
+    min_vehicle_width: float=.08; min_vehicle_height: float=.08; min_visible_fraction: float=.65
+class TrackObservationInput(BaseModel):
+    timestamp_seconds: float = Field(ge=0); center_x: float; center_y: float; width: float; height: float
+    visible_fraction: float=1; frame_reference: str|None=None
+    vehicle_crop_reference: str|None=None; plate_crop_reference: str|None=None
+class CrossingEventInput(BaseModel):
+    boundary_id: str; track_id: str; recorded_start_at: str; session_id: str|None=None
+    recording_reference: str|None=None; consensus_plate: str|None=None
+    plate_match_state: str="uncertain"; observations: list[TrackObservationInput]
+    best_vehicle_crop: str|None=None; best_plate_crop: str|None=None
+    ocr_candidates: list[dict]=Field(default_factory=list)
+    evidence: dict=Field(default_factory=dict); model_manifest: dict=Field(default_factory=dict)
 class RetentionInput(BaseModel):
     source_video_days: int; derived_media_days: int; sightings_days: int; audit_days: int; inspections_days:int=1095; incidents_days:int=2555
 class UserInput(BaseModel):
@@ -452,6 +467,31 @@ def cameras(request:Request):return vehicle_records.list_cameras(_user(request))
 
 @router.post("/cameras")
 def create_camera(values:CameraInput,request:Request):return vehicle_records.create_camera(_user(request),values.model_dump())
+
+@router.get("/camera-boundaries")
+def camera_boundaries(request:Request,camera_id:str|None=None):
+    return vehicle_events.list_boundaries(_user(request),camera_id)
+
+@router.post("/cameras/{camera_id}/boundaries")
+def create_camera_boundary(camera_id:str,values:BoundaryInput,request:Request):
+    try:return vehicle_events.create_boundary(_user(request),camera_id,values.model_dump())
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+    except ValueError as error:raise HTTPException(400,str(error)) from error
+
+@router.get("/vehicle-events")
+def vehicle_event_ledger(request:Request,review_state:str|None=None,vehicle_id:str|None=None,limit:int=200):
+    return vehicle_events.list_events(_user(request),review_state,vehicle_id,limit)
+
+@router.get("/vehicle-events/{event_id}")
+def vehicle_event(event_id:str,request:Request):
+    try:return vehicle_events.get_event(_user(request),event_id)
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+
+@router.post("/vehicle-events/from-track")
+def create_vehicle_event(values:CrossingEventInput,request:Request):
+    try:return vehicle_events.create_crossing_event(_user(request),values.model_dump())
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+    except ValueError as error:raise HTTPException(400,str(error)) from error
 
 @router.get("/retention")
 def retention(request:Request):return vehicle_records.get_retention(_user(request))
