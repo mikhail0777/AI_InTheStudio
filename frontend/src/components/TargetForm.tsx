@@ -5,14 +5,12 @@ import { TargetConfiguration } from '../types';
 interface Props { onStartSession: (config: TargetConfiguration, videoFile: File) => void; isProcessing: boolean; onPreviewFile?: (file: File | null) => void; }
 const normalizePlate = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '');
 const colors = ['Black', 'White', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Yellow', 'Orange', 'Brown', 'Beige / Tan', 'Gold', 'Bronze', 'Purple', 'Pink', 'Burgundy / Maroon', 'Teal / Turquoise', 'Two-tone', 'Other / Unknown'];
-const makes = ['Acura', 'Audi', 'BMW', 'Buick', 'Cadillac', 'Chevrolet', 'Chrysler', 'Dodge', 'Ford', 'Genesis', 'GMC', 'Honda', 'Hyundai', 'Infiniti', 'Jeep', 'Kia', 'Land Rover', 'Lexus', 'Lincoln', 'Mazda', 'Mercedes-Benz', 'Mitsubishi', 'Nissan', 'Porsche', 'Ram', 'Subaru', 'Tesla', 'Toyota', 'Volkswagen', 'Volvo'];
 
 export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing, onPreviewFile }) => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [plate, setPlate] = useState('');
   const [plateMode, setPlateMode] = useState<'exact' | 'partial'>('exact');
   const [color, setColor] = useState(''); const [bodyType, setBodyType] = useState('');
-  const [make, setMake] = useState(''); const [model, setModel] = useState(''); const [year, setYear] = useState('');
   const [cameraName, setCameraName] = useState('');
   const [cameraRole, setCameraRole] = useState<NonNullable<TargetConfiguration['camera_role']>>('unknown');
   const [recordedStart, setRecordedStart] = useState('');
@@ -27,14 +25,13 @@ export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing, onPr
     if (!videoFile) return setError('Select an MP4, MOV, or MKV security recording.');
     if (videoFile.size > 4 * 1024 ** 3) return setError('The recording must be smaller than 4 GB.');
     if (normalizedPlate && (normalizedPlate.length < 3 || normalizedPlate.length > 10)) return setError('Enter 3–10 letters or numbers for a full or partial licence plate.');
-    if (!normalizedPlate && !color && !bodyType && !make && !model && !year) return setError('Enter a plate or at least one vehicle detail.');
+    if (!normalizedPlate && !color && !bodyType) return setError('Enter a plate, colour, or coarse vehicle category.');
     if (fromSeconds && toSeconds && Number(toSeconds) <= Number(fromSeconds)) return setError('The end of the search window must be after the start.');
-    const description = [color, year, make, model, bodyType || 'vehicle', normalizedPlate ? `with licence plate ${normalizedPlate}` : ''].filter(Boolean).join(' ');
+    const description = [color, bodyType || 'vehicle', normalizedPlate ? `with licence plate ${normalizedPlate}` : ''].filter(Boolean).join(' ');
     onStartSession({
       free_text_description: description, processing_mode: processingMode,
       required_attributes: [], optional_attributes: [], negative_attributes: [], min_alert_confidence: 0.65,
-      plate_number: normalizedPlate || undefined, plate_match_mode: plateMode, vehicle_make: make || undefined,
-      vehicle_model: model || undefined, vehicle_year: year ? Number(year) : undefined,
+      plate_number: normalizedPlate || undefined, plate_match_mode: plateMode,
       vehicle_color: color || undefined, vehicle_body_type: bodyType || undefined,
       camera_name: cameraName || undefined, camera_role: cameraRole,
       recorded_start_at: recordedStart || undefined, business_open_time: businessOpen,
@@ -60,10 +57,9 @@ export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing, onPr
         <div className="segmented-control"><button type="button" aria-pressed={plateMode === 'exact'} onClick={() => setPlateMode('exact')}>Full plate</button><button type="button" aria-pressed={plateMode === 'partial'} onClick={() => setPlateMode('partial')}>Partial plate</button></div>
         <div className="form-row"><div><label className="field-label">From second</label><input className="input-slot" type="number" min="0" step="0.1" value={fromSeconds} onChange={e => setFromSeconds(e.target.value)} placeholder="Start" /></div><div><label className="field-label">To second</label><input className="input-slot" type="number" min="0" step="0.1" value={toSeconds} onChange={e => setToSeconds(e.target.value)} placeholder="End" /></div></div>
       </div>
-      <details className="form-section vehicle-details"><summary><Camera size={15} /><strong>Search by vehicle details</strong><span>Colour, make, model</span><ChevronDown size={15} /></summary><div className="advanced-fields">
-        <div className="form-row"><div><label className="field-label">Make</label><input list="vehicle-makes" className="input-slot" value={make} onChange={e => setMake(e.target.value)} placeholder="Any make" /><datalist id="vehicle-makes">{makes.map(item => <option key={item} value={item} />)}</datalist></div><div><label className="field-label">Model</label><input className="input-slot" value={model} onChange={e => setModel(e.target.value)} placeholder="Model" /></div></div>
-        <div className="form-row"><div><label className="field-label">Year</label><input className="input-slot" type="number" min="1900" max="2100" value={year} onChange={e => setYear(e.target.value)} placeholder="Approx." /></div><div><label className="field-label">Colour</label><input list="vehicle-colors" className="input-slot" value={color} onChange={e => setColor(e.target.value)} placeholder="Any colour" /><datalist id="vehicle-colors">{colors.map(item => <option key={item} value={item} />)}</datalist></div></div>
-        <label className="field-label">Body type</label><select className="input-slot" value={bodyType} onChange={e => setBodyType(e.target.value)}><option value="">Any vehicle</option><option>Sedan</option><option>SUV / Crossover</option><option>Pickup truck</option><option>Coupe</option><option>Hatchback</option><option>Wagon</option><option>Minivan</option><option>Cargo van</option><option>Convertible</option><option>Motorcycle</option><option>Commercial truck</option><option>Other / Unknown</option></select>
+      <details className="form-section vehicle-details" open><summary><Camera size={15} /><strong>Vehicle details</strong><span>Search without a plate</span><ChevronDown size={15} /></summary><div className="advanced-fields">
+        <div className="form-row"><div><label className="field-label" htmlFor="vehicle-color">Colour</label><input id="vehicle-color" list="vehicle-colors" className="input-slot" value={color} onChange={e => setColor(e.target.value)} placeholder="Any colour" /><datalist id="vehicle-colors">{colors.map(item => <option key={item} value={item} />)}</datalist></div><div><label className="field-label" htmlFor="vehicle-category">Coarse category</label><select id="vehicle-category" className="input-slot" value={bodyType} onChange={e => setBodyType(e.target.value)}><option value="">Any vehicle</option><option value="car">Car</option><option value="truck">Truck</option><option value="bus">Bus</option><option value="motorcycle">Motorcycle</option></select></div></div>
+        <p className="form-hint"><strong>Make, model, and year are unavailable.</strong> The current model does not evaluate them.</p>
       </div></details>
       <div><label className="field-label">Scan depth</label><div className="scan-options">{(['fast', 'balanced', 'thorough'] as const).map(mode => <button key={mode} type="button" aria-pressed={processingMode === mode} onClick={() => setProcessingMode(mode)}><strong>{mode}</strong><span>{mode === 'fast' ? 'Quick pass' : mode === 'balanced' ? 'Recommended' : 'Max coverage'}</span></button>)}</div></div>
       <p className="form-hint">AI observations are leads, not conclusions. Confirm every result against the original footage.</p>

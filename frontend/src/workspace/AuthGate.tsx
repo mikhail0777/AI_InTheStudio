@@ -1,0 +1,11 @@
+import {FormEvent,useEffect,useState} from 'react';
+import {bootstrapAuth,getAuthStatus,loginAuth,type AuthUser} from '../api';
+
+export function AuthGate({children}:{children:(user:AuthUser)=>React.ReactNode}){
+ const [status,setStatus]=useState<'loading'|'setup'|'login'|'ready'>('loading'),[user,setUser]=useState<AuthUser|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ useEffect(()=>{getAuthStatus().then(value=>{setUser(value.user);setStatus(value.user?'ready':value.configured?'login':'setup');}).catch(()=>{setError('Could not reach the LotTrace backend.');setStatus('login');});},[]);
+ const submit=async(event:FormEvent<HTMLFormElement>)=>{event.preventDefault();setBusy(true);setError('');const form=new FormData(event.currentTarget);try{const result=status==='setup'?await bootstrapAuth({dealership_name:String(form.get('dealership_name')),display_name:String(form.get('display_name')),email:String(form.get('email')),password:String(form.get('password'))}):await loginAuth(String(form.get('email')),String(form.get('password')));setUser(result.user);setStatus('ready');}catch(failure){setError(failure instanceof Error?failure.message:'Sign in failed.');}finally{setBusy(false);}};
+ if(status==='loading')return <main className="auth-shell" role="status">Loading LotTrace…</main>;
+ if(status==='ready'&&user)return <>{children(user)}</>;
+ return <main className="auth-shell"><form className="panel auth-card" onSubmit={submit}><h1>{status==='setup'?'Set up LotTrace':'Sign in to LotTrace'}</h1><p>{status==='setup'?'Create the first dealership and administrator account.':'Use your dealership account to continue.'}</p>{status==='setup'&&<><label>Dealership name<input name="dealership_name" required autoComplete="organization"/></label><label>Your name<input name="display_name" required autoComplete="name"/></label></>}<label>Email<input name="email" type="email" required autoComplete="username"/></label><label>Password<input name="password" type="password" minLength={12} required autoComplete={status==='setup'?'new-password':'current-password'}/></label>{error&&<div className="notice notice-warning" role="alert">{error}</div>}<button className="button button-primary" disabled={busy}>{busy?'Please wait…':status==='setup'?'Create administrator':'Sign in'}</button></form></main>;
+}

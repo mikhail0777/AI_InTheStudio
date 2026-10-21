@@ -61,8 +61,14 @@ export interface VehicleSighting {
   requested_vehicle_color?: string | null;
   requested_vehicle_body_type?: string | null;
   evidence_frame?: string | null;
+  evidence_clip?: string | null;
+  source_video_url?: string | null;
   review_status?: string | null;
+  review_notes?: string | null;
+  corrected_plate?: string | null;
 }
+
+export type SightingReviewAction = 'confirm' | 'reject' | 'reopen' | 'correct' | 'note';
 
 export interface AnalysisStrategy {
   broad_scan_fps: number;
@@ -106,6 +112,9 @@ export interface SessionStatus {
   session_id: string;
   status: 'created' | 'uploaded' | 'queued' | 'analyzing' | 'paused' | 'cancelled' | 'completed' | 'error';
   error_message?: string | null;
+  playback_url?: string | null;
+  proxy_status?: 'queued' | 'processing' | 'ready' | 'error' | 'cancelled' | null;
+  proxy_error?: string | null;
   run_id?: string | null;
   frames_sampled?: number;
   frames_planned?: number;

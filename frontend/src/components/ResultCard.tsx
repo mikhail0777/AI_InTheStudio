@@ -25,6 +25,7 @@ export const ResultCard: React.FC<Props> = ({ result, onJumpToTime, onSelectResu
     return Array.isArray(readings) ? readings as Array<{ text?: string; confidence?: number }> : [];
   }));
   const requestedPlate = result.entities.map(entity => entity.attributes.requested_plate).find(Boolean);
+  const sourceCrops = Array.from(new Set(result.entities.flatMap(entity => entity.detections.map(detection => detection.crop_path).filter((path): path is string => !!path))));
   const observedPlates = Array.from(new Set(plateReadings.map(reading => reading.text).filter(Boolean)));
   const observedVehicle = result.entities.map(entity => ({
     color: entity.attributes.vehicle_color,
@@ -50,10 +51,11 @@ export const ResultCard: React.FC<Props> = ({ result, onJumpToTime, onSelectResu
       <button className="result-time-link" onClick={playOriginal}><Clock size={15} />{formatTime(result.start_seconds)}–{formatTime(result.end_seconds)} · play at {formatTime(result.best_timestamp_seconds)}</button>
       {!!observedPlates.length && <div className="plate-readout"><span>OCR read</span><strong>{observedPlates.join(' · ')}</strong></div>}
       {observedVehicle && <div className="vehicle-observation"><span>AI-observed vehicle</span><strong>{[observedVehicle.color, observedVehicle.category].filter(Boolean).join(' · ') || 'Vehicle detected'}</strong></div>}
-      <span className="muted">Evidence score {(result.overall_score * 100).toFixed(0)}% · {resultLabel}</span>
+      <span className="muted">{resultLabel}</span>
       <strong>{result.explanation}</strong>
       {result.evidence.map(item => <p key={item.criterion_id} className={`evidence-${item.assessment}`}>{item.explanation}</p>)}
       {result.clip_path && !clipError && <video className="result-clip" controls preload="metadata" src={result.clip_path} onError={() => setClipError(true)} />}
+      {!!sourceCrops.length && <div className="result-crops" aria-label="Stored model crops">{sourceCrops.slice(0,4).map(path=><img key={path} src={path} alt="Stored model crop for this sighting"/>)}</div>}
       {clipError && <div className="clip-fallback"><span>The saved clip could not be played in this browser.</span><button className="btn-industrial" onClick={playOriginal}><PlayCircle size={16} />Play original footage</button></div>}
     </div>
     <div className="track-actions">
