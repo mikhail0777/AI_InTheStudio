@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from scripts.audit_yolo_ocr_dataset import audit, filename_truth, ordered_sequence
+from scripts.audit_yolo_ocr_dataset import audit, filename_candidates, filename_truth, ordered_sequence
 
 
 def write_dataset(root: Path) -> None:
@@ -32,6 +32,7 @@ def test_orders_single_and_two_row_character_boxes():
 
 def test_filename_truth_is_conservative():
     assert filename_truth(Path("ABC123_jpg.rf.abcdef.jpg")) == "ABC123"
+    assert filename_candidates(Path("WRONG12_ABC1234_50_20_jpg.rf.abcdef.jpg")) == ["WRONG12", "ABC1234"]
     assert filename_truth(Path("ordinary_image_jpg.rf.abcdef.jpg")) is None
 
 

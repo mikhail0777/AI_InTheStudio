@@ -94,11 +94,19 @@ def ordered_sequence(characters: Iterable[dict]) -> str:
 
 def filename_truth(image_path: Path) -> str | None:
     """Return an apparent leading plate token without assuming it is correct."""
+    candidates = filename_candidates(image_path)
+    return candidates[0] if candidates else None
+
+
+def filename_candidates(image_path: Path) -> list[str]:
+    """Return plausible plate tokens that precede UUID/timestamp metadata."""
     source_stem = ROBOFLOW_SUFFIX.sub("", image_path.stem)
-    candidate = source_stem.split("_", 1)[0].upper()
-    if 4 <= len(candidate) <= 10 and candidate.isalnum() and any(char.isdigit() for char in candidate):
-        return candidate
-    return None
+    output = []
+    for token in source_stem.split("_")[:2]:
+        candidate = token.upper()
+        if 4 <= len(candidate) <= 10 and candidate.isalnum() and any(char.isalpha() for char in candidate) and any(char.isdigit() for char in candidate):
+            output.append(candidate)
+    return list(dict.fromkeys(output))
 
 
 def sha256(path: Path) -> str:
@@ -147,16 +155,18 @@ def audit(root: Path, compare_filename_truth: bool = False) -> dict:
             image_hash = sha256(image_path)
             hashes[image_hash].append((split, str(image_path.relative_to(root))))
             if compare_filename_truth:
-                expected = filename_truth(image_path)
-                if expected is not None:
+                candidates = filename_candidates(image_path)
+                if candidates:
                     filename_comparable += 1
-                    identities[expected].add(split)
-                    if sequence == expected:
+                    identity = sequence if sequence in candidates else candidates[0]
+                    identities[identity].add(split)
+                    if sequence in candidates:
                         filename_exact += 1
                     elif len(filename_mismatches) < 25:
                         filename_mismatches.append({
                             "file": str(image_path.relative_to(root)),
-                            "filename_truth": expected,
+                            "filename_truth": candidates[0],
+                            "filename_candidates": candidates,
                             "label_sequence": sequence,
                         })
 
