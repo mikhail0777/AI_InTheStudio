@@ -1,0 +1,40 @@
+{
+  "dataset": {
+    "name": "REPLACE_WITH_DATASET_NAME",
+    "version": "REPLACE_WITH_IMMUTABLE_VERSION",
+    "licence": "REPLACE_WITH_LICENCE_IDENTIFIER",
+    "source": "REPLACE_WITH_SOURCE_AND_CUSTODIAN",
+    "sha256": "REPLACE_WITH_DATASET_MANIFEST_SHA256",
+    "permitted_usage": "REPLACE_WITH_DOCUMENTED_COMMERCIAL_AND_EVALUATION_RIGHTS"
+  },
+  "split_policy": {
+    "split": "final_test",
+    "separated_by": ["site_id", "camera_id", "vehicle_id", "recording_date"]
+  },
+  "events": [
+    {
+      "event_id": "example-positive-event",
+      "split": "final_test",
+      "eligible": true,
+      "plate": "ABC123",
+      "duration_seconds": 8.5,
+      "conditions": ["day", "dry"],
+      "site_id": "site-held-out",
+      "camera_id": "camera-held-out",
+      "vehicle_id": "vehicle-held-out",
+      "recording_date": "2026-01-01"
+    },
+    {
+      "event_id": "example-negative-clip",
+      "split": "final_test",
+      "eligible": false,
+      "plate": null,
+      "duration_seconds": 60,
+      "conditions": ["negative_footage"],
+      "site_id": "site-held-out",
+      "camera_id": "camera-held-out",
+      "vehicle_id": null,
+      "recording_date": "2026-01-02"
+    }
+  ]
+}
