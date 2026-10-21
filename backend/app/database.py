@@ -292,6 +292,11 @@ def init_db():
         "requested_vehicle_color": "TEXT",
         "requested_vehicle_body_type": "TEXT",
         "corrected_plate": "TEXT",
+        "consensus_plate": "TEXT",
+        "consensus_state": "TEXT",
+        "consensus_details_json": "JSON",
+        "best_plate_crop": "TEXT",
+        "enhanced_plate_crop": "TEXT",
     }
     for column, sql_type in sighting_additions.items():
         if column not in sighting_columns:
@@ -311,6 +316,22 @@ def init_db():
         )
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS revisions_by_sighting ON sighting_revisions(sighting_id, created_at)")
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS plate_ocr_observations (
+        observation_id TEXT PRIMARY KEY, sighting_id TEXT NOT NULL,
+        frame_idx INTEGER NOT NULL, timestamp_seconds REAL NOT NULL,
+        source_frame_reference TEXT NOT NULL, detected_bbox_json JSON NOT NULL,
+        raw_plate_crop_reference TEXT, enhanced_plate_crop_reference TEXT,
+        quality_metrics_json JSON NOT NULL DEFAULT '{}',
+        ocr_candidates_json JSON NOT NULL DEFAULT '[]',
+        model_manifest_json JSON NOT NULL DEFAULT '{}',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(sighting_id) REFERENCES vehicle_sightings(sighting_id))""")
+    cursor.execute("CREATE INDEX IF NOT EXISTS plate_observations_by_sighting ON plate_ocr_observations(sighting_id,frame_idx)")
+    for action in ("UPDATE", "DELETE"):
+        cursor.execute(f"""CREATE TRIGGER IF NOT EXISTS plate_ocr_observations_immutable_{action.lower()}
+            BEFORE {action} ON plate_ocr_observations
+            BEGIN SELECT RAISE(ABORT, 'plate OCR observations are immutable'); END""")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS proxy_jobs (

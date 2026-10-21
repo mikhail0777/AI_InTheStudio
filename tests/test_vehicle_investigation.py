@@ -1,4 +1,5 @@
 import json
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -116,7 +117,21 @@ class VehicleInvestigationTests(unittest.TestCase):
                 self.assertIn("2 distinct", results[0].explanation)
                 with database.get_db_connection() as conn:
                     sighting = conn.execute("SELECT * FROM vehicle_sightings").fetchone()
+                    plate_observations = conn.execute(
+                        "SELECT * FROM plate_ocr_observations ORDER BY frame_idx"
+                    ).fetchall()
                 self.assertEqual(sighting["observed_plate"], "ABC123")
+                self.assertEqual(sighting["consensus_plate"], "ABC123")
+                self.assertEqual(sighting["consensus_state"], "exact_consensus")
+                self.assertEqual(len(plate_observations), 2)
+                self.assertTrue(plate_observations[0]["raw_plate_crop_reference"].endswith("_raw.png"))
+                self.assertTrue(plate_observations[0]["enhanced_plate_crop_reference"].endswith("_enhanced.png"))
+                with database.get_db_connection() as conn:
+                    with self.assertRaises(sqlite3.IntegrityError):
+                        conn.execute(
+                            "UPDATE plate_ocr_observations SET ocr_candidates_json='[]' "
+                            "WHERE observation_id=?", (plate_observations[0]["observation_id"],)
+                        )
                 self.assertEqual(sighting["event_type"], "entered_service")
                 self.assertEqual(sighting["camera_name"], "Service lane 1")
                 self.assertIsNone(sighting["vehicle_make"])

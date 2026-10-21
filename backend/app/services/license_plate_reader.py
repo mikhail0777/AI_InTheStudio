@@ -17,6 +17,9 @@ from app.models.open_vocabulary import ModelProvenance
 
 DETECTOR_MODEL = "yolo-v9-t-384-license-plate-end2end"
 OCR_MODEL = "cct-xs-v2-global-model"
+DETECTOR_SHA256 = "888397b96d761c89db40bc9c305838e8652660f5e282c2cadebbe8d2951a77a8"
+OCR_SHA256 = "8031afb5fdc6b4d80462c9d542f1284ebd2cfddf5dbacd62609848d7e2855f44"
+DETECTOR_CONFIDENCE_THRESHOLD = .4
 _MODEL_LOCK = threading.RLock()
 _MODEL_CACHE = None
 
@@ -91,7 +94,7 @@ class LicensePlateReader:
                 try:
                     from fast_alpr import ALPR
                     _MODEL_CACHE = ALPR(
-                        detector_model=DETECTOR_MODEL, detector_conf_thresh=.4,
+                        detector_model=DETECTOR_MODEL, detector_conf_thresh=DETECTOR_CONFIDENCE_THRESHOLD,
                         ocr_model=OCR_MODEL, ocr_device="cpu",
                     )
                 except Exception as error:
@@ -106,7 +109,12 @@ class LicensePlateReader:
         return ModelProvenance(
             provider="fast-alpr", model_name=f"{DETECTOR_MODEL}+{OCR_MODEL}",
             model_version="0.4.0", device="cpu",
-            metadata={"task": "automatic-license-plate-recognition"},
+            metadata={
+                "task": "automatic-license-plate-recognition",
+                "detector": {"name": DETECTOR_MODEL, "sha256": DETECTOR_SHA256,
+                             "confidence_threshold": DETECTOR_CONFIDENCE_THRESHOLD},
+                "ocr": {"name": OCR_MODEL, "sha256": OCR_SHA256},
+            },
         )
 
     @staticmethod
@@ -181,6 +189,13 @@ class LicensePlateReader:
                     source_variant="horizontal_flip",
                 ))
         return self._deduplicate(readings)
+
+    def read_crop(self, crop: np.ndarray, *, source_variant: str = "enhanced_crop") -> List[PlateReading]:
+        """OCR an already-localized derivative without claiming new localization."""
+        return [PlateReading(
+            text=item.text, confidence=item.confidence, bbox=item.bbox,
+            source_variant=source_variant,
+        ) for item in self._deduplicate(self._read_region(crop))]
 
     def read_vehicle(self, frame: np.ndarray, bbox: Sequence[float]) -> List[PlateReading]:
         x1, y1, x2, y2 = map(int, bbox)

@@ -46,7 +46,7 @@ def after_hours(captured: str | None, opening: str | None, closing: str | None) 
 def save_sighting(*, session_id: str, search_id: str, result_id: str,
                   target: TargetConfiguration, video: VideoMetadata, observation: dict[str, Any],
                   first_seen: float, last_seen: float, frame_path: str, clip_path: str,
-                  match_kind: str, vehicle=None) -> None:
+                  match_kind: str, vehicle=None, plate_analysis: dict[str, Any] | None = None) -> None:
     absolute_time = captured_at(target.recorded_start_at, observation["timestamp_seconds"])
     with database.get_db_connection() as conn:
         conn.execute(
@@ -73,6 +73,33 @@ def save_sighting(*, session_id: str, search_id: str, result_id: str,
              video.filename, frame_path, clip_path),
         )
         conn.execute("UPDATE vehicle_sightings SET dealership_id=(SELECT dealership_id FROM sessions WHERE session_id=?) WHERE sighting_id=?",(session_id,result_id))
+        if plate_analysis:
+            consensus = plate_analysis.get("consensus") or {}
+            best = plate_analysis.get("best_observation") or {}
+            conn.execute(
+                """UPDATE vehicle_sightings SET consensus_plate=?,consensus_state=?,
+                   consensus_details_json=?,best_plate_crop=?,enhanced_plate_crop=?
+                   WHERE sighting_id=?""",
+                (consensus.get("selected_plate"), consensus.get("state"),
+                 json.dumps(consensus), best.get("raw_plate_crop_reference"),
+                 best.get("enhanced_plate_crop_reference"), result_id),
+            )
+            for item in plate_analysis.get("observations") or []:
+                conn.execute(
+                    """INSERT INTO plate_ocr_observations(
+                       observation_id,sighting_id,frame_idx,timestamp_seconds,
+                       source_frame_reference,detected_bbox_json,raw_plate_crop_reference,
+                       enhanced_plate_crop_reference,quality_metrics_json,
+                       ocr_candidates_json,model_manifest_json)
+                       VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                    ("plate_observation_" + uuid.uuid4().hex, result_id, item["frame_idx"],
+                     item["timestamp_seconds"], item["source_frame_reference"],
+                     json.dumps(item.get("bbox") or []), item.get("raw_plate_crop_reference"),
+                     item.get("enhanced_plate_crop_reference"),
+                     json.dumps(item.get("quality_metrics") or {}),
+                     json.dumps(item.get("candidates") or []),
+                     json.dumps(item.get("model_manifest") or {})),
+                )
 
 
 def list_sightings(*, plate: str | None = None, make: str | None = None,

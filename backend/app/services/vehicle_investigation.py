@@ -5,7 +5,6 @@ recording at a declared cadence, keeps every credible OCR observation, groups
 observations into sightings, and distinguishes exact evidence from review-only
 OCR candidates.
 """
-from collections import Counter
 import json
 import os
 from pathlib import Path
@@ -19,6 +18,8 @@ from app.models.open_vocabulary import EntityDetection, EntityTrack, EvidenceAss
 from app.models.schemas import TargetConfiguration, VideoMetadata
 from app.services.generic_search import _extract_clip
 from app.services.license_plate_reader import LicensePlateReader, normalize_plate, plate_similarity
+from app.services.plate_consensus import build_plate_consensus
+from app.services.plate_evidence import save_plate_derivatives
 from app.services.query_parser import StructuredQueryParser
 from app.services.vehicle_sightings import save_sighting
 from app.services.vehicle_recognizer import VehicleRecognizer
@@ -126,6 +127,14 @@ class VehicleInvestigationManager:
         reader = LicensePlateReader()
         vehicle_recognizer = VehicleRecognizer(str(Path(database.DB_DIR) / "evidence"))
         threshold = float(os.environ.get("AIEYE_PLATE_REVIEW_SIMILARITY", "0.78"))
+        if not 0 <= threshold <= 1:
+            raise ValueError("AIEYE_PLATE_REVIEW_SIMILARITY must be between 0 and 1.")
+        plate_model_manifest = {
+            "plate_reader": reader.provenance.model_dump(mode="json"),
+            "review_similarity_threshold": threshold,
+            "scan_fps": scan_fps,
+            "consensus": {"name": "exact-string-independent-frame-v1", "top_k": 5},
+        }
         evidence_dir = Path(database.DB_DIR) / "evidence" / session_id
         evidence_dir.mkdir(parents=True, exist_ok=True)
         observations = []
@@ -157,18 +166,47 @@ class VehicleInvestigationManager:
                     frame_path = evidence_dir / f"plate_source_{frame_idx:09d}.jpg"
                     if not cv2.imwrite(str(frame_path), frame, [cv2.IMWRITE_JPEG_QUALITY, 94]):
                         raise OSError("Could not save plate evidence frame.")
-                    for reading, similarity in candidates:
+                    for candidate_position, (reading, similarity) in enumerate(candidates):
+                        derivatives = save_plate_derivatives(
+                            frame, reading.bbox, evidence_dir,
+                            f"plate_{frame_idx:09d}_{candidate_position:02d}",
+                        )
+                        raw_candidate = {
+                            "text": reading.text, "confidence": reading.confidence,
+                            "source_variant": reading.source_variant,
+                        }
+                        candidate_values = [raw_candidate]
+                        if hasattr(reader, "read_crop"):
+                            candidate_values.extend({
+                                "text": item.text, "confidence": item.confidence,
+                                "source_variant": item.source_variant,
+                            } for item in reader.read_crop(
+                                derivatives["enhanced_image"], source_variant="enhanced_crop"
+                            ))
+                        best_candidate = max(
+                            candidate_values,
+                            key=lambda item: (
+                                plate_similarity(item["text"], requested_plate), item["confidence"]
+                            ),
+                        )
+                        normalized_best = normalize_plate(best_candidate["text"])
+                        best_partial = target.plate_match_mode == "partial" and requested_plate in normalized_best
                         observations.append({
                             "frame_idx": frame_idx,
                             "timestamp_seconds": frame_idx / video.fps,
                             "frame_path": str(frame_path),
-                            "text": reading.text,
-                            "confidence": reading.confidence,
-                            "similarity": similarity,
+                            "text": best_candidate["text"],
+                            "confidence": best_candidate["confidence"],
+                            "similarity": 1.0 if best_partial else plate_similarity(normalized_best, requested_plate),
                             "bbox": reading.bbox,
-                            "source_variant": reading.source_variant,
-                            "exact": target.plate_match_mode == "exact" and normalize_plate(reading.text) == requested_plate,
-                            "partial": partial_match,
+                            "source_variant": best_candidate["source_variant"],
+                            "exact": target.plate_match_mode == "exact" and normalized_best == requested_plate,
+                            "partial": best_partial,
+                            "candidates": candidate_values,
+                            "quality_score": derivatives["metrics"]["quality_score"],
+                            "quality_metrics": derivatives["metrics"],
+                            "raw_plate_crop_reference": f"/evidence/{session_id}/{Path(derivatives['raw_path']).name}",
+                            "enhanced_plate_crop_reference": f"/evidence/{session_id}/{Path(derivatives['enhanced_path']).name}",
                         })
                 with database.get_db_connection() as conn:
                     conn.execute(
@@ -183,27 +221,40 @@ class VehicleInvestigationManager:
         _status(session_id, 82, "evidence_review")
         results = []
         for sighting_number, sighting in enumerate(_group_sightings(observations), start=1):
-            exact = [item for item in sighting if item["exact"]]
-            observed_counts = Counter(item["text"] for item in sighting)
-            repeated_candidate, repeated_count = observed_counts.most_common(1)[0]
-            repeated_frames = _distinct_frames([item for item in sighting if item["text"] == repeated_candidate])
+            consensus = build_plate_consensus(sighting)
+            repeated_candidate = consensus["selected_plate"] or sighting[0]["text"]
+            repeated_frames = (consensus["ranked_candidates"][0]["distinct_frames"]
+                               if consensus["ranked_candidates"] else 0)
+            exact = [item for item in sighting if any(
+                normalize_plate(candidate["text"]) == requested_plate
+                for candidate in item.get("candidates") or []
+            )]
             exact_frames = _distinct_frames(exact)
-            strongest_exact = max((item["confidence"] for item in exact), default=0.0)
-            partial = [item for item in sighting if item.get("partial")]
+            partial = [item for item in sighting if any(
+                requested_plate in normalize_plate(candidate["text"])
+                for candidate in item.get("candidates") or []
+            )]
             partial_frames = _distinct_frames(partial)
-            strongest_partial = max((item["confidence"] for item in partial), default=0.0)
-            strong = ((bool(exact) and (exact_frames >= 2 or strongest_exact >= 0.75))
-                      or (target.plate_match_mode == "partial" and bool(partial)
-                          and (partial_frames >= 2 or strongest_partial >= 0.75)))
-            classification = "strong_match" if strong else "possible_match"
-            best = max(
-                sighting,
-                key=lambda item: (item["exact"] or item.get("partial", False), item["similarity"], item["confidence"]),
+            selected_matches = (
+                repeated_candidate == requested_plate if target.plate_match_mode == "exact"
+                else requested_plate in repeated_candidate
             )
-            confidence = max(item["confidence"] for item in sighting)
+            strong = consensus["state"] == "exact_consensus" and selected_matches
+            classification = "strong_match" if strong else "possible_match"
+            supporting = [item for item in sighting if any(
+                normalize_plate(candidate["text"]) == repeated_candidate
+                for candidate in item.get("candidates") or []
+            )] or sighting
+            best = max(supporting, key=lambda item: (
+                item["quality_score"], item["similarity"], item["confidence"]
+            ))
+            confidence = max(
+                candidate["confidence"] for item in sighting
+                for candidate in item.get("candidates") or []
+            )
             repeat_support = min(1.0, max(exact_frames, repeated_frames) / 3.0)
             score = min(1.0, 0.62 * best["similarity"] + 0.23 * confidence + 0.15 * repeat_support)
-            if not exact:
+            if not strong:
                 score = min(score, 0.89)
 
             image = cv2.imread(best["frame_path"])
@@ -230,7 +281,7 @@ class VehicleInvestigationManager:
                 )
             cv2.rectangle(image, (x1, y1), (x2, y2), color, 4)
             cv2.putText(
-                image, f"{best['text']} {'MATCH' if best['exact'] or best.get('partial') else 'REVIEW'}",
+                image, f"{repeated_candidate} {'MATCH' if strong else 'REVIEW'}",
                 (max(0, x1), max(28, y1 - 10)), cv2.FONT_HERSHEY_SIMPLEX, .8, color, 2,
             )
             annotated = evidence_dir / f"plate_sighting_{sighting_number:03d}.jpg"
@@ -249,9 +300,7 @@ class VehicleInvestigationManager:
                 bbox=vehicle.bbox if vehicle else item["bbox"],
                 confidence=max(0.0, min(1.0, item["confidence"])), visibility=max(.1, item["similarity"]),
                 attributes={
-                    "license_plate_readings": [{"text": item["text"], "confidence": item["confidence"],
-                                                 "bbox": item["bbox"],
-                                                 "source_variant": item.get("source_variant", "original")}],
+                    "license_plate_readings": item.get("candidates") or [],
                     "requested_plate": requested_plate,
                     "plate_similarity": item["similarity"],
                     "plate_match_kind": ("exact" if item["exact"] else
@@ -267,7 +316,8 @@ class VehicleInvestigationManager:
                 track_id=f"vehicle-sighting-{sighting_number}", label="vehicle",
                 start_seconds=first, end_seconds=last, detections=detections,
                 attributes={
-                    "requested_plate": requested_plate, "observed_plates": dict(observed_counts),
+                    "requested_plate": requested_plate,
+                    "plate_consensus": consensus,
                     "plate_match_mode": target.plate_match_mode, "camera_name": target.camera_name,
                     "camera_role": target.camera_role,
                     "vehicle_detected": vehicle is not None,
@@ -280,22 +330,24 @@ class VehicleInvestigationManager:
                     "requested_vehicle_body_type": target.vehicle_body_type,
                 },
             )
-            if exact:
+            if strong and target.plate_match_mode == "exact":
                 explanation = (
-                    f"Plate {requested_plate} was read exactly in {exact_frames} distinct sampled frame(s). "
+                    f"Plate {requested_plate} was selected by exact-string consensus across "
+                    f"{repeated_frames} distinct sampled frame(s). "
                     f"Review the saved clip before using this result as evidence."
                 )
                 assessment = "supported"
-            elif partial:
+            elif strong and target.plate_match_mode == "partial":
                 explanation = (
                     f"Partial plate {requested_plate} appears within OCR read {repeated_candidate} in "
                     f"{partial_frames} distinct sampled frame(s). Confirm the full plate in the saved clip."
                 )
-                assessment = "supported" if strong else "uncertain"
+                assessment = "supported"
             else:
                 explanation = (
-                    f"Possible OCR match for {requested_plate}: read {repeated_candidate} in "
-                    f"{repeated_frames} distinct sampled frame(s). This is not an exact plate match."
+                    f"Possible OCR match for {requested_plate}: top candidate {repeated_candidate}; "
+                    f"consensus state {consensus['state'].replace('_', ' ')}. "
+                    "This is not a confirmed exact plate identity."
                 )
                 assessment = "uncertain"
             if vehicle:
@@ -340,10 +392,27 @@ class VehicleInvestigationManager:
             ))
             save_sighting(
                 session_id=session_id, search_id=search_id, result_id=result_id, target=target,
-                video=video, observation=best, first_seen=first, last_seen=last,
+                video=video, observation={**best, "text": repeated_candidate},
+                first_seen=first, last_seen=last,
                 frame_path=frame_url, clip_path=clip_url,
-                match_kind=("exact" if best["exact"] else "partial" if best.get("partial") else "review_candidate"),
+                match_kind=("exact_consensus" if strong and target.plate_match_mode == "exact"
+                            else "partial_consensus" if strong else "review_candidate"),
                 vehicle=vehicle,
+                plate_analysis={
+                    "consensus": consensus,
+                    "best_observation": best,
+                    "observations": [{
+                        "frame_idx": item["frame_idx"],
+                        "timestamp_seconds": item["timestamp_seconds"],
+                        "source_frame_reference": f"/evidence/{session_id}/{Path(item['frame_path']).name}",
+                        "bbox": item["bbox"],
+                        "raw_plate_crop_reference": item["raw_plate_crop_reference"],
+                        "enhanced_plate_crop_reference": item["enhanced_plate_crop_reference"],
+                        "quality_metrics": item["quality_metrics"],
+                        "candidates": item["candidates"],
+                        "model_manifest": plate_model_manifest,
+                    } for item in sighting],
+                },
             )
 
         results.sort(key=lambda item: (item.classification == "strong_match", item.overall_score), reverse=True)
