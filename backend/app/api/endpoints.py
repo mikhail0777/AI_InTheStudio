@@ -3,24 +3,94 @@ import json
 import os
 import shutil
 import uuid
+import hashlib
 from pathlib import Path
 from typing import List, Optional
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Request, Response
+from pydantic import BaseModel, Field
 from fastapi.responses import FileResponse, StreamingResponse
 from starlette.concurrency import run_in_threadpool
 from app.database import get_db_connection
-from app.models.schemas import TargetConfiguration, SessionStatus, TrackResult, HumanFeedbackInput, AgentLogEntry, GPSPoint
+from app.models.schemas import TargetConfiguration, SessionStatus, TrackResult, HumanFeedbackInput, SightingReviewInput, AgentLogEntry, GPSPoint
 from app.models.open_vocabulary import SearchResult
 from app.services.video_service import VideoService
 from app.services.telemetry_service import TelemetryService
 from app.services.agentic_loop import AgenticLoopManager, DATA_DIR, load_tracks
-from app.services.analysis_worker import queue_analysis, control_analysis
+from app.services.analysis_worker import queue_analysis, queue_proxy, control_analysis
 from app.services.generic_search import OpenVocabularySearchManager, load_search_results
 from app.services.vehicle_sightings import list_sightings
+from app.services import governance, vehicle_records
+from app.services import condition_incidents
 
 router = APIRouter(prefix="/api")
 MAX_VIDEO_BYTES = int(os.environ.get("AIEYE_MAX_VIDEO_BYTES", 4 * 1024**3))
 MAX_TELEMETRY_BYTES = int(os.environ.get("AIEYE_MAX_TELEMETRY_BYTES", 10 * 1024**2))
+
+class BootstrapInput(BaseModel):
+    dealership_name: str = Field(min_length=1,max_length=200)
+    email: str = Field(min_length=3,max_length=320)
+    display_name: str = Field(min_length=1,max_length=120)
+    password: str = Field(min_length=12,max_length=256)
+class LoginInput(BaseModel):
+    email: str
+    password: str
+class VehicleInput(BaseModel):
+    plate: str|None=None; vin: str|None=None; stock_number: str|None=None; make: str|None=None; model: str|None=None
+    year: int|None=None; color: str|None=None; body_type: str|None=None; status: str="active"; notes: str|None=None; reason: str|None=None
+class AliasInput(BaseModel):
+    plate: str; valid_from: str|None=None; valid_to: str|None=None; reason: str|None=None
+class LinkInput(BaseModel):
+    vehicle_id: str; reason: str
+class ReasonInput(BaseModel):
+    reason: str
+class CameraInput(BaseModel):
+    name: str; role: str="unknown"; location: str|None=None; timezone: str="UTC"
+class RetentionInput(BaseModel):
+    source_video_days: int; derived_media_days: int; sightings_days: int; audit_days: int; inspections_days:int=1095; incidents_days:int=2555
+class UserInput(BaseModel):
+    email: str; display_name: str; role: str; password: str = Field(min_length=12,max_length=256)
+class InspectionInput(BaseModel):
+    vehicle_id:str; inspection_type:str; camera_id:str|None=None; device_label:str|None=None; captured_at:str|None=None; notes:str|None=None
+class AnnotationInput(BaseModel):
+    x:float; y:float; width:float; height:float; damage_type:str; severity:str; assessment:str; notes:str|None=None
+class IncidentInput(BaseModel):
+    vehicle_id:str|None=None; title:str=Field(min_length=1,max_length=200); summary:str|None=None; priority:str="normal"
+class EvidenceInput(BaseModel):
+    evidence_type:str; entity_id:str; note:str|None=None
+class NoteInput(BaseModel): note:str
+class DecisionInput(BaseModel): action:str; reason:str
+class HoldInput(BaseModel): reason:str
+
+def _user(request:Request):
+    user=getattr(request.state,"user",None)
+    if not user: raise HTTPException(401,"Authentication required.")
+    return user
+
+def _optional_user(request:Request):
+    return getattr(request.state,"user",None)
+
+def _session_cookie(response,token):
+    response.set_cookie("lottrace_session",token,max_age=43200,httponly=True,samesite="strict",secure=os.environ.get("AIEYE_SECURE_COOKIES")=="1",path="/")
+
+@router.get("/auth/status")
+def auth_status(request:Request):
+    return {"configured":governance.configured(),"user":governance.authenticate(request.cookies.get("lottrace_session"))}
+
+@router.post("/auth/bootstrap")
+def auth_bootstrap(values:BootstrapInput,response:Response):
+    try: token,user=governance.bootstrap(**values.model_dump())
+    except (ValueError,RuntimeError) as error: raise HTTPException(409 if isinstance(error,RuntimeError) else 400,str(error)) from error
+    _session_cookie(response,token); return {"user":user}
+
+@router.post("/auth/login")
+def auth_login(values:LoginInput,response:Response):
+    try: token,user=governance.create_session(values.email,values.password)
+    except ValueError as error: raise HTTPException(401,str(error)) from error
+    _session_cookie(response,token); return {"user":user}
+
+@router.post("/auth/logout")
+def auth_logout(request:Request,response:Response):
+    governance.logout(request.cookies.get("lottrace_session")); response.delete_cookie("lottrace_session",path="/"); return {"status":"logged_out"}
 
 
 def get_session(session_id):
@@ -87,7 +157,7 @@ async def _save_upload(session_id, upload, allowed_extensions, limit):
 
 
 @router.post("/sessions", response_model=SessionStatus)
-def create_session(target_config: Optional[TargetConfiguration] = None):
+def create_session(request:Request,target_config: Optional[TargetConfiguration] = None):
     session_id = f"case_{uuid.uuid4().hex}"
     # Preserve the legacy API default for existing automation; the dealership UI always
     # supplies an explicit vehicle query.
@@ -96,8 +166,9 @@ def create_session(target_config: Optional[TargetConfiguration] = None):
     elif not target_config.free_text_description.strip():
         target_config = target_config.model_copy(update={"free_text_description": "Locate a person."})
     with get_db_connection() as conn:
-        conn.execute("INSERT INTO sessions(session_id,status,progress_percent,current_stage,target_config) VALUES (?,?,?,?,?)",
-                     (session_id,"created",0.0,"created",json.dumps(target_config.model_dump(mode="json"))))
+        user=_optional_user(request)
+        conn.execute("INSERT INTO sessions(session_id,status,progress_percent,current_stage,target_config,dealership_id) VALUES (?,?,?,?,?,?)",
+                     (session_id,"created",0.0,"created",json.dumps(target_config.model_dump(mode="json")),user["dealership_id"] if user else None))
     AgenticLoopManager.log_agent_event(session_id,"INIT","Created a local dealership video investigation.")
     return SessionStatus(session_id=session_id,status="created",current_stage="created")
 
@@ -113,11 +184,23 @@ async def upload_video(session_id: str, file: UploadFile = File(...)):
         except (ValueError, OSError) as error:
             raise HTTPException(400,str(error)) from error
         metadata.filename = original_name
+        original_url = f"/uploads/{session_id}/{path.name}"
+        playback_url = original_url
+        proxy_generated = False
+        if not VideoService.is_browser_compatible(str(path), metadata.codec):
+            proxy_path = path.parent / "playback_h264.mp4"
+            playback_url = None
+            proxy_generated = True
         with get_db_connection() as conn:
-            conn.execute("UPDATE sessions SET status='uploaded',video_metadata=? WHERE session_id=? AND status='uploading'",
-                         (json.dumps(metadata.model_dump(mode="json")),session_id))
+            conn.execute("UPDATE sessions SET status='uploaded',video_metadata=?,playback_url=?,proxy_status=?,proxy_error=NULL WHERE session_id=? AND status='uploading'",
+                         (json.dumps(metadata.model_dump(mode="json")),playback_url,
+                          "queued" if proxy_generated else "ready",session_id))
+        if proxy_generated:
+            queue_proxy(session_id, str(path), str(proxy_path))
         AgenticLoopManager.log_agent_event(session_id,"UPLOAD",f"Video ready: {original_name} ({metadata.duration_seconds:.2f} seconds).")
-        return {"status":"uploaded","video_metadata":metadata,"video_url":f"/uploads/{session_id}/{path.name}"}
+        return {"status":"uploaded","video_metadata":metadata,"video_url":playback_url,
+                "playback_url":playback_url,"original_video_url":original_url,
+                "proxy_generated":proxy_generated}
     except BaseException:
         if path:
             path.unlink(missing_ok=True)
@@ -219,7 +302,9 @@ def get_session_status(session_id: str):
                        if search and search["metrics_json"] else {}),
         results_count=results_count,
         agent_logs=[AgentLogEntry(**dict(item)) for item in logs],run_id=row["run_id"],
-        frames_sampled=samples["sampled"] or 0,frames_planned=samples["planned"] or 0,error_message=row["error_message"])
+        frames_sampled=samples["sampled"] or 0,frames_planned=samples["planned"] or 0,
+        error_message=row["error_message"],playback_url=row["playback_url"],
+        proxy_status=row["proxy_status"],proxy_error=row["proxy_error"])
 
 
 @router.delete("/sessions/{session_id}")
@@ -229,6 +314,8 @@ def delete_session(session_id: str):
         raise HTTPException(409, "Pause or cancel the active investigation before deleting it.")
     with get_db_connection() as conn:
         conn.execute("BEGIN IMMEDIATE")
+        conn.execute("DELETE FROM proxy_jobs WHERE session_id=?", (session_id,))
+        conn.execute("DELETE FROM sighting_revisions WHERE sighting_id IN (SELECT sighting_id FROM vehicle_sightings WHERE session_id=?)", (session_id,))
         conn.execute("DELETE FROM vehicle_sightings WHERE session_id=?", (session_id,))
         search_ids = [item[0] for item in conn.execute(
             "SELECT search_id FROM searches WHERE session_id=?", (session_id,),
@@ -270,18 +357,21 @@ def get_results(session_id: str):
 def submit_result_feedback(session_id: str,result_id: str,feedback: HumanFeedbackInput):
     try:
         result = OpenVocabularySearchManager.apply_feedback(session_id,result_id,feedback)
-        with get_db_connection() as conn:
-            conn.execute(
-                "UPDATE vehicle_sightings SET review_status=?,review_notes=? WHERE sighting_id=? AND session_id=?",
-                (feedback.status, feedback.notes, result_id, session_id),
-            )
+        from app.services.vehicle_sightings import review_sighting
+        action = {"confirmed": "confirm", "rejected": "reject", "needs_research": "reopen"}[feedback.status]
+        try:
+            review_sighting(result_id, SightingReviewInput(action=action))
+            if feedback.notes:
+                review_sighting(result_id, SightingReviewInput(action="note", note=feedback.notes))
+        except LookupError:
+            pass  # Legacy person-search results do not have dealership sighting rows.
         return result
-    except (LookupError,RuntimeError) as error:
+    except (LookupError,RuntimeError,ValueError) as error:
         _translate_queue_error(error)
 
 
 @router.get("/vehicle-sightings")
-def get_vehicle_sightings(plate: Optional[str] = None, make: Optional[str] = None,
+def get_vehicle_sightings(request:Request,plate: Optional[str] = None, make: Optional[str] = None,
                           model: Optional[str] = None, year: Optional[int] = None,
                           color: Optional[str] = None, body_type: Optional[str] = None,
                           camera: Optional[str] = None, date_from: Optional[str] = None,
@@ -292,7 +382,215 @@ def get_vehicle_sightings(plate: Optional[str] = None, make: Optional[str] = Non
         plate=plate, make=make, model=model, year=year, color=color,
         body_type=body_type, camera=camera, date_from=date_from, date_to=date_to,
         after_hours_only=after_hours_only, limit=limit,
+        dealership_id=(_optional_user(request) or {}).get("dealership_id"),
     )
+
+
+@router.post("/vehicle-sightings/{sighting_id}/review")
+def review_vehicle_sighting(sighting_id: str, review: SightingReviewInput,request:Request):
+    from app.services.vehicle_sightings import review_sighting
+    try:
+        return review_sighting(sighting_id, review,_optional_user(request))
+    except LookupError as error:
+        raise HTTPException(404, str(error)) from error
+    except ValueError as error:
+        raise HTTPException(400, str(error)) from error
+
+
+@router.get("/vehicle-sightings/{sighting_id}/revisions")
+def get_sighting_revisions(sighting_id: str):
+    from app.services.vehicle_sightings import list_revisions
+    try:
+        return list_revisions(sighting_id)
+    except LookupError as error:
+        raise HTTPException(404, str(error)) from error
+
+@router.get("/vehicles")
+def vehicles(request:Request): return vehicle_records.list_vehicles(_user(request))
+
+@router.post("/vehicles")
+def create_vehicle(values:VehicleInput,request:Request):
+    try:return vehicle_records.save_vehicle(_user(request),values.model_dump())
+    except ValueError as error:raise HTTPException(400,str(error)) from error
+
+@router.get("/vehicles/{vehicle_id}")
+def vehicle(vehicle_id:str,request:Request):
+    try:return vehicle_records.get_vehicle(_user(request),vehicle_id)
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+
+@router.patch("/vehicles/{vehicle_id}")
+def update_vehicle(vehicle_id:str,values:VehicleInput,request:Request):
+    try:return vehicle_records.save_vehicle(_user(request),values.model_dump(exclude_unset=True),vehicle_id)
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+    except ValueError as error:raise HTTPException(400,str(error)) from error
+
+@router.post("/vehicles/{vehicle_id}/plate-aliases")
+def create_plate_alias(vehicle_id:str,values:AliasInput,request:Request):
+    try:return vehicle_records.add_alias(_user(request),vehicle_id,values.model_dump())
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+    except ValueError as error:raise HTTPException(400,str(error)) from error
+
+@router.get("/vehicles/{vehicle_id}/timeline")
+def vehicle_timeline(vehicle_id:str,request:Request):
+    try:return vehicle_records.timeline(_user(request),vehicle_id)
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+
+@router.post("/vehicle-sightings/{sighting_id}/link")
+def link_vehicle_sighting(sighting_id:str,values:LinkInput,request:Request):
+    try:return vehicle_records.link_sighting(_user(request),sighting_id,values.vehicle_id,values.reason)
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+    except ValueError as error:raise HTTPException(400,str(error)) from error
+
+@router.delete("/vehicle-sightings/{sighting_id}/link")
+def unlink_vehicle_sighting(sighting_id:str,values:ReasonInput,request:Request):
+    try:vehicle_records.unlink_sighting(_user(request),sighting_id,values.reason);return {"status":"unlinked"}
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+    except ValueError as error:raise HTTPException(400,str(error)) from error
+
+@router.get("/cameras")
+def cameras(request:Request):return vehicle_records.list_cameras(_user(request))
+
+@router.post("/cameras")
+def create_camera(values:CameraInput,request:Request):return vehicle_records.create_camera(_user(request),values.model_dump())
+
+@router.get("/retention")
+def retention(request:Request):return vehicle_records.get_retention(_user(request))
+
+@router.put("/retention")
+def update_retention(values:RetentionInput,request:Request):
+    try:return vehicle_records.update_retention(_user(request),values.model_dump())
+    except ValueError as error:raise HTTPException(400,str(error)) from error
+
+@router.post("/retention/apply")
+def apply_retention(request:Request):
+    try:return condition_incidents.apply_retention(_user(request),DATA_DIR)
+    except (LookupError,PermissionError) as error:_condition_error(error)
+
+@router.get("/audit-events")
+def audit_events(request:Request,limit:int=200):return vehicle_records.list_audit(_user(request),limit)
+
+@router.get("/users")
+def users(request:Request):return governance.list_users(_user(request))
+
+@router.post("/users")
+def create_user(values:UserInput,request:Request):
+    user=_user(request)
+    if user["role"]!="administrator":raise HTTPException(403,"Administrator role required.")
+    try:return governance.create_user(user,**values.model_dump())
+    except ValueError as error:raise HTTPException(400,str(error)) from error
+
+def _condition_error(error):
+    if isinstance(error,LookupError): raise HTTPException(404,str(error)) from error
+    if isinstance(error,PermissionError): raise HTTPException(403,str(error)) from error
+    raise HTTPException(400,str(error)) from error
+
+def _public_inspection(value):
+    result=dict(value)
+    for media in result.get("media",[]):
+        path=Path(media.pop("storage_path")); root=(Path(DATA_DIR)/"evidence").resolve()
+        try: relative=path.resolve().relative_to(root)
+        except ValueError: media["evidence_url"]=None
+        else: media["evidence_url"]="/evidence/"+relative.as_posix()
+    return result
+
+@router.get("/inspections")
+def inspections(request:Request,vehicle_id:str|None=None):return condition_incidents.list_inspections(_user(request),vehicle_id)
+
+@router.post("/inspections")
+def create_inspection(values:InspectionInput,request:Request):
+    try:return condition_incidents.create_inspection(_user(request),values.model_dump())
+    except (LookupError,ValueError) as error:_condition_error(error)
+
+@router.get("/inspections/{inspection_id}")
+def inspection(inspection_id:str,request:Request):
+    try:return _public_inspection(condition_incidents.get_inspection(_user(request),inspection_id))
+    except LookupError as error:_condition_error(error)
+
+@router.post("/inspections/{inspection_id}/media")
+async def upload_inspection_media(inspection_id:str,request:Request,viewpoint:str,file:UploadFile=File(...)):
+    extension=Path((file.filename or "").replace("\\","/")).suffix.lower()
+    if extension not in (".jpg",".jpeg",".png",".webp"):raise HTTPException(400,"Inspection media must be JPG, PNG, or WebP.")
+    folder=Path(DATA_DIR)/"evidence"/"inspections"/inspection_id;folder.mkdir(parents=True,exist_ok=True);path=folder/(uuid.uuid4().hex+extension);size=0;digest=hashlib.sha256()
+    try:
+        with path.open("xb") as output:
+            while chunk:=await file.read(1024*1024):
+                size+=len(chunk)
+                if size>25*1024*1024:raise HTTPException(413,"Inspection image exceeds 25 MB.")
+                digest.update(chunk);output.write(chunk)
+        import cv2
+        image=await run_in_threadpool(cv2.imread,str(path))
+        if image is None:raise HTTPException(400,"The uploaded file is not a readable image.")
+        height,width=image.shape[:2]
+        result=condition_incidents.register_media(_user(request),inspection_id,{"viewpoint":viewpoint,"source_filename":Path(file.filename or "image").name,"storage_path":str(path.resolve()),"mime_type":file.content_type or "application/octet-stream","sha256":digest.hexdigest(),"width":width,"height":height})
+        return _public_inspection({"media":[result]})["media"][0]
+    except BaseException:
+        path.unlink(missing_ok=True);raise
+    finally:await file.close()
+
+@router.post("/inspections/{inspection_id}/complete")
+def complete_inspection(inspection_id:str,request:Request):
+    try:return _public_inspection(condition_incidents.complete_inspection(_user(request),inspection_id))
+    except (LookupError,ValueError) as error:_condition_error(error)
+
+@router.post("/inspection-media/{media_id}/annotations")
+def create_annotation(media_id:str,values:AnnotationInput,request:Request):
+    try:return condition_incidents.annotate(_user(request),media_id,values.model_dump())
+    except (LookupError,ValueError) as error:_condition_error(error)
+
+@router.get("/incidents")
+def incidents(request:Request):return condition_incidents.list_incidents(_user(request))
+
+@router.post("/incidents")
+def create_incident(values:IncidentInput,request:Request):
+    try:return condition_incidents.create_incident(_user(request),values.model_dump())
+    except (LookupError,ValueError) as error:_condition_error(error)
+
+@router.get("/incidents/{incident_id}")
+def incident(incident_id:str,request:Request):
+    try:return condition_incidents.get_incident(_user(request),incident_id)
+    except LookupError as error:_condition_error(error)
+
+@router.post("/incidents/{incident_id}/evidence")
+def add_incident_evidence(incident_id:str,values:EvidenceInput,request:Request):
+    try:return condition_incidents.add_evidence(_user(request),incident_id,values.model_dump())
+    except (LookupError,ValueError) as error:_condition_error(error)
+
+@router.post("/incidents/{incident_id}/notes")
+def add_incident_note(incident_id:str,values:NoteInput,request:Request):
+    try:return condition_incidents.add_note(_user(request),incident_id,values.note)
+    except (LookupError,ValueError) as error:_condition_error(error)
+
+@router.post("/incidents/{incident_id}/decision")
+def decide_incident(incident_id:str,values:DecisionInput,request:Request):
+    try:return condition_incidents.decision(_user(request),incident_id,values.action,values.reason)
+    except (LookupError,ValueError,PermissionError) as error:_condition_error(error)
+
+@router.post("/incidents/{incident_id}/holds")
+def hold_incident(incident_id:str,values:HoldInput,request:Request):
+    try:return condition_incidents.place_hold(_user(request),incident_id,values.reason)
+    except (LookupError,ValueError,PermissionError) as error:_condition_error(error)
+
+@router.post("/incidents/{incident_id}/attachments")
+async def upload_incident_attachment(incident_id:str,request:Request,file:UploadFile=File(...)):
+    filename=Path((file.filename or "").replace("\\","/")).name;extension=Path(filename).suffix.lower()
+    if extension not in (".jpg",".jpeg",".png",".webp",".pdf",".mp4",".mov",".txt"):raise HTTPException(400,"Unsupported attachment type.")
+    folder=Path(DATA_DIR)/"evidence"/"incidents"/incident_id;folder.mkdir(parents=True,exist_ok=True);path=folder/(uuid.uuid4().hex+extension);size=0;digest=hashlib.sha256()
+    try:
+        with path.open("xb") as output:
+            while chunk:=await file.read(1024*1024):
+                size+=len(chunk)
+                if size>100*1024*1024:raise HTTPException(413,"Attachment exceeds 100 MB.")
+                digest.update(chunk);output.write(chunk)
+        if not size:raise HTTPException(400,"Attachment is empty.")
+        return condition_incidents.register_attachment(_user(request),incident_id,{"source_filename":filename,"storage_path":str(path.resolve()),"mime_type":file.content_type or "application/octet-stream","sha256":digest.hexdigest(),"size_bytes":size})
+    except BaseException:path.unlink(missing_ok=True);raise
+    finally:await file.close()
+
+@router.post("/incidents/{incident_id}/exports")
+def export_incident(incident_id:str,request:Request):
+    try:result=condition_incidents.export_incident(_user(request),incident_id,DATA_DIR)
+    except (LookupError,ValueError) as error:_condition_error(error)
+    return FileResponse(result["path"],media_type="application/zip",filename=f"lottrace-{incident_id}.zip",headers={"X-Manifest-SHA256":result["manifest_sha256"],"X-Archive-SHA256":result["archive_sha256"],"Cache-Control":"no-store"})
 
 
 @router.get("/sessions/{session_id}/tracks/{track_id}",response_model=TrackResult)

@@ -107,7 +107,8 @@ def init_db():
     # Additive migrations retain earlier flights and their human review decisions.
     migrations = {
         "sessions": {"run_id": "TEXT", "error_message": "TEXT", "search_query": "JSON",
-                     "search_id": "TEXT", "index_id": "TEXT"},
+                     "search_id": "TEXT", "index_id": "TEXT", "playback_url": "TEXT",
+                     "proxy_status": "TEXT", "proxy_error": "TEXT"},
         "detections": {"run_id": "TEXT", "payload": "JSON"},
         "tracks": {"payload": "JSON"},
     }
@@ -290,10 +291,161 @@ def init_db():
         "requested_vehicle_year": "INTEGER",
         "requested_vehicle_color": "TEXT",
         "requested_vehicle_body_type": "TEXT",
+        "corrected_plate": "TEXT",
     }
     for column, sql_type in sighting_additions.items():
         if column not in sighting_columns:
             cursor.execute(f"ALTER TABLE vehicle_sightings ADD COLUMN {column} {sql_type}")
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS sighting_revisions (
+            revision_id TEXT PRIMARY KEY,
+            sighting_id TEXT NOT NULL,
+            action TEXT NOT NULL,
+            actor TEXT NOT NULL DEFAULT 'local_operator',
+            previous_value JSON,
+            new_value JSON,
+            reason TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(sighting_id) REFERENCES vehicle_sightings(sighting_id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS revisions_by_sighting ON sighting_revisions(sighting_id, created_at)")
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS proxy_jobs (
+            session_id TEXT PRIMARY KEY,
+            source_path TEXT NOT NULL,
+            destination_path TEXT NOT NULL,
+            status TEXT NOT NULL,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+            started_at TEXT,
+            finished_at TEXT,
+            error_message TEXT,
+            FOREIGN KEY(session_id) REFERENCES sessions(session_id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS proxy_jobs_by_status ON proxy_jobs(status, created_at)")
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS dealerships (
+        dealership_id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS users (
+        user_id TEXT PRIMARY KEY, dealership_id TEXT NOT NULL, email TEXT NOT NULL UNIQUE,
+        display_name TEXT NOT NULL, role TEXT NOT NULL CHECK(role IN ('viewer','reviewer','manager','administrator','auditor')),
+        password_hash TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(dealership_id) REFERENCES dealerships(dealership_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS user_sessions (
+        token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires_at TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(user_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS cameras (
+        camera_id TEXT PRIMARY KEY, dealership_id TEXT NOT NULL, name TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'unknown', location TEXT, timezone TEXT NOT NULL,
+        active INTEGER NOT NULL DEFAULT 1, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(dealership_id) REFERENCES dealerships(dealership_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS vehicles (
+        vehicle_id TEXT PRIMARY KEY, dealership_id TEXT NOT NULL, normalized_plate TEXT,
+        vin TEXT, stock_number TEXT, make TEXT, model TEXT, year INTEGER,
+        color TEXT, body_type TEXT, status TEXT NOT NULL DEFAULT 'active', notes TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(dealership_id) REFERENCES dealerships(dealership_id))""")
+    cursor.execute("CREATE INDEX IF NOT EXISTS vehicles_by_plate ON vehicles(dealership_id, normalized_plate)")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS plate_aliases (
+        alias_id TEXT PRIMARY KEY, vehicle_id TEXT NOT NULL, normalized_plate TEXT NOT NULL,
+        valid_from TEXT, valid_to TEXT, reason TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(vehicle_id) REFERENCES vehicles(vehicle_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS sighting_vehicle_links (
+        sighting_id TEXT PRIMARY KEY, vehicle_id TEXT NOT NULL, linked_by TEXT NOT NULL,
+        reason TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(sighting_id) REFERENCES vehicle_sightings(sighting_id),
+        FOREIGN KEY(vehicle_id) REFERENCES vehicles(vehicle_id), FOREIGN KEY(linked_by) REFERENCES users(user_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS audit_events (
+        event_id TEXT PRIMARY KEY, dealership_id TEXT NOT NULL, actor_user_id TEXT,
+        action TEXT NOT NULL, entity_type TEXT NOT NULL, entity_id TEXT NOT NULL,
+        previous_value JSON, new_value JSON, reason TEXT, source_identifiers JSON,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(dealership_id) REFERENCES dealerships(dealership_id),
+        FOREIGN KEY(actor_user_id) REFERENCES users(user_id))""")
+    cursor.execute("CREATE INDEX IF NOT EXISTS audit_by_entity ON audit_events(entity_type, entity_id, created_at)")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS retention_policies (
+        dealership_id TEXT PRIMARY KEY, source_video_days INTEGER NOT NULL DEFAULT 90,
+        derived_media_days INTEGER NOT NULL DEFAULT 90, sightings_days INTEGER NOT NULL DEFAULT 365,
+        audit_days INTEGER NOT NULL DEFAULT 2555, updated_by TEXT, updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(dealership_id) REFERENCES dealerships(dealership_id), FOREIGN KEY(updated_by) REFERENCES users(user_id))""")
+
+    # Tenant ownership was introduced after the original investigation tables.
+    # Existing local rows remain readable but new authenticated work is always scoped.
+    for table in ("sessions", "vehicle_sightings"):
+        columns = {row[1] for row in cursor.execute(f"PRAGMA table_info({table})").fetchall()}
+        if "dealership_id" not in columns:
+            cursor.execute(f"ALTER TABLE {table} ADD COLUMN dealership_id TEXT")
+    cursor.execute("CREATE INDEX IF NOT EXISTS sessions_by_dealership ON sessions(dealership_id, created_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS sightings_by_dealership ON vehicle_sightings(dealership_id, created_at)")
+
+    cursor.execute("""CREATE TABLE IF NOT EXISTS inspections (
+        inspection_id TEXT PRIMARY KEY, dealership_id TEXT NOT NULL, vehicle_id TEXT NOT NULL,
+        inspection_type TEXT NOT NULL CHECK(inspection_type IN ('arrival','departure')),
+        status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','completed','reopened')),
+        camera_id TEXT, device_label TEXT, operator_user_id TEXT NOT NULL, notes TEXT,
+        captured_at TEXT NOT NULL, completed_at TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(dealership_id) REFERENCES dealerships(dealership_id),
+        FOREIGN KEY(vehicle_id) REFERENCES vehicles(vehicle_id), FOREIGN KEY(camera_id) REFERENCES cameras(camera_id),
+        FOREIGN KEY(operator_user_id) REFERENCES users(user_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS inspection_media (
+        media_id TEXT PRIMARY KEY, inspection_id TEXT NOT NULL, viewpoint TEXT NOT NULL,
+        source_filename TEXT NOT NULL, storage_path TEXT NOT NULL, mime_type TEXT NOT NULL,
+        sha256 TEXT NOT NULL, width INTEGER NOT NULL, height INTEGER NOT NULL,
+        captured_at TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(inspection_id) REFERENCES inspections(inspection_id))""")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS inspection_viewpoint ON inspection_media(inspection_id, viewpoint)")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS condition_annotations (
+        annotation_id TEXT PRIMARY KEY, media_id TEXT NOT NULL, x REAL NOT NULL, y REAL NOT NULL,
+        width REAL NOT NULL, height REAL NOT NULL, damage_type TEXT NOT NULL, severity TEXT NOT NULL,
+        assessment TEXT NOT NULL CHECK(assessment IN ('pre_existing','possible_change','unchanged','repaired','inconclusive')),
+        notes TEXT, review_status TEXT NOT NULL DEFAULT 'requires_review', actor_user_id TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(media_id) REFERENCES inspection_media(media_id),
+        FOREIGN KEY(actor_user_id) REFERENCES users(user_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS incidents (
+        incident_id TEXT PRIMARY KEY, dealership_id TEXT NOT NULL, vehicle_id TEXT,
+        title TEXT NOT NULL, summary TEXT, priority TEXT NOT NULL DEFAULT 'normal',
+        status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','requires_review','approved','closed')),
+        created_by TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP, updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(dealership_id) REFERENCES dealerships(dealership_id), FOREIGN KEY(vehicle_id) REFERENCES vehicles(vehicle_id),
+        FOREIGN KEY(created_by) REFERENCES users(user_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS incident_evidence (
+        evidence_id TEXT PRIMARY KEY, incident_id TEXT NOT NULL, evidence_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL, note TEXT, added_by TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(incident_id) REFERENCES incidents(incident_id), FOREIGN KEY(added_by) REFERENCES users(user_id))""")
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS incident_evidence_unique ON incident_evidence(incident_id,evidence_type,entity_id)")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS incident_notes (
+        note_id TEXT PRIMARY KEY, incident_id TEXT NOT NULL, note TEXT NOT NULL, actor_user_id TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(incident_id) REFERENCES incidents(incident_id),
+        FOREIGN KEY(actor_user_id) REFERENCES users(user_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS incident_attachments (
+        attachment_id TEXT PRIMARY KEY, incident_id TEXT NOT NULL, source_filename TEXT NOT NULL,
+        storage_path TEXT NOT NULL, mime_type TEXT NOT NULL, sha256 TEXT NOT NULL, size_bytes INTEGER NOT NULL,
+        added_by TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(incident_id) REFERENCES incidents(incident_id), FOREIGN KEY(added_by) REFERENCES users(user_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS incident_approvals (
+        approval_id TEXT PRIMARY KEY, incident_id TEXT NOT NULL, action TEXT NOT NULL,
+        reason TEXT NOT NULL, actor_user_id TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(incident_id) REFERENCES incidents(incident_id), FOREIGN KEY(actor_user_id) REFERENCES users(user_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS evidence_holds (
+        hold_id TEXT PRIMARY KEY, incident_id TEXT NOT NULL, reason TEXT NOT NULL, placed_by TEXT NOT NULL,
+        placed_at TEXT DEFAULT CURRENT_TIMESTAMP, released_by TEXT, released_at TEXT,
+        FOREIGN KEY(incident_id) REFERENCES incidents(incident_id), FOREIGN KEY(placed_by) REFERENCES users(user_id),
+        FOREIGN KEY(released_by) REFERENCES users(user_id))""")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS evidence_exports (
+        export_id TEXT PRIMARY KEY, incident_id TEXT NOT NULL, manifest_sha256 TEXT NOT NULL,
+        archive_sha256 TEXT NOT NULL, storage_path TEXT NOT NULL, created_by TEXT NOT NULL,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(incident_id) REFERENCES incidents(incident_id),
+        FOREIGN KEY(created_by) REFERENCES users(user_id))""")
+    cursor.execute("CREATE INDEX IF NOT EXISTS inspections_by_vehicle ON inspections(vehicle_id,captured_at)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS incidents_by_dealership ON incidents(dealership_id,updated_at)")
+    retention_columns={row[1] for row in cursor.execute("PRAGMA table_info(retention_policies)").fetchall()}
+    for column,default in (("inspections_days",1095),("incidents_days",2555)):
+        if column not in retention_columns:cursor.execute(f"ALTER TABLE retention_policies ADD COLUMN {column} INTEGER NOT NULL DEFAULT {default}")
 
     conn.commit()
     conn.close()

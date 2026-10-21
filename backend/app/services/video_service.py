@@ -3,11 +3,35 @@ import cv2
 import time
 import math
 import numpy as np
+import subprocess
+from pathlib import Path
 from datetime import datetime
 from typing import Dict, Any, List, Tuple, Optional
 from app.models.schemas import VideoMetadata
 
 class VideoService:
+    BROWSER_CODECS = {"avc1", "h264", "x264"}
+
+    @staticmethod
+    def is_browser_compatible(filepath: str, codec: str) -> bool:
+        return Path(filepath).suffix.lower() == ".mp4" and codec.strip().lower() in VideoService.BROWSER_CODECS
+
+    @staticmethod
+    def create_browser_proxy(source: str, destination: str) -> None:
+        """Create a broadly playable derivative without modifying the evidence original."""
+        import imageio_ffmpeg
+        command = [
+            imageio_ffmpeg.get_ffmpeg_exe(), "-y", "-i", source,
+            "-map", "0:v:0", "-map", "0:a?", "-c:v", "libx264",
+            "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", destination,
+        ]
+        completed = subprocess.run(command, capture_output=True, text=True, timeout=60 * 60, check=False)
+        output = Path(destination)
+        if completed.returncode or not output.is_file() or output.stat().st_size == 0:
+            output.unlink(missing_ok=True)
+            detail = (completed.stderr or "FFmpeg did not create a playable file.").strip().splitlines()[-1]
+            raise ValueError(f"Browser playback proxy could not be created: {detail}")
     @staticmethod
     def inspect_video(filepath: str) -> VideoMetadata:
         if not os.path.exists(filepath):

@@ -3,9 +3,12 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import Any
+import json
+import re
+import uuid
 
 from app import database
-from app.models.schemas import TargetConfiguration, VideoMetadata
+from app.models.schemas import SightingReviewInput, TargetConfiguration, VideoMetadata
 
 
 EVENT_BY_CAMERA_ROLE = {
@@ -69,14 +72,19 @@ def save_sighting(*, session_id: str, search_id: str, result_id: str,
              target.vehicle_color, target.vehicle_body_type,
              video.filename, frame_path, clip_path),
         )
+        conn.execute("UPDATE vehicle_sightings SET dealership_id=(SELECT dealership_id FROM sessions WHERE session_id=?) WHERE sighting_id=?",(session_id,result_id))
 
 
 def list_sightings(*, plate: str | None = None, make: str | None = None,
                    model: str | None = None, year: int | None = None, color: str | None = None,
                    body_type: str | None = None, camera: str | None = None,
                    date_from: str | None = None, date_to: str | None = None,
-                   after_hours_only: bool = False, limit: int = 200) -> list[dict[str, Any]]:
+                   after_hours_only: bool = False, limit: int = 200,
+                   dealership_id: str | None = None) -> list[dict[str, Any]]:
     clauses, values = [], []
+    if dealership_id:
+        clauses.append("vehicle_sightings.dealership_id=?")
+        values.append(dealership_id)
     filters = {
         "vehicle_make": make, "vehicle_model": model, "vehicle_color": color,
         "vehicle_body_type": body_type, "camera_name": camera,
@@ -104,8 +112,75 @@ def list_sightings(*, plate: str | None = None, make: str | None = None,
     values.append(max(1, min(limit, 1000)))
     with database.get_db_connection() as conn:
         rows = conn.execute(
-            "SELECT * FROM vehicle_sightings" + where
-            + " ORDER BY COALESCE(captured_at, created_at) DESC, best_timestamp_seconds DESC LIMIT ?",
+            "SELECT vehicle_sightings.*, sessions.playback_url AS source_video_url FROM vehicle_sightings "
+            "JOIN sessions ON sessions.session_id=vehicle_sightings.session_id" + where
+            + " ORDER BY COALESCE(captured_at, vehicle_sightings.created_at) DESC, best_timestamp_seconds DESC LIMIT ?",
             values,
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def _public_sighting(conn, sighting_id: str) -> dict[str, Any]:
+    row = conn.execute(
+        "SELECT vehicle_sightings.*, sessions.playback_url AS source_video_url FROM vehicle_sightings "
+        "JOIN sessions ON sessions.session_id=vehicle_sightings.session_id WHERE sighting_id=?",
+        (sighting_id,),
+    ).fetchone()
+    if not row:
+        raise LookupError("Sighting not found.")
+    return dict(row)
+
+
+def review_sighting(sighting_id: str, review: SightingReviewInput, actor: dict[str,Any] | None = None) -> dict[str, Any]:
+    with database.get_db_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        previous = _public_sighting(conn, sighting_id)
+        updates: dict[str, Any] = {}
+        reason = (review.reason or "").strip() or None
+        note = (review.note or "").strip() or None
+        if review.action == "confirm":
+            updates["review_status"] = "confirmed"
+        elif review.action == "reject":
+            updates["review_status"] = "rejected"
+        elif review.action == "reopen":
+            updates["review_status"] = "needs_research"
+        elif review.action == "correct":
+            corrected = re.sub(r"[^A-Z0-9]", "", (review.corrected_plate or "").upper())
+            if not 3 <= len(corrected) <= 10 or not reason:
+                raise ValueError("A 3-10 character plate and correction reason are required.")
+            updates.update(corrected_plate=corrected, review_status="needs_research")
+        elif review.action == "note":
+            if not note:
+                raise ValueError("A note is required.")
+            updates["review_notes"] = note
+        assignments = ",".join(f"{column}=?" for column in updates)
+        conn.execute(f"UPDATE vehicle_sightings SET {assignments} WHERE sighting_id=?",
+                     (*updates.values(), sighting_id))
+        current = _public_sighting(conn, sighting_id)
+        conn.execute(
+            "INSERT INTO sighting_revisions(revision_id,sighting_id,action,previous_value,new_value,reason) VALUES (?,?,?,?,?,?)",
+            (uuid.uuid4().hex, sighting_id, review.action, json.dumps(previous), json.dumps(current), reason or note),
+        )
+        if actor:
+            from app.services.governance import audit
+            audit(conn,actor,"sighting."+review.action,"sighting",sighting_id,previous,current,reason or note)
+        feedback = {"confirm": "confirmed", "reject": "rejected", "reopen": "needs_research"}.get(review.action)
+        if feedback:
+            result = conn.execute("SELECT payload FROM search_results WHERE result_id=?", (sighting_id,)).fetchone()
+            if result:
+                payload = json.loads(result["payload"])
+                payload["human_feedback"] = feedback
+                payload["human_notes"] = current.get("review_notes")
+                conn.execute("UPDATE search_results SET human_feedback=?,human_notes=?,payload=? WHERE result_id=?",
+                             (feedback, current.get("review_notes"), json.dumps(payload), sighting_id))
+        return current
+
+
+def list_revisions(sighting_id: str) -> list[dict[str, Any]]:
+    with database.get_db_connection() as conn:
+        _public_sighting(conn, sighting_id)
+        rows = conn.execute(
+            "SELECT revision_id,action,actor,reason,created_at FROM sighting_revisions WHERE sighting_id=? ORDER BY created_at, rowid",
+            (sighting_id,),
         ).fetchall()
     return [dict(row) for row in rows]

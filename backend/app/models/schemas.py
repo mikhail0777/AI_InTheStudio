@@ -138,6 +138,12 @@ class HumanFeedbackInput(BaseModel):
     status: Literal["confirmed", "rejected", "needs_research"]
     notes: Optional[str] = Field(default=None, max_length=4000)
 
+class SightingReviewInput(BaseModel):
+    action: Literal["confirm", "reject", "reopen", "correct", "note"]
+    corrected_plate: Optional[str] = Field(default=None, max_length=16)
+    note: Optional[str] = Field(default=None, max_length=4000)
+    reason: Optional[str] = Field(default=None, max_length=1000)
+
 class AgentLogEntry(BaseModel):
     timestamp: str
     step: str
@@ -164,6 +170,9 @@ class SessionStatus(BaseModel):
     frames_sampled: int = 0
     frames_planned: int = 0
     error_message: Optional[str] = None
+    playback_url: Optional[str] = None
+    proxy_status: Optional[str] = None
+    proxy_error: Optional[str] = None
 
 class SARReport(BaseModel):
     session_id: str

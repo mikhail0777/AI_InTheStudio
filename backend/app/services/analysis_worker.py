@@ -54,6 +54,8 @@ class AnalysisWorker:
             conn.execute("UPDATE analysis_runs SET status='error', error_message=?, finished_at=CURRENT_TIMESTAMP WHERE status IN ('analyzing','paused') AND started_at IS NOT NULL", (reason,))
             conn.execute("UPDATE sessions SET status='error', current_stage='interrupted', error_message=? WHERE status IN ('analyzing','paused') AND (run_id IS NULL OR run_id IN (SELECT run_id FROM analysis_runs WHERE status='error'))", (reason,))
             conn.execute("UPDATE sessions SET status=CASE WHEN video_metadata IS NULL THEN 'created' ELSE 'uploaded' END WHERE status='uploading'")
+            conn.execute("UPDATE proxy_jobs SET status='queued',started_at=NULL,error_message=NULL WHERE status='processing'")
+            conn.execute("UPDATE sessions SET proxy_status='queued',proxy_error=NULL WHERE session_id IN (SELECT session_id FROM proxy_jobs WHERE status='queued')")
             # A paused job that never started is safe to retain in the queue.
 
     def stop(self):
@@ -80,13 +82,14 @@ class AnalysisWorker:
             self.stop_event.wait(0.2)
 
     def run_once(self):
+        proxy_worked = self.run_proxy_once()
         from app.models.schemas import TargetConfiguration
         from app.services.unified_search import UnifiedSearchManager
         with get_db_connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             job = conn.execute("SELECT r.run_id, r.session_id, s.target_config FROM analysis_runs r JOIN sessions s ON s.session_id=r.session_id AND s.run_id=r.run_id WHERE r.status='queued' AND s.status='queued' ORDER BY r.created_at,r.rowid LIMIT 1").fetchone()
             if not job:
-                return False
+                return proxy_worked
             conn.execute("UPDATE analysis_runs SET status='analyzing', started_at=CURRENT_TIMESTAMP WHERE run_id=?", (job["run_id"],))
             conn.execute("UPDATE sessions SET status='analyzing',current_stage='starting',error_message=NULL WHERE session_id=?", (job["session_id"],))
         try:
@@ -102,6 +105,34 @@ class AnalysisWorker:
                 conn.execute("UPDATE sessions SET status=?,current_stage=?,error_message=? WHERE session_id=? AND run_id=?", (terminal, terminal, message, job["session_id"], job["run_id"]))
                 conn.execute("UPDATE analysis_runs SET status=?,error_message=?,finished_at=CURRENT_TIMESTAMP WHERE run_id=?", (terminal, message, job["run_id"]))
             AgenticLoopManager.log_agent_event(job["session_id"], "STOPPED", message, "warning")
+        return True
+
+    def run_proxy_once(self):
+        from pathlib import Path
+        from app.services.agentic_loop import AgenticLoopManager
+        from app.services.video_service import VideoService
+        with get_db_connection() as conn:
+            conn.execute("BEGIN IMMEDIATE")
+            job = conn.execute(
+                "SELECT * FROM proxy_jobs WHERE status='queued' ORDER BY created_at,rowid LIMIT 1"
+            ).fetchone()
+            if not job:
+                return False
+            conn.execute("UPDATE proxy_jobs SET status='processing',started_at=CURRENT_TIMESTAMP,error_message=NULL WHERE session_id=?", (job["session_id"],))
+            conn.execute("UPDATE sessions SET proxy_status='processing',proxy_error=NULL WHERE session_id=?", (job["session_id"],))
+        try:
+            VideoService.create_browser_proxy(job["source_path"], job["destination_path"])
+            playback_url = f"/uploads/{job['session_id']}/{Path(job['destination_path']).name}"
+            with get_db_connection() as conn:
+                conn.execute("UPDATE proxy_jobs SET status='completed',finished_at=CURRENT_TIMESTAMP WHERE session_id=?", (job["session_id"],))
+                conn.execute("UPDATE sessions SET playback_url=?,proxy_status='ready',proxy_error=NULL WHERE session_id=?", (playback_url, job["session_id"]))
+            AgenticLoopManager.log_agent_event(job["session_id"], "PLAYBACK", "Browser-compatible playback copy is ready.")
+        except Exception as exc:
+            message = str(exc) or type(exc).__name__
+            with get_db_connection() as conn:
+                conn.execute("UPDATE proxy_jobs SET status='error',error_message=?,finished_at=CURRENT_TIMESTAMP WHERE session_id=?", (message, job["session_id"]))
+                conn.execute("UPDATE sessions SET proxy_status='error',proxy_error=? WHERE session_id=?", (message, job["session_id"]))
+            AgenticLoopManager.log_agent_event(job["session_id"], "PLAYBACK", message, "warning")
         return True
 
     def _run(self):
@@ -123,6 +154,20 @@ class AnalysisWorker:
 
 
 worker = AnalysisWorker()
+
+
+def queue_proxy(session_id, source_path, destination_path):
+    with get_db_connection() as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        conn.execute(
+            """INSERT INTO proxy_jobs(session_id,source_path,destination_path,status)
+               VALUES (?,?,?,'queued') ON CONFLICT(session_id) DO UPDATE SET
+               source_path=excluded.source_path,destination_path=excluded.destination_path,status='queued',
+               created_at=CURRENT_TIMESTAMP,started_at=NULL,finished_at=NULL,error_message=NULL""",
+            (session_id, source_path, destination_path),
+        )
+        conn.execute("UPDATE sessions SET playback_url=NULL,proxy_status='queued',proxy_error=NULL WHERE session_id=?", (session_id,))
+    worker.wake_event.set()
 
 
 def queue_analysis(session_id, target_config=None):
@@ -160,5 +205,7 @@ def control_analysis(session_id, action):
         conn.execute("UPDATE analysis_runs SET status=? WHERE run_id=?", (status, row["run_id"]))
         if action == "cancel":
             conn.execute("UPDATE analysis_runs SET finished_at=CURRENT_TIMESTAMP WHERE run_id=?", (row["run_id"],))
+            conn.execute("UPDATE proxy_jobs SET status='cancelled',finished_at=CURRENT_TIMESTAMP WHERE session_id=? AND status='queued'", (session_id,))
+            conn.execute("UPDATE sessions SET proxy_status='cancelled' WHERE session_id=? AND proxy_status='queued'", (session_id,))
     worker.wake_event.set()
     return status

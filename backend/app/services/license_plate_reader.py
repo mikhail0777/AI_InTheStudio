@@ -141,7 +141,7 @@ class LicensePlateReader:
         output = []
         for reading in sorted(readings, key=lambda item: item.confidence, reverse=True):
             duplicate = any(
-                reading.text == kept.text and _intersection_over_union(reading.bbox, kept.bbox) >= 0.35
+                _intersection_over_union(reading.bbox, kept.bbox) >= 0.45
                 for kept in output
             )
             if not duplicate:
