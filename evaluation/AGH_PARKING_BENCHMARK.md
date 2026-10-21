@@ -21,11 +21,13 @@ sample is for evaluation, not model training or a commercial accuracy claim.
 
 - Clip-level exact retrieval: 5/5 (100%).
 - Sampled frames: 105.
-- Frames with any plate read: 94.
+- Frames with any plate read: 95.
 - Frames with the exact labelled plate: 90.
-- Aggregate exact rate among frames with a read: 90/94 (95.7%).
+- Aggregate exact rate among frames with a read: 90/95 (94.7%).
 - Total footage: 102.68 seconds.
-- Sum of per-clip processing times: 9.452 seconds on the local CPU.
+- Sum of timed frame-processing passes: 2.602 seconds on the local CPU (model initialization excluded).
+
+These values were reproduced locally on October 20, 2026 with FastALPR 0.4.0.
 
 This is a small, favourable daylight smoke benchmark. It does not establish
 performance on Ontario plates, night footage, glare, snow, temporary plates,

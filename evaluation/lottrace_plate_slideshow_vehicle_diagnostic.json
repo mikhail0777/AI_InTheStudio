@@ -1,0 +1,23 @@
+{
+  "run_date": "2026-10-20",
+  "video": "videos/lottrace_plate_slideshow_60s.mp4",
+  "duration_seconds": 60.0,
+  "sample_fps": 1.0,
+  "sampled_frames": 60,
+  "frames_with_vehicle": 8,
+  "vehicle_detections": 12,
+  "frame_detection_coverage": 0.1333,
+  "categories": {
+    "bus": 8,
+    "car": 1,
+    "truck": 3
+  },
+  "elapsed_seconds": 11.225,
+  "model": {
+    "provider": "ultralytics",
+    "model_name": "yolo11s-seg.pt",
+    "model_version": "1caa81c0195412efa411b632bcfb8c184939dddb6ae41f6a80c41b211ff257c3",
+    "device": "cpu"
+  },
+  "limitation": "No frame-level vehicle boxes are labelled in this video; this is functional coverage, not accuracy."
+}

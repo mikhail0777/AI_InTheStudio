@@ -1,0 +1,494 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-21T02:24:41.350084+00:00",
+  "dataset": "UC3M-LP",
+  "split": "train",
+  "selection_policy": "Select only on train. Confirm the selected model once on untouched test; do not select or tune on test.",
+  "crop_policy": "Axis-aligned ground-truth plate box; OCR-only diagnostic, not end-to-end ALPR.",
+  "label_limitation": "UC3M-LP masks two characters per plate; selection uses published positions only.",
+  "runtime": {
+    "python": "3.14.8 (tags/v3.14.8:8e6e75d, Sep 30 2026, 18:19:33) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "device": "cpu"
+  },
+  "ranking": [
+    "cct-xs-v2-global-model",
+    "global-plates-mobile-vit-v2-model",
+    "cct-s-v2-global-model",
+    "european-plates-mobile-vit-v2-model"
+  ],
+  "models": {
+    "cct-xs-v2-global-model": {
+      "plates_evaluated": 2056,
+      "invalid_images": 0,
+      "published_position_exact_matches": 1674,
+      "published_position_plate_accuracy": 0.8142023346303502,
+      "published_position_plate_accuracy_wilson_95": [
+        0.7968097019012759,
+        0.8304230370395644
+      ],
+      "published_character_edits": 508,
+      "published_ground_truth_characters": 10299,
+      "published_character_error_rate": 0.04932517720167007,
+      "published_normalized_edit_similarity": 0.9506748227983299,
+      "elapsed_seconds": 137.4107676000276,
+      "plates_per_second": 14.962437339587257,
+      "common_substitutions": [
+        {
+          "expected": "0",
+          "observed": "O",
+          "count": 49
+        },
+        {
+          "expected": "3",
+          "observed": "8",
+          "count": 23
+        },
+        {
+          "expected": "1",
+          "observed": "L",
+          "count": 23
+        },
+        {
+          "expected": "L",
+          "observed": "V",
+          "count": 23
+        },
+        {
+          "expected": "1",
+          "observed": "5",
+          "count": 22
+        },
+        {
+          "expected": "K",
+          "observed": "Z",
+          "count": 20
+        },
+        {
+          "expected": "8",
+          "observed": "L",
+          "count": 18
+        },
+        {
+          "expected": "K",
+          "observed": "W",
+          "count": 18
+        },
+        {
+          "expected": "3",
+          "observed": "L",
+          "count": 18
+        },
+        {
+          "expected": "6",
+          "observed": "K",
+          "count": 17
+        },
+        {
+          "expected": "4",
+          "observed": "F",
+          "count": 17
+        },
+        {
+          "expected": "L",
+          "observed": "M",
+          "count": 17
+        },
+        {
+          "expected": "K",
+          "observed": "X",
+          "count": 17
+        },
+        {
+          "expected": "1",
+          "observed": "8",
+          "count": 16
+        },
+        {
+          "expected": "J",
+          "observed": "Y",
+          "count": 15
+        },
+        {
+          "expected": "1",
+          "observed": "D",
+          "count": 15
+        },
+        {
+          "expected": "4",
+          "observed": "C",
+          "count": 15
+        },
+        {
+          "expected": "0",
+          "observed": "6",
+          "count": 15
+        },
+        {
+          "expected": "K",
+          "observed": "Y",
+          "count": 15
+        },
+        {
+          "expected": "0",
+          "observed": "F",
+          "count": 15
+        }
+      ]
+    },
+    "cct-s-v2-global-model": {
+      "plates_evaluated": 2056,
+      "invalid_images": 0,
+      "published_position_exact_matches": 1567,
+      "published_position_plate_accuracy": 0.7621595330739299,
+      "published_position_plate_accuracy_wilson_95": [
+        0.7432777119818772,
+        0.7800635361436845
+      ],
+      "published_character_edits": 604,
+      "published_ground_truth_characters": 10299,
+      "published_character_error_rate": 0.05864647053111953,
+      "published_normalized_edit_similarity": 0.9413535294688805,
+      "elapsed_seconds": 151.42166689998703,
+      "plates_per_second": 13.577977591264887,
+      "common_substitutions": [
+        {
+          "expected": "0",
+          "observed": "O",
+          "count": 35
+        },
+        {
+          "expected": "3",
+          "observed": "8",
+          "count": 21
+        },
+        {
+          "expected": "1",
+          "observed": "5",
+          "count": 20
+        },
+        {
+          "expected": "K",
+          "observed": "Z",
+          "count": 20
+        },
+        {
+          "expected": "L",
+          "observed": "V",
+          "count": 20
+        },
+        {
+          "expected": "1",
+          "observed": "L",
+          "count": 18
+        },
+        {
+          "expected": "6",
+          "observed": "K",
+          "count": 17
+        },
+        {
+          "expected": "K",
+          "observed": "X",
+          "count": 17
+        },
+        {
+          "expected": "0",
+          "observed": "3",
+          "count": 16
+        },
+        {
+          "expected": "8",
+          "observed": "B",
+          "count": 16
+        },
+        {
+          "expected": "1",
+          "observed": "D",
+          "count": 16
+        },
+        {
+          "expected": "0",
+          "observed": "6",
+          "count": 16
+        },
+        {
+          "expected": "7",
+          "observed": "J",
+          "count": 15
+        },
+        {
+          "expected": "F",
+          "observed": "Y",
+          "count": 15
+        },
+        {
+          "expected": "4",
+          "observed": "F",
+          "count": 15
+        },
+        {
+          "expected": "3",
+          "observed": "L",
+          "count": 15
+        },
+        {
+          "expected": "K",
+          "observed": "Y",
+          "count": 15
+        },
+        {
+          "expected": "5",
+          "observed": "K",
+          "count": 15
+        },
+        {
+          "expected": "4",
+          "observed": "C",
+          "count": 15
+        },
+        {
+          "expected": "0",
+          "observed": "C",
+          "count": 14
+        }
+      ]
+    },
+    "european-plates-mobile-vit-v2-model": {
+      "plates_evaluated": 2056,
+      "invalid_images": 0,
+      "published_position_exact_matches": 1560,
+      "published_position_plate_accuracy": 0.7587548638132295,
+      "published_position_plate_accuracy_wilson_95": [
+        0.7397898646138757,
+        0.7767547439256398
+      ],
+      "published_character_edits": 659,
+      "published_ground_truth_characters": 10299,
+      "published_character_error_rate": 0.06398679483444995,
+      "published_normalized_edit_similarity": 0.9360132051655501,
+      "elapsed_seconds": 137.94269260001602,
+      "plates_per_second": 14.904740231232527,
+      "common_substitutions": [
+        {
+          "expected": "0",
+          "observed": "O",
+          "count": 27
+        },
+        {
+          "expected": "3",
+          "observed": "8",
+          "count": 22
+        },
+        {
+          "expected": "1",
+          "observed": "5",
+          "count": 21
+        },
+        {
+          "expected": "L",
+          "observed": "V",
+          "count": 21
+        },
+        {
+          "expected": "6",
+          "observed": "K",
+          "count": 17
+        },
+        {
+          "expected": "K",
+          "observed": "Z",
+          "count": 17
+        },
+        {
+          "expected": "4",
+          "observed": "F",
+          "count": 17
+        },
+        {
+          "expected": "K",
+          "observed": "W",
+          "count": 17
+        },
+        {
+          "expected": "K",
+          "observed": "X",
+          "count": 17
+        },
+        {
+          "expected": "0",
+          "observed": "6",
+          "count": 17
+        },
+        {
+          "expected": "1",
+          "observed": "D",
+          "count": 16
+        },
+        {
+          "expected": "0",
+          "observed": "F",
+          "count": 16
+        },
+        {
+          "expected": "0",
+          "observed": "C",
+          "count": 15
+        },
+        {
+          "expected": "J",
+          "observed": "Y",
+          "count": 15
+        },
+        {
+          "expected": "0",
+          "observed": "3",
+          "count": 15
+        },
+        {
+          "expected": "2",
+          "observed": "K",
+          "count": 15
+        },
+        {
+          "expected": "8",
+          "observed": "6",
+          "count": 15
+        },
+        {
+          "expected": "7",
+          "observed": "J",
+          "count": 14
+        },
+        {
+          "expected": "G",
+          "observed": "T",
+          "count": 14
+        },
+        {
+          "expected": "2",
+          "observed": "5",
+          "count": 14
+        }
+      ]
+    },
+    "global-plates-mobile-vit-v2-model": {
+      "plates_evaluated": 2056,
+      "invalid_images": 0,
+      "published_position_exact_matches": 1639,
+      "published_position_plate_accuracy": 0.7971789883268483,
+      "published_position_plate_accuracy_wilson_95": [
+        0.7792512962773966,
+        0.8139982447332125
+      ],
+      "published_character_edits": 628,
+      "published_ground_truth_characters": 10299,
+      "published_character_error_rate": 0.06097679386348189,
+      "published_normalized_edit_similarity": 0.9390232061365181,
+      "elapsed_seconds": 137.73405480000656,
+      "plates_per_second": 14.9273177427715,
+      "common_substitutions": [
+        {
+          "expected": "1",
+          "observed": "5",
+          "count": 21
+        },
+        {
+          "expected": "L",
+          "observed": "V",
+          "count": 21
+        },
+        {
+          "expected": "3",
+          "observed": "8",
+          "count": 20
+        },
+        {
+          "expected": "K",
+          "observed": "Z",
+          "count": 20
+        },
+        {
+          "expected": "K",
+          "observed": "X",
+          "count": 19
+        },
+        {
+          "expected": "6",
+          "observed": "K",
+          "count": 17
+        },
+        {
+          "expected": "4",
+          "observed": "F",
+          "count": 17
+        },
+        {
+          "expected": "K",
+          "observed": "W",
+          "count": 17
+        },
+        {
+          "expected": "0",
+          "observed": "3",
+          "count": 16
+        },
+        {
+          "expected": "1",
+          "observed": "D",
+          "count": 16
+        },
+        {
+          "expected": "0",
+          "observed": "G",
+          "count": 16
+        },
+        {
+          "expected": "0",
+          "observed": "6",
+          "count": 16
+        },
+        {
+          "expected": "5",
+          "observed": "K",
+          "count": 16
+        },
+        {
+          "expected": "3",
+          "observed": "L",
+          "count": 16
+        },
+        {
+          "expected": "4",
+          "observed": "C",
+          "count": 16
+        },
+        {
+          "expected": "1",
+          "observed": "8",
+          "count": 16
+        },
+        {
+          "expected": "0",
+          "observed": "C",
+          "count": 15
+        },
+        {
+          "expected": "0",
+          "observed": "5",
+          "count": 15
+        },
+        {
+          "expected": "5",
+          "observed": "1",
+          "count": 15
+        },
+        {
+          "expected": "2",
+          "observed": "K",
+          "count": 15
+        }
+      ]
+    }
+  }
+}

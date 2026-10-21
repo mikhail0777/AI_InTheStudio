@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-21T03:43:29.580744+00:00",
+  "dataset": {
+    "name": "COCO 2017 val",
+    "images_evaluated": 1000,
+    "annotation_file": "evaluation/datasets/coco/annotations/instances_val2017.json",
+    "annotation_sha256": "e8c7f7908f1d7278341fae127d0da654f102f11bd7b21d8aeefa635b8c810b6f",
+    "ground_truth_vehicle_instances": 525,
+    "negative_images": 859
+  },
+  "model": {
+    "path": "backend/models/yolo11m-seg.pt",
+    "sha256": "eb9a06f63e2206c35d68d839b08c362429ebecf933ad54c1ad68b2fd001c17cf",
+    "task": "segment",
+    "classes": [
+      "car",
+      "motorcycle",
+      "bus",
+      "truck"
+    ],
+    "image_size": 1280,
+    "prediction_confidence_floor": 0.001,
+    "operating_confidence_threshold": 0.25,
+    "nms_iou": 0.5,
+    "device": "cpu"
+  },
+  "runtime": {
+    "python": "3.14.8 (tags/v3.14.8:8e6e75d, Sep 30 2026, 18:19:33) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "new_images_processed": 1000,
+    "elapsed_seconds": 826.7883886999916,
+    "new_images_per_second": 1.2094993273579462
+  },
+  "metrics": {
+    "mean_ap_iou_0.50": 0.7052922588685671,
+    "mean_ap_iou_0.50_0.95": 0.4751447031052332,
+    "operating_point_iou_0.50": {
+      "true_positive": 376,
+      "false_positive": 153,
+      "false_negative": 149,
+      "precision": 0.7107750472589792,
+      "recall": 0.7161904761904762,
+      "f1": 0.713472485768501,
+      "precision_wilson_95": [
+        0.6707279644273828,
+        0.7477830134787892
+      ],
+      "recall_wilson_95": [
+        0.6761630793897135,
+        0.753077094983539
+      ]
+    },
+    "per_class": {
+      "car": {
+        "ground_truth_instances": 345,
+        "ap_iou_0.50": 0.7474932532945943,
+        "ap_iou_0.50_0.95": 0.5298671587355829,
+        "operating_point_iou_0.50": {
+          "true_positive": 248,
+          "false_positive": 92,
+          "false_negative": 97,
+          "precision": 0.7294117647058823,
+          "recall": 0.7188405797101449,
+          "f1": 0.7240875912408757,
+          "precision_wilson_95": [
+            0.6798208169800928,
+            0.7738766531709707
+          ],
+          "recall_wilson_95": [
+            0.6691925838842567,
+            0.7636688096854065
+          ]
+        }
+      },
+      "motorcycle": {
+        "ground_truth_instances": 61,
+        "ap_iou_0.50": 0.8815047673158183,
+        "ap_iou_0.50_0.95": 0.595702891767957,
+        "operating_point_iou_0.50": {
+          "true_positive": 52,
+          "false_positive": 18,
+          "false_negative": 9,
+          "precision": 0.7428571428571429,
+          "recall": 0.8524590163934426,
+          "f1": 0.7938931297709924,
+          "precision_wilson_95": [
+            0.6297386985284517,
+            0.8307072425865616
+          ],
+          "recall_wilson_95": [
+            0.742767647052789,
+            0.9203883149206723
+          ]
+        }
+      },
+      "bus": {
+        "ground_truth_instances": 56,
+        "ap_iou_0.50": 0.8237371748680119,
+        "ap_iou_0.50_0.95": 0.566378409854487,
+        "operating_point_iou_0.50": {
+          "true_positive": 45,
+          "false_positive": 14,
+          "false_negative": 11,
+          "precision": 0.7627118644067796,
+          "recall": 0.8035714285714286,
+          "f1": 0.782608695652174,
+          "precision_wilson_95": [
+            0.6402510929359725,
+            0.853053814075376
+          ],
+          "recall_wilson_95": [
+            0.681553923735416,
+            0.8866140432567635
+          ]
+        }
+      },
+      "truck": {
+        "ground_truth_instances": 63,
+        "ap_iou_0.50": 0.3684338399958439,
+        "ap_iou_0.50_0.95": 0.20863035206290598,
+        "operating_point_iou_0.50": {
+          "true_positive": 31,
+          "false_positive": 29,
+          "false_negative": 32,
+          "precision": 0.5166666666666667,
+          "recall": 0.49206349206349204,
+          "f1": 0.5040650406504066,
+          "precision_wilson_95": [
+            0.39307810032592494,
+            0.6382495046026722
+          ],
+          "recall_wilson_95": [
+            0.37266808813984664,
+            0.6123711372504527
+          ]
+        }
+      }
+    },
+    "recall_by_coco_object_size_at_operating_threshold": {
+      "small": {
+        "matched": 168,
+        "ground_truth": 265,
+        "recall": 0.6339622641509434,
+        "recall_wilson_95": [
+          0.5744332369879299,
+          0.6896629344561997
+        ]
+      },
+      "medium": {
+        "matched": 134,
+        "ground_truth": 161,
+        "recall": 0.8322981366459627,
+        "recall_wilson_95": [
+          0.7669983327086665,
+          0.8821102153804947
+        ]
+      },
+      "large": {
+        "matched": 74,
+        "ground_truth": 99,
+        "recall": 0.7474747474747475,
+        "recall_wilson_95": [
+          0.6537553108987586,
+          0.822706230603024
+        ]
+      }
+    },
+    "false_detections_on_negative_images": 9,
+    "false_detections_per_negative_image": 0.010477299185098952
+  },
+  "limitations": [
+    "COCO is a general still-image benchmark, not dealership CCTV footage.",
+    "This benchmark does not measure tracking, plate-to-vehicle association, colour, make/model/year, or false sightings per hour.",
+    "AP uses a 0.001 prediction floor; operating-point precision/recall/F1 use the production 0.25 threshold.",
+    "COCO image licensing is image-specific; annotations are CC BY 4.0."
+  ]
+}
