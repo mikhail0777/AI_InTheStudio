@@ -9,13 +9,19 @@ def manifest():
             "name": "test", "version": "1", "licence": "internal-test",
             "source": "unit test", "sha256": "abc", "permitted_usage": "testing",
         },
+        "split_policy": {
+            "separated_by": ["site_id", "camera_id", "vehicle_id", "recording_date"],
+        },
         "events": [
             {"event_id": "day", "split": "final_test", "eligible": True,
-             "plate": "ABC123", "duration_seconds": 5, "conditions": ["day"]},
+             "plate": "ABC123", "duration_seconds": 5, "conditions": ["day"],
+             "site_id": "s1", "camera_id": "c1", "vehicle_id": "v1", "recording_date": "2026-01-01"},
             {"event_id": "night", "split": "final_test", "eligible": True,
-             "plate": "XYZ900", "duration_seconds": 5, "conditions": ["night"]},
+             "plate": "XYZ900", "duration_seconds": 5, "conditions": ["night"],
+             "site_id": "s2", "camera_id": "c2", "vehicle_id": "v2", "recording_date": "2026-01-02"},
             {"event_id": "negative", "split": "final_test", "eligible": False,
-             "plate": None, "duration_seconds": 3600, "conditions": ["negative_footage"]},
+             "plate": None, "duration_seconds": 3600, "conditions": ["negative_footage"],
+             "site_id": "s3", "camera_id": "c3", "vehicle_id": None, "recording_date": "2026-01-03"},
         ],
     }
 

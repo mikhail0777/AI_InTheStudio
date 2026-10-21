@@ -23,6 +23,7 @@ from evaluation_metrics import levenshtein, wilson_interval
 
 
 REQUIRED_PROVENANCE = ("name", "version", "licence", "source", "sha256", "permitted_usage")
+REQUIRED_SEPARATION_KEYS = {"site_id", "camera_id", "vehicle_id", "recording_date"}
 
 
 def _sha256(path: Path) -> str:
@@ -75,7 +76,9 @@ def _confusions(expected: str, observed: str) -> Counter[str]:
 
 def validate_manifest(manifest: dict) -> None:
     provenance = manifest.get("dataset") or {}
-    missing = [field for field in REQUIRED_PROVENANCE if not str(provenance.get(field, "")).strip()]
+    missing = [field for field in REQUIRED_PROVENANCE
+               if not str(provenance.get(field, "")).strip()
+               or str(provenance.get(field, "")).startswith("REPLACE_WITH")]
     if missing:
         raise ValueError("Dataset provenance is missing: " + ", ".join(missing))
     events = manifest.get("events")
@@ -86,6 +89,11 @@ def validate_manifest(manifest: dict) -> None:
         raise ValueError("Every event_id must be present and unique.")
     if any(item.get("split") != "final_test" for item in events):
         raise ValueError("This release-gate evaluator accepts final_test events only.")
+    separation = set((manifest.get("split_policy") or {}).get("separated_by") or [])
+    if not REQUIRED_SEPARATION_KEYS.issubset(separation):
+        raise ValueError(
+            "Split policy must declare separation by site_id, camera_id, vehicle_id, and recording_date."
+        )
     for item in events:
         if item.get("eligible", True) and item.get("plate") is not None:
             plate = normalize_plate(str(item["plate"]))
@@ -93,6 +101,12 @@ def validate_manifest(manifest: dict) -> None:
                 raise ValueError(f"Event {item['event_id']} lacks a valid full plate transcription.")
         if float(item.get("duration_seconds", 0)) < 0:
             raise ValueError(f"Event {item['event_id']} has negative duration.")
+        required_event_fields = {"site_id", "camera_id", "recording_date"}
+        if item.get("plate") is not None:
+            required_event_fields.add("vehicle_id")
+        absent = sorted(field for field in required_event_fields if not item.get(field))
+        if absent:
+            raise ValueError(f"Event {item['event_id']} is missing leakage-control fields: {', '.join(absent)}")
 
 
 def evaluate(manifest: dict, predictions: list[dict], *, top_k: int = 5) -> dict:
@@ -191,14 +205,19 @@ def main() -> int:
     args = parser.parse_args()
     manifest_path, predictions_path = Path(args.manifest), Path(args.predictions)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    predictions = json.loads(predictions_path.read_text(encoding="utf-8"))
-    if not isinstance(predictions, list):
-        raise SystemExit("Predictions must be a JSON list.")
+    prediction_payload = json.loads(predictions_path.read_text(encoding="utf-8"))
+    if not isinstance(prediction_payload, dict) or not isinstance(prediction_payload.get("predictions"), list):
+        raise SystemExit("Predictions must be an object containing model_manifest and predictions.")
+    model_manifest = prediction_payload.get("model_manifest")
+    if not isinstance(model_manifest, dict) or not model_manifest.get("models") or not model_manifest.get("thresholds"):
+        raise SystemExit("Prediction model_manifest must record models/hashes and thresholds.")
+    predictions = prediction_payload["predictions"]
     report = evaluate(manifest, predictions, top_k=args.top_k)
     report["inputs"] = {
         "manifest": str(manifest_path.resolve()), "manifest_sha256": _sha256(manifest_path),
         "predictions": str(predictions_path.resolve()), "predictions_sha256": _sha256(predictions_path),
         "dataset": manifest["dataset"],
+        "model_manifest": model_manifest,
     }
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
