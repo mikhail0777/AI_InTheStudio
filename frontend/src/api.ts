@@ -11,6 +11,19 @@ export interface VehicleEvent {
  boundary_name:string;best_vehicle_crop:string|null;best_plate_crop:string|null;
  previous_status:string|null;new_status:string|null;
 }
+export interface PlateOcrCandidate {text:string;confidence:number;source_variant:string}
+export interface PlateOcrObservation {
+ observation_id:string;frame_idx:number;timestamp_seconds:number;
+ source_frame_reference:string;raw_plate_crop_reference:string|null;
+ enhanced_plate_crop_reference:string|null;quality_metrics:Record<string,number>;
+ ocr_candidates:PlateOcrCandidate[];model_manifest:Record<string,unknown>;
+}
+export interface PlateAnalysis {
+ sighting_id:string;observed_plate:string;consensus_plate:string|null;consensus_state:string|null;
+ best_plate_crop:string|null;enhanced_plate_crop:string|null;
+ consensus:{reason?:string;ranked_candidates?:Array<{text:string;distinct_frames:number;weighted_support:number}>;confusable_alternatives?:string[]};
+ observations:PlateOcrObservation[];
+}
 async function json<T>(url:string,init?:RequestInit):Promise<T>{const res=await fetch(url,init);if(!res.ok)throw new Error((await res.json().catch(()=>null))?.detail||await res.text()||`Request failed (${res.status}).`);return res.json();}
 export const getAuthStatus=()=>json<{configured:boolean;user:AuthUser|null}>(`${API_BASE}/auth/status`);
 export const bootstrapAuth=(body:Record<string,string>)=>json<{user:AuthUser}>(`${API_BASE}/auth/bootstrap`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -20,6 +33,7 @@ export const getVehicles=()=>json<VehicleRecord[]>(`${API_BASE}/vehicles`);
 export const createVehicleRecord=(body:Record<string,unknown>)=>json<VehicleRecord>(`${API_BASE}/vehicles`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 export const getVehicleTimeline=(id:string)=>json<TimelineItem[]>(`${API_BASE}/vehicles/${encodeURIComponent(id)}/timeline`);
 export const getVehicleEvents=(review_state?:string)=>json<VehicleEvent[]>(`${API_BASE}/vehicle-events${review_state?`?review_state=${encodeURIComponent(review_state)}`:''}`);
+export const getPlateAnalysis=(sightingId:string)=>json<PlateAnalysis>(`${API_BASE}/vehicle-sightings/${encodeURIComponent(sightingId)}/plate-analysis`);
 export const linkSighting=(sightingId:string,vehicle_id:string,reason:string)=>json(`${API_BASE}/vehicle-sightings/${encodeURIComponent(sightingId)}/link`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vehicle_id,reason})});
 export interface InspectionMedia {media_id:string;viewpoint:string;source_filename:string;sha256:string;width:number;height:number;evidence_url:string|null}
 export interface Inspection {inspection_id:string;vehicle_id:string;inspection_type:'arrival'|'departure';status:string;captured_at:string;device_label:string|null;media_count?:number;media?:InspectionMedia[];annotations?:Array<Record<string,unknown>>;required_viewpoints?:string[]}

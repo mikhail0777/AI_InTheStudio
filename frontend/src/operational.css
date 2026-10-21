@@ -382,3 +382,6 @@
   .workspace.operational .sample-role select { font-size: 14px; }
 }
 .event-filter{display:flex;align-items:center;gap:8px;color:#687486;font-size:13px}.event-filter select{min-height:40px}
+.plate-analysis{margin:20px 0;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.plate-evidence-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0}
+.plate-evidence-grid figure{margin:0}.plate-evidence-grid img{width:100%;max-height:150px;object-fit:contain;background:#111;border-radius:8px}.plate-evidence-grid figcaption{margin-top:6px;color:var(--muted);font-size:.85rem}

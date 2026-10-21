@@ -420,6 +420,13 @@ def get_sighting_revisions(sighting_id: str):
     except LookupError as error:
         raise HTTPException(404, str(error)) from error
 
+@router.get("/vehicle-sightings/{sighting_id}/plate-analysis")
+def get_sighting_plate_analysis(sighting_id: str, request: Request):
+    try:
+        return vehicle_sightings.get_plate_analysis(sighting_id, _user(request)["dealership_id"])
+    except LookupError as error:
+        raise HTTPException(404, str(error)) from error
+
 @router.get("/vehicles")
 def vehicles(request:Request): return vehicle_records.list_vehicles(_user(request))
 

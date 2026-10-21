@@ -211,3 +211,33 @@ def list_revisions(sighting_id: str) -> list[dict[str, Any]]:
             (sighting_id,),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def get_plate_analysis(sighting_id: str, dealership_id: str) -> dict[str, Any]:
+    """Return immutable raw OCR evidence and its separately stored consensus."""
+    with database.get_db_connection() as conn:
+        sighting = conn.execute(
+            """SELECT sighting_id,observed_plate,consensus_plate,consensus_state,
+               consensus_details_json,best_plate_crop,enhanced_plate_crop
+               FROM vehicle_sightings WHERE sighting_id=? AND dealership_id=?""",
+            (sighting_id, dealership_id),
+        ).fetchone()
+        if not sighting:
+            raise LookupError("Sighting not found.")
+        observations = conn.execute(
+            """SELECT * FROM plate_ocr_observations WHERE sighting_id=?
+               ORDER BY timestamp_seconds,frame_idx,observation_id""",
+            (sighting_id,),
+        ).fetchall()
+    result = dict(sighting)
+    result["consensus"] = json.loads(result.pop("consensus_details_json") or "{}")
+    result["observations"] = []
+    for row in observations:
+        item = dict(row)
+        for key, default in (
+            ("detected_bbox_json", []), ("quality_metrics_json", {}),
+            ("ocr_candidates_json", []), ("model_manifest_json", {}),
+        ):
+            item[key.removesuffix("_json")] = json.loads(item.pop(key) or json.dumps(default))
+        result["observations"].append(item)
+    return result

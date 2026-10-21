@@ -23,3 +23,12 @@ test('vehicle-only lookup fields are visible by default',()=>{
  assert.match(source,/<details className="form-section vehicle-details" open>/);
  assert.match(source,/Search without a plate/);
 });
+
+test('saved-sighting review exposes auditable multi-frame plate evidence',()=>{
+ const source=read('../src/workspace/OperationalSightingsPage.tsx');
+ assert.match(source,/getPlateAnalysis/);
+ assert.match(source,/Multi-frame plate evidence/);
+ assert.match(source,/Original crop/);
+ assert.match(source,/Enhanced derivative/);
+ assert.match(source,/Model confidence is evidence weighting, not measured accuracy/);
+});

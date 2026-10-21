@@ -15,7 +15,7 @@ from app.services.license_plate_reader import PlateReading
 from app.services.vehicle_recognizer import VehicleObservation
 from app.services.vehicle_investigation import VehicleInvestigationManager, _group_sightings, is_plate_investigation
 from app.services.query_parser import StructuredQueryParser
-from app.services.vehicle_sightings import after_hours
+from app.services.vehicle_sightings import after_hours, get_plate_analysis
 
 
 class VehicleInvestigationTests(unittest.TestCase):
@@ -69,8 +69,8 @@ class VehicleInvestigationTests(unittest.TestCase):
                 )
                 with database.get_db_connection() as conn:
                     conn.execute(
-                        "INSERT INTO sessions(session_id,status,video_metadata,target_config,run_id) VALUES (?,?,?,?,?)",
-                        ("case", "analyzing", metadata.model_dump_json(), target.model_dump_json(), "run"),
+                        "INSERT INTO sessions(session_id,status,video_metadata,target_config,run_id,dealership_id) VALUES (?,?,?,?,?,?)",
+                        ("case", "analyzing", metadata.model_dump_json(), target.model_dump_json(), "run", "dealer"),
                     )
                     conn.execute(
                         "INSERT INTO analysis_runs(run_id,session_id,status) VALUES (?,?,?)",
@@ -126,6 +126,10 @@ class VehicleInvestigationTests(unittest.TestCase):
                 self.assertEqual(len(plate_observations), 2)
                 self.assertTrue(plate_observations[0]["raw_plate_crop_reference"].endswith("_raw.png"))
                 self.assertTrue(plate_observations[0]["enhanced_plate_crop_reference"].endswith("_enhanced.png"))
+                analysis = get_plate_analysis(sighting["sighting_id"], "dealer")
+                self.assertEqual(analysis["consensus"]["selected_plate"], "ABC123")
+                self.assertEqual(len(analysis["observations"]), 2)
+                self.assertEqual(analysis["observations"][0]["ocr_candidates"][0]["text"], "ABC123")
                 with database.get_db_connection() as conn:
                     with self.assertRaises(sqlite3.IntegrityError):
                         conn.execute(
