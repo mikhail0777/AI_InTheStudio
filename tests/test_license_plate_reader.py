@@ -47,6 +47,14 @@ class PlateMatchingTests(unittest.TestCase):
         self.assertEqual([item.text for item in readings], ["ABC123"])
         read.assert_called_once()
 
+    def test_overlapping_tile_reads_are_deduplicated_even_when_ocr_differs(self):
+        readings = LicensePlateReader._deduplicate([
+            PlateReading("ABC123", .97, [100, 100, 200, 140]),
+            PlateReading("A8C123", .83, [103, 101, 201, 141]),
+            PlateReading("XYZ999", .90, [300, 100, 400, 140]),
+        ])
+        self.assertEqual([item.text for item in readings], ["ABC123", "XYZ999"])
+
 
 if __name__ == "__main__":
     unittest.main()
