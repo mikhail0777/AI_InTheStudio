@@ -31,6 +31,10 @@ frontend/node_modules/
 evaluation/datasets/
 evaluation/downloads/
 evaluation/*_predictions.jsonl
+
+# Large local datasets: preserve archives and extracted media outside Git.
+/datasets/incoming/
+/datasets/extracted/
 .vscode/
 .idea/
 .DS_Store
