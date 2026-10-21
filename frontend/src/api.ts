@@ -4,6 +4,13 @@ const API_BASE = '/api';
 export interface AuthUser {user_id:string;dealership_id:string;email:string;display_name:string;role:'viewer'|'reviewer'|'manager'|'administrator'|'auditor'}
 export interface VehicleRecord {vehicle_id:string;normalized_plate:string|null;vin:string|null;stock_number:string|null;make:string|null;model:string|null;year:number|null;color:string|null;body_type:string|null;status:string;notes:string|null;updated_at:string}
 export interface TimelineItem {type:'sighting'|'plate_alias'|'audit';at:string;data:Record<string,unknown>}
+export interface VehicleEvent {
+ event_id:string;event_type:'arrival'|'departure';occurred_at:string;timezone:string;
+ consensus_plate:string|null;plate_match_state:string;matched_vehicle_id:string|null;
+ review_state:'confirmed'|'requires_review';review_reason:string|null;camera_name:string;
+ boundary_name:string;best_vehicle_crop:string|null;best_plate_crop:string|null;
+ previous_status:string|null;new_status:string|null;
+}
 async function json<T>(url:string,init?:RequestInit):Promise<T>{const res=await fetch(url,init);if(!res.ok)throw new Error((await res.json().catch(()=>null))?.detail||await res.text()||`Request failed (${res.status}).`);return res.json();}
 export const getAuthStatus=()=>json<{configured:boolean;user:AuthUser|null}>(`${API_BASE}/auth/status`);
 export const bootstrapAuth=(body:Record<string,string>)=>json<{user:AuthUser}>(`${API_BASE}/auth/bootstrap`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -12,6 +19,7 @@ export const logoutAuth=()=>json(`${API_BASE}/auth/logout`,{method:'POST'});
 export const getVehicles=()=>json<VehicleRecord[]>(`${API_BASE}/vehicles`);
 export const createVehicleRecord=(body:Record<string,unknown>)=>json<VehicleRecord>(`${API_BASE}/vehicles`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 export const getVehicleTimeline=(id:string)=>json<TimelineItem[]>(`${API_BASE}/vehicles/${encodeURIComponent(id)}/timeline`);
+export const getVehicleEvents=(review_state?:string)=>json<VehicleEvent[]>(`${API_BASE}/vehicle-events${review_state?`?review_state=${encodeURIComponent(review_state)}`:''}`);
 export const linkSighting=(sightingId:string,vehicle_id:string,reason:string)=>json(`${API_BASE}/vehicle-sightings/${encodeURIComponent(sightingId)}/link`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vehicle_id,reason})});
 export interface InspectionMedia {media_id:string;viewpoint:string;source_filename:string;sha256:string;width:number;height:number;evidence_url:string|null}
 export interface Inspection {inspection_id:string;vehicle_id:string;inspection_type:'arrival'|'departure';status:string;captured_at:string;device_label:string|null;media_count?:number;media?:InspectionMedia[];annotations?:Array<Record<string,unknown>>;required_viewpoints?:string[]}

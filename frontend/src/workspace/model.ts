@@ -1,6 +1,6 @@
 export type ReviewStatus = 'pending' | 'confirmed' | 'unrelated';
 export type Role = 'staff' | 'manager';
-export type View = 'overview' | 'search' | 'sightings' | 'history' | 'incidents' | 'activity' | 'recording' | 'records' | 'inspections';
+export type View = 'overview' | 'search' | 'sightings' | 'history' | 'incidents' | 'activity' | 'recording' | 'events' | 'records' | 'inspections';
 export type Rect = [number, number, number, number];
 export interface ImageAsset { file: string; region: Rect; alt: string }
 export interface Vehicle { id: string; plate: string; make: string; model: string; colour: string; year: number; image: ImageAsset }

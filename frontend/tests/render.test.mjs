@@ -9,13 +9,14 @@ test('authentication gate precedes the real workspace and routes remain explicit
  const previousLocation=globalThis.location,previousStorage=globalThis.localStorage;
  globalThis.localStorage={getItem:()=>null,setItem:()=>{}};
  globalThis.location={hash:'#/'};
- const server=await createServer({server:{middlewareMode:true},appType:'custom'});
+ const server=await createServer({configLoader:'runner',server:{middlewareMode:true},appType:'custom'});
  try{
   const {App}=await server.ssrLoadModule('/src/App.tsx');
   const {workspaceRoute}=await server.ssrLoadModule('/src/workspace/store.tsx');
   assert.equal(workspaceRoute('').source,'local');
   assert.equal(workspaceRoute('').view,'recording');
   assert.equal(workspaceRoute('#/search').source,'local');
+  assert.equal(workspaceRoute('#/events').view,'events');
   assert.equal(workspaceRoute('#/sample/search').source,'sample');
   assert.equal(workspaceRoute('#/sample/recording').source,'local');
   assert.equal(workspaceRoute('#/missing').view,'recording');

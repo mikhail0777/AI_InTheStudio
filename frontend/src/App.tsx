@@ -1,5 +1,5 @@
 import React, {Suspense, useState} from 'react';
-import {ArrowRight, Camera, Car, Check, ChevronRight, HelpCircle, History, LayoutDashboard, LogOut, Menu, Search, ShieldCheck, Upload, Video, X} from 'lucide-react';
+import {ArrowLeftRight,ArrowRight, Camera, Car, Check, ChevronRight, HelpCircle, History, LayoutDashboard, LogOut, Menu, Search, ShieldCheck, Upload, Video, X} from 'lucide-react';
 import {logoutAuth,type AuthUser} from './api';
 import {WorkspaceProvider, useWorkspace} from './workspace/store';
 import type {View} from './workspace/model';
@@ -15,6 +15,7 @@ import {AuthGate} from './workspace/AuthGate';
 import {VehicleRecordsPage} from './workspace/VehicleRecordsPage';
 import {InspectionsPage} from './workspace/InspectionsPage';
 import {OperationalIncidentsPage} from './workspace/OperationalIncidentsPage';
+import {VehicleEventsPage} from './workspace/VehicleEventsPage';
 import './recording.css';
 
 const RecordingApp = React.lazy(() => import('./RecordingApp').then(m => ({default: m.RecordingApp})));
@@ -27,6 +28,7 @@ const sampleNav = [
 ] as const;
 const localNav = [
   {id: 'recording', label: 'Analyse recording', icon: Upload},
+  {id: 'events', label: 'Arrival / departure', icon: ArrowLeftRight},
   {id: 'search', label: 'Saved sightings', icon: Search},
   {id: 'records', label: 'Vehicle records', icon: Car},
   {id: 'inspections', label: 'Condition inspections', icon: Camera},
@@ -86,6 +88,7 @@ function Workspace({user}:{user:AuthUser}) {
         {sample && view === 'incidents' && <IncidentPage/>}
         {sample && view === 'activity' && <ActivityPage/>}
         {!sample && view === 'search' && <OperationalSightingsPage/>}
+        {!sample && view === 'events' && <VehicleEventsPage/>}
         {!sample && view === 'records' && <VehicleRecordsPage canManage={user.role==='manager'||user.role==='administrator'}/>}
         {!sample && view === 'inspections' && <InspectionsPage/>}
         {!sample && view === 'incidents' && <OperationalIncidentsPage canManage={user.role==='manager'||user.role==='administrator'}/>}

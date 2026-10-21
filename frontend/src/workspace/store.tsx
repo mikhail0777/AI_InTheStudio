@@ -1,13 +1,13 @@
 import React,{createContext,useContext,useEffect,useState} from 'react';
 import {applyAction,DemoAction,DemoState,emptyFilters,initialState,parseStoredState,Role,SearchFilters,Sighting,STORAGE_KEY,View,vehicles} from './model';
-const routes:View[]=['overview','search','sightings','history','incidents','activity','recording','records','inspections'];
+const routes:View[]=['overview','search','sightings','history','incidents','activity','recording','events','records','inspections'];
 export function workspaceRoute(hash:string){
  const parts=hash.replace(/^#\/?/,'').split('/');
  let source=parts[0]==='sample'?'sample':'local';
  if(source==='sample')parts.shift();
  const [requested,id]=parts;
  if(requested==='recording')source='local';
- const view=source==='local'?(requested==='search'||requested==='records'||requested==='inspections'||requested==='incidents'?requested:'recording'):(routes.includes(requested as View)?requested as View:'search');
+ const view=source==='local'?(requested==='search'||requested==='events'||requested==='records'||requested==='inspections'||requested==='incidents'?requested:'recording'):(routes.includes(requested as View)?requested as View:'search');
  return {source,view,id} as {source:'local'|'sample';view:View;id?:string};
 }
 const route=()=>workspaceRoute(location.hash);

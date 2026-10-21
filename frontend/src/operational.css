@@ -381,3 +381,4 @@
   .workspace.operational .sample-role { font-size: 0; }
   .workspace.operational .sample-role select { font-size: 14px; }
 }
+.event-filter{display:flex;align-items:center;gap:8px;color:#687486;font-size:13px}.event-filter select{min-height:40px}
