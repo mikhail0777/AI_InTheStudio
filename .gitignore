@@ -35,6 +35,7 @@ evaluation/*_predictions.jsonl
 # Large local datasets: preserve archives and extracted media outside Git.
 /datasets/incoming/
 /datasets/extracted/
+/runs/
 .vscode/
 .idea/
 .DS_Store
