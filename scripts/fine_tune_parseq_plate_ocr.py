@@ -47,6 +47,21 @@ class PARSeqPlateDataset(Dataset):
                 image = ImageEnhance.Contrast(image).enhance(random.uniform(.8, 1.25))
                 if random.random() < .2:
                     image = image.filter(ImageFilter.GaussianBlur(random.uniform(.1, .8)))
+                if random.random() < .12:
+                    # A short horizontal exposure approximates mild motion blur
+                    # while retaining the original image on disk unchanged.
+                    kernel = [0.] * 10 + [.2] * 5 + [0.] * 10
+                    image = image.filter(ImageFilter.Kernel((5, 5), kernel, scale=1))
+                if random.random() < .2:
+                    image = T.RandomPerspective(
+                        distortion_scale=.12, p=1.0,
+                        interpolation=T.InterpolationMode.BICUBIC,
+                    )(image)
+                if random.random() < .2:
+                    image = T.functional.rotate(
+                        image, random.uniform(-2., 2.),
+                        interpolation=T.InterpolationMode.BICUBIC,
+                    )
             return self.transform(image), sample.sequence
 
 
@@ -121,6 +136,10 @@ def main() -> int:
         "architecture": "official pretrained PARSeq, canonical-order fine-tune", "train_samples": len(train),
         "validation_samples": len(valid), "epochs": args.epochs, "learning_rate": args.learning_rate,
         "initial_checkpoint": str(args.initial_checkpoint.resolve()) if args.initial_checkpoint else None,
+        "training_augmentations": [
+            "brightness 0.8-1.2", "contrast 0.8-1.25", "mild Gaussian blur",
+            "mild horizontal motion blur", "mild perspective distortion", "rotation +/-2 degrees",
+        ],
         "elapsed_seconds": time.perf_counter() - started, "history": history,
         "best_validation": max(history, key=lambda r: (r["exact_plate_accuracy"], r["character_accuracy"])),
         "best_checkpoint_sha256": file_sha256(best_path),
