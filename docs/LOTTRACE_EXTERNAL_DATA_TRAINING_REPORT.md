@@ -29,12 +29,12 @@ All archives and extracted data remain excluded from Git. SHA-256 values identif
 | Source | Labels found | Licence/provenance finding | Current use |
 |---|---|---|---|
 | 36-class plate OCR | YOLO character boxes; filenames contain candidate full strings | Dataset declares CC BY 4.0 | Leakage-safe character training and exact cropped-plate evaluation |
-| 31-class plate OCR | YOLO character boxes and class chart | Dataset declares Private | Audited only; excluded from commercial training and accuracy claims |
-| UA-DETRAC | Vehicle boxes, track IDs, vehicle type, occlusion, truncation, illumination | Official download page does not state a dataset licence in the supplied material | Annotations inventoried; not promoted as commercially cleared training data |
-| VMMRdb | Make/model-labelled image hierarchy | Repository's MIT file covers software; image rights are not explicitly granted by the supplied archive | Archived and hashed; excluded from commercial model training pending image-rights clarification |
-| OpenPK | Vehicle trajectories and video | Repository states all rights reserved and asks users to contact the author for research use; most 2026 tracks are machine generated and plates are obscured | Excluded from training and final accuracy claims pending permission; machine labels are not human ground truth |
+| 31-class plate OCR | YOLO character boxes and class chart | Dataset metadata says Private; project owner attests owner permission for this school research | Permitted for local research training; still unsuitable as independent full-string test truth |
+| UA-DETRAC | Vehicle boxes, track IDs, vehicle type, occlusion, truncation, illumination | Public terms were absent from supplied material; project owner attests research permission | Permitted for local research experiments; not represented as commercially cleared |
+| VMMRdb | Make/model-labelled image hierarchy | Repository's MIT file covers software; project owner attests research permission for supplied images | Permitted for local school-research training/evaluation; redistribution remains excluded |
+| OpenPK | Vehicle trajectories and video | Repository requests research permission; project owner attests that permission was obtained | Permitted for local research; machine-generated tracks remain distinct from human ground truth |
 
-Public download availability was not treated as commercial permission.
+The permission record is in `docs/LOTTRACE_RESEARCH_DATA_PERMISSION.md`. Public download availability alone was not treated as permission; the updated research decision relies on the project owner's explicit attestation.
 
 ## OCR preparation
 
@@ -63,7 +63,7 @@ The threshold was selected once on validation and fixed at 0.50 before test infe
 
 ## Release decision and next work
 
-The 640 model is the stronger of these two experiments, but neither checkpoint should replace the production reader solely from this small proxy set. The next defensible OCR step is a larger, target-region, fully transcribed dealership-video corpus with independent frames grouped into vehicle events. UA-DETRAC can exercise generic vehicle detection/tracking after its use terms are documented, but it has no readable plate truth and cannot close any exact-plate or dealership crossing gate. VMMRdb and OpenPK require rights clarification before commercial training.
+The 640 model is the stronger of these two experiments, but neither checkpoint should replace the production reader solely from this small proxy set. The next defensible OCR step is a larger, target-region, fully transcribed dealership-video corpus with independent frames grouped into vehicle events. The supplied datasets are now permitted for local school research under the owner's attestation. UA-DETRAC still has no readable plate truth and cannot close an exact-plate gate; OpenPK's machine-generated tracks cannot be reported as independent human ground truth. Commercial and redistribution rights remain a separate future review.
 
 No model, dataset, accuracy result, or release gate was fabricated. No commit contains the uploaded archives or trained checkpoints.
 
