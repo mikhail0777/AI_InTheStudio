@@ -22,6 +22,7 @@ class PlateConsensusTests(unittest.TestCase):
         ])
         self.assertEqual(result["selected_plate"], "CVTV604")
         self.assertEqual(result["state"], "exact_consensus")
+        self.assertFalse(result["requires_review"])
         self.assertEqual(result["ranked_candidates"][0]["distinct_frames"], 2)
 
     def test_enhancement_variants_in_one_frame_do_not_fake_temporal_support(self):
@@ -54,6 +55,18 @@ class PlateConsensusTests(unittest.TestCase):
             [item["text"] for item in result["ranked_candidates"]], ["ABC12O", "ABC120"]
         )
         self.assertTrue(result["confusable_alternatives"])
+        self.assertTrue(result["requires_review"])
+        self.assertTrue(result["near_match_groups"][0]["review_only"])
+
+    def test_repeated_low_confidence_text_is_not_auto_confirmed(self):
+        result = build_plate_consensus([
+            {"frame_idx": 1, "quality_score": 1, "text": "ABC123", "confidence": .2},
+            {"frame_idx": 2, "quality_score": 1, "text": "ABC123", "confidence": .2},
+        ])
+        self.assertEqual(result["selected_plate"], "ABC123")
+        self.assertEqual(result["state"], "uncertain")
+        self.assertEqual(result["reason"], "repeated_reading_has_insufficient_ocr_support")
+        self.assertTrue(result["requires_review"])
 
     def test_candidate_ranking_rejects_invalid_top_k(self):
         with self.assertRaises(ValueError):

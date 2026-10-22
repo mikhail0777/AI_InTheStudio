@@ -100,7 +100,8 @@ def build_plate_consensus(observations: Iterable[dict], *, top_k: int = 5) -> di
     if not ranked:
         return {
             "selected_plate": None, "state": "uncertain", "reason": "no_valid_candidates",
-            "ranked_candidates": [], "confusable_alternatives": [],
+            "ranked_candidates": [], "confusable_alternatives": [], "near_match_groups": [],
+            "requires_review": True, "decision_score": 0.0,
         }
     winner = ranked[0]
     runner_up = ranked[1] if len(ranked) > 1 else None
@@ -108,17 +109,54 @@ def build_plate_consensus(observations: Iterable[dict], *, top_k: int = 5) -> di
         runner_up.distinct_frames == winner.distinct_frames
         and abs(runner_up.weighted_support - winner.weighted_support) < .15
     ))
+    sufficient_evidence = (
+        winner.distinct_frames >= 2
+        and winner.best_confidence >= .5
+        and winner.weighted_support >= .8
+    )
     if tied:
         state, reason = "conflicting", "competing_candidates_have_similar_support"
-    elif winner.distinct_frames >= 2:
+    elif sufficient_evidence:
         state, reason = "exact_consensus", "same_exact_string_on_independent_frames"
+    elif winner.distinct_frames >= 2:
+        state, reason = "uncertain", "repeated_reading_has_insufficient_ocr_support"
     else:
         state, reason = "uncertain", "single_frame_support"
     confusable = [item.text for item in ranked[1:] if plate_similarity(item.text, winner.text) >= .90]
+    near_match_groups = []
+    remaining = list(ranked)
+    while remaining:
+        anchor = remaining.pop(0)
+        members = [anchor]
+        others = []
+        for candidate in remaining:
+            (members if plate_similarity(candidate.text, anchor.text) >= .80 else others).append(candidate)
+        remaining = others
+        if len(members) > 1:
+            near_match_groups.append({
+                "anchor": anchor.text,
+                "candidates": [item.text for item in members],
+                "distinct_frames": len({frame for item in members for frame in item.frame_indices}),
+                "weighted_support": round(sum(item.weighted_support for item in members), 6),
+                "review_only": True,
+            })
+    average_support = winner.weighted_support / max(1, winner.distinct_frames)
+    runner_support = runner_up.weighted_support if runner_up else 0.0
+    margin = max(0.0, winner.weighted_support - runner_support)
+    decision_score = min(1.0, average_support) * min(1.0, winner.distinct_frames / 2) * min(1.0, .5 + margin)
     return {
         "selected_plate": winner.text,
         "state": state,
         "reason": reason,
         "ranked_candidates": [item.as_dict() for item in ranked],
         "confusable_alternatives": confusable,
+        "near_match_groups": near_match_groups,
+        "requires_review": state != "exact_consensus",
+        "decision_score": round(decision_score, 6),
+        "decision_policy": {
+            "minimum_independent_exact_frames": 2,
+            "minimum_best_ocr_confidence": .5,
+            "minimum_weighted_support": .8,
+            "near_matches_are_review_only": True,
+        },
     }

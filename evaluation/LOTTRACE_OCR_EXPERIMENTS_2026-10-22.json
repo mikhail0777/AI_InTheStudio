@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "objective": "Improve exact full-plate recognition on the protected cropped-plate research splits without weakening the retained baseline.",
+  "splits": {
+    "train_eligible_single_row_crops": 2273,
+    "validation_crops": 159,
+    "regression_crops": 37,
+    "regression_status": "development regression set; repeatedly inspected; not a pristine final test"
+  },
+  "experiments": [
+    {
+      "name": "retained-yolo11n-640",
+      "validation_exact": {"matches": 131, "total": 159, "accuracy": 0.8238993710691824},
+      "validation_character_accuracy": 0.9577717879604672,
+      "regression_exact": {"matches": 22, "total": 37, "accuracy": 0.5945945945945946},
+      "regression_character_accuracy": 0.8918918918918919,
+      "decision": "retained standalone baseline"
+    },
+    {
+      "name": "expanded-data-yolo11n-640",
+      "validation_exact": {"matches": 126, "total": 159, "accuracy": 0.7924528301886793},
+      "validation_character_accuracy": 0.9478885893980233,
+      "decision": "rejected before regression"
+    },
+    {
+      "name": "fastplateocr-global-mobile-vit-v2",
+      "validation_exact": {"matches": 92, "total": 159, "accuracy": 0.5786163522012578},
+      "validation_character_accuracy": 0.8751123090745733,
+      "regression_exact": {"matches": 11, "total": 37, "accuracy": 0.2972972972972973},
+      "regression_character_accuracy": 0.694980694980695,
+      "decision": "rejected"
+    },
+    {
+      "name": "from-scratch-crnn-ctc",
+      "validation_exact": {"matches": 0, "total": 159, "accuracy": 0.0},
+      "best_validation_character_accuracy": 0.07457322551662171,
+      "decision": "rejected before regression"
+    },
+    {
+      "name": "official-pretrained-parseq",
+      "validation_exact": {"matches": 40, "total": 159, "accuracy": 0.25157232704402516},
+      "validation_character_accuracy": 0.8050314465408805,
+      "decision": "rejected before regression"
+    },
+    {
+      "name": "parseq-finetune-stage-1",
+      "validation_exact": {"matches": 106, "total": 159, "accuracy": 0.6666666666666666},
+      "validation_character_accuracy": 0.9263252470799641,
+      "regression_exact": {"matches": 20, "total": 37, "accuracy": 0.5405405405405406},
+      "regression_character_accuracy": 0.8687258687258688,
+      "decision": "rejected as standalone"
+    },
+    {
+      "name": "parseq-finetune-stage-2",
+      "validation_exact": {"matches": 115, "total": 159, "accuracy": 0.7232704402515723},
+      "validation_character_accuracy": 0.9380053908355795,
+      "decision": "rejected before regression"
+    },
+    {
+      "name": "parseq-finetune-stage-3-realistic-augmentation",
+      "validation_exact": {"matches": 116, "total": 159, "accuracy": 0.7295597484276729},
+      "validation_character_accuracy": 0.9398023360287511,
+      "checkpoint_sha256": "fc3743bea5127aa62f9a460b967134e6316905a2afff923d6cd1147aa8b77c72",
+      "decision": "rejected before regression"
+    },
+    {
+      "name": "yolo-parseq-seven-character-ranking-experiment",
+      "validation_exact": {"matches": 136, "total": 159, "accuracy": 0.8553459119496856},
+      "validation_character_accuracy": 0.9649595687331536,
+      "regression_exact": {"matches": 23, "total": 37, "accuracy": 0.6216216216216216},
+      "regression_character_accuracy": 0.8996138996138996,
+      "decision": "research candidate only; not production identity confirmation"
+    }
+  ],
+  "confidence_calibration": {
+    "target_exact_precision": 0.99,
+    "minimum_accepted_samples": 20,
+    "release_gate_met": false,
+    "example_threshold": 0.85,
+    "example_accepted": 102,
+    "example_correct": 96,
+    "example_exact_precision": 0.9411764705882353,
+    "example_wilson_95_lower": 0.8775640550984952
+  },
+  "release_decision": {
+    "exact_plate_99_percent_gate_met": false,
+    "dealership_video_event_gate_measured": false,
+    "production_certified": false
+  },
+  "limitations": [
+    "These are cropped, single-row plate experiments, not dealership-video event measurements.",
+    "The seven-character ranking rule is valid only when explicitly configured for the target region.",
+    "Model confidence is not treated as measured accuracy.",
+    "Uploaded data, checkpoints, and detailed predictions remain excluded from Git."
+  ]
+}
