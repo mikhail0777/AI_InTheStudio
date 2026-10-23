@@ -1,0 +1,816 @@
+{
+  "schema_version": 1,
+  "input_size": 224,
+  "classes": [
+    {
+      "class_id": 0,
+      "make": "Ford",
+      "model": "explorer",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 1,
+      "make": "Honda",
+      "model": "civic",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 2,
+      "make": "Nissan",
+      "model": "altima",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 3,
+      "make": "Honda",
+      "model": "accord",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 4,
+      "make": "Ford",
+      "model": "taurus",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 5,
+      "make": "Honda",
+      "model": "civic",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 6,
+      "make": "Ford",
+      "model": "explorer",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 7,
+      "make": "Chevrolet",
+      "model": "impala",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 8,
+      "make": "Nissan",
+      "model": "altima",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 9,
+      "make": "Honda",
+      "model": "accord",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 10,
+      "make": "Honda",
+      "model": "civic",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 11,
+      "make": "Toyota",
+      "model": "camry",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 12,
+      "make": "Honda",
+      "model": "accord",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 13,
+      "make": "Ford",
+      "model": "f150",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 14,
+      "make": "Chevrolet",
+      "model": "silverado",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 15,
+      "make": "Volkswagen",
+      "model": "jetta",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 16,
+      "make": "Honda",
+      "model": "odyssey",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 17,
+      "make": "Ford",
+      "model": "explorer",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 18,
+      "make": "Ford",
+      "model": "mustang",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 19,
+      "make": "Toyota",
+      "model": "camry",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 20,
+      "make": "Ford",
+      "model": "mustang",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 21,
+      "make": "Honda",
+      "model": "odyssey",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 22,
+      "make": "Chevrolet",
+      "model": "silverado",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 23,
+      "make": "Toyota",
+      "model": "camry",
+      "year_start": 2007,
+      "year_end": 2009,
+      "image_count": 120
+    },
+    {
+      "class_id": 24,
+      "make": "Ford",
+      "model": "expedition",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 25,
+      "make": "Chevrolet",
+      "model": "trailblazer",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 26,
+      "make": "Ford",
+      "model": "focus",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 27,
+      "make": "Toyota",
+      "model": "sienna",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 28,
+      "make": "Nissan",
+      "model": "altima",
+      "year_start": 2007,
+      "year_end": 2009,
+      "image_count": 120
+    },
+    {
+      "class_id": 29,
+      "make": "Honda",
+      "model": "accord",
+      "year_start": 1995,
+      "year_end": 1997,
+      "image_count": 120
+    },
+    {
+      "class_id": 30,
+      "make": "Honda",
+      "model": "civic",
+      "year_start": 1995,
+      "year_end": 1997,
+      "image_count": 120
+    },
+    {
+      "class_id": 31,
+      "make": "Chevrolet",
+      "model": "impala",
+      "year_start": 2007,
+      "year_end": 2009,
+      "image_count": 120
+    },
+    {
+      "class_id": 32,
+      "make": "Volkswagen",
+      "model": "jetta",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 33,
+      "make": "Honda",
+      "model": "civic",
+      "year_start": 2007,
+      "year_end": 2009,
+      "image_count": 120
+    },
+    {
+      "class_id": 34,
+      "make": "Jeep",
+      "model": "grand cherokee",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 35,
+      "make": "Dodge",
+      "model": "grand caravan",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 36,
+      "make": "Dodge",
+      "model": "durango",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 37,
+      "make": "Nissan",
+      "model": "maxima",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 38,
+      "make": "Ford",
+      "model": "f150",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 39,
+      "make": "Chevrolet",
+      "model": "impala",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 40,
+      "make": "Ford",
+      "model": "mustang",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 41,
+      "make": "Chevrolet",
+      "model": "silverado",
+      "year_start": 2007,
+      "year_end": 2009,
+      "image_count": 120
+    },
+    {
+      "class_id": 42,
+      "make": "Honda",
+      "model": "accord",
+      "year_start": 2007,
+      "year_end": 2009,
+      "image_count": 120
+    },
+    {
+      "class_id": 43,
+      "make": "Ford",
+      "model": "expedition",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 44,
+      "make": "Dodge",
+      "model": "grand caravan",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 45,
+      "make": "Jeep",
+      "model": "grand cherokee",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 46,
+      "make": "Ford",
+      "model": "taurus",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 47,
+      "make": "Dodge",
+      "model": "durango",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 48,
+      "make": "Chevrolet",
+      "model": "tahoe",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 49,
+      "make": "Acura",
+      "model": "tl",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 50,
+      "make": "Chrysler",
+      "model": "pacifica",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 51,
+      "make": "Toyota",
+      "model": "corolla",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 52,
+      "make": "Nissan",
+      "model": "maxima",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 53,
+      "make": "Jeep",
+      "model": "grand cherokee",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 54,
+      "make": "Chevrolet",
+      "model": "trailblazer",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 55,
+      "make": "Ford",
+      "model": "escape",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 56,
+      "make": "Chevrolet",
+      "model": "silverado",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 57,
+      "make": "Volkswagen",
+      "model": "passat",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 58,
+      "make": "Toyota",
+      "model": "corolla",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 59,
+      "make": "Jeep",
+      "model": "liberty",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 60,
+      "make": "Nissan",
+      "model": "maxima",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 61,
+      "make": "Ford",
+      "model": "f150",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 62,
+      "make": "Ford",
+      "model": "taurus",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 63,
+      "make": "Honda",
+      "model": "civic",
+      "year_start": 2010,
+      "year_end": 2012,
+      "image_count": 120
+    },
+    {
+      "class_id": 64,
+      "make": "Ford",
+      "model": "escape",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 65,
+      "make": "Toyota",
+      "model": "camry",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 66,
+      "make": "Toyota",
+      "model": "corolla",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 67,
+      "make": "Dodge",
+      "model": "durango",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 68,
+      "make": "Jeep",
+      "model": "liberty",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 69,
+      "make": "Hyundai",
+      "model": "sonata",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 70,
+      "make": "Nissan",
+      "model": "quest",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 71,
+      "make": "Nissan",
+      "model": "sentra",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 72,
+      "make": "Chevrolet",
+      "model": "cobalt",
+      "year_start": 2007,
+      "year_end": 2009,
+      "image_count": 120
+    },
+    {
+      "class_id": 73,
+      "make": "Nissan",
+      "model": "altima",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 74,
+      "make": "Toyota",
+      "model": "camry",
+      "year_start": 1995,
+      "year_end": 1997,
+      "image_count": 120
+    },
+    {
+      "class_id": 75,
+      "make": "Ford",
+      "model": "focus",
+      "year_start": 2007,
+      "year_end": 2009,
+      "image_count": 120
+    },
+    {
+      "class_id": 76,
+      "make": "Ford",
+      "model": "focus",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 77,
+      "make": "Chevrolet",
+      "model": "cobalt",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 78,
+      "make": "Ford",
+      "model": "expedition",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 79,
+      "make": "Chevrolet",
+      "model": "malibu",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 80,
+      "make": "Chrysler",
+      "model": "300",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 81,
+      "make": "Volkswagen",
+      "model": "passat",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 82,
+      "make": "Audi",
+      "model": "a4",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 83,
+      "make": "Ford",
+      "model": "f150",
+      "year_start": 1995,
+      "year_end": 1997,
+      "image_count": 120
+    },
+    {
+      "class_id": 84,
+      "make": "Nissan",
+      "model": "murano",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 85,
+      "make": "Mitsubishi",
+      "model": "eclipse",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 86,
+      "make": "Toyota",
+      "model": "camry",
+      "year_start": 2010,
+      "year_end": 2012,
+      "image_count": 120
+    },
+    {
+      "class_id": 87,
+      "make": "Nissan",
+      "model": "sentra",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 88,
+      "make": "Dodge",
+      "model": "grand caravan",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 89,
+      "make": "Pontiac",
+      "model": "g6",
+      "year_start": 2007,
+      "year_end": 2009,
+      "image_count": 120
+    },
+    {
+      "class_id": 90,
+      "make": "Ford",
+      "model": "mustang",
+      "year_start": 1995,
+      "year_end": 1997,
+      "image_count": 120
+    },
+    {
+      "class_id": 91,
+      "make": "Nissan",
+      "model": "altima",
+      "year_start": 2010,
+      "year_end": 2012,
+      "image_count": 120
+    },
+    {
+      "class_id": 92,
+      "make": "Chevrolet",
+      "model": "tahoe",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 93,
+      "make": "Ford",
+      "model": "f250",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 94,
+      "make": "Ford",
+      "model": "ranger",
+      "year_start": 1998,
+      "year_end": 2000,
+      "image_count": 120
+    },
+    {
+      "class_id": 95,
+      "make": "Bmw",
+      "model": "x5",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 96,
+      "make": "Honda",
+      "model": "cr-v",
+      "year_start": 2001,
+      "year_end": 2003,
+      "image_count": 120
+    },
+    {
+      "class_id": 97,
+      "make": "Pontiac",
+      "model": "grandprix",
+      "year_start": 2004,
+      "year_end": 2006,
+      "image_count": 120
+    },
+    {
+      "class_id": 98,
+      "make": "Ford",
+      "model": "fusion",
+      "year_start": 2010,
+      "year_end": 2012,
+      "image_count": 120
+    },
+    {
+      "class_id": 99,
+      "make": "Dodge",
+      "model": "charger",
+      "year_start": 2007,
+      "year_end": 2009,
+      "image_count": 120
+    }
+  ],
+  "dataset": {
+    "name": "VMMRdb",
+    "commercial_use_cleared": false,
+    "final_benchmark": false,
+    "limitation": "Research-only image rights; no vehicle/site/camera/date grouping. The frozen test split is repeatable but cannot certify production performance."
+  },
+  "training_manifest": "C:\\Personal\\GitProjects\\AI_InTheStudio\\datasets\\extracted\\vmmr_benchmark_100\\manifest.json",
+  "result_scope": "research_only_not_production_accuracy",
+  "model_architecture": "mobilenet_v3_small",
+  "pretrained_imagenet": true
+}

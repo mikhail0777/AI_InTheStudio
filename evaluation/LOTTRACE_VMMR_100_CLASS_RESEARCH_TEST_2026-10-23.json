@@ -1,0 +1,604 @@
+{
+  "schema_version": 1,
+  "scope": "frozen_vmmr_research_test_not_production_accuracy",
+  "manifest_sha256": "e114b89214a4b98fb3cb91fcd0bb37a870801f0826fa61ff8d8f08629226796d",
+  "model_sha256": "f0b2165b8c96df37c390ca6fc17df0aa2268bfd557959b2796f2bee6db1926a0",
+  "dataset": {
+    "name": "VMMRdb",
+    "commercial_use_cleared": false,
+    "final_benchmark": false,
+    "limitation": "Research-only image rights; no vehicle/site/camera/date grouping. The frozen test split is repeatable but cannot certify production performance."
+  },
+  "classes": 100,
+  "metrics": {
+    "samples": 1803,
+    "exact_make_model_year_range_top1": 0.38380476982806433,
+    "exact_make_model_year_range_top1_count": 692,
+    "exact_top1_wilson_95": [
+      0.3616269982251906,
+      0.4064766181964311
+    ],
+    "exact_make_model_year_range_top5": 0.7265668330560178,
+    "make_top1": 0.6505823627287853,
+    "make_model_top1": 0.5696062118691071,
+    "year_range_top1": 0.5108153078202995,
+    "macro_f1_exact_class": 0.3634176228684696,
+    "largest_confusions": [
+      {
+        "truth": {
+          "class_id": 52,
+          "make": "Nissan",
+          "model": "maxima",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 60,
+          "make": "Nissan",
+          "model": "maxima",
+          "year_start": 1998,
+          "year_end": 2000,
+          "image_count": 120
+        },
+        "count": 11
+      },
+      {
+        "truth": {
+          "class_id": 66,
+          "make": "Toyota",
+          "model": "corolla",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 58,
+          "make": "Toyota",
+          "model": "corolla",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 9
+      },
+      {
+        "truth": {
+          "class_id": 25,
+          "make": "Chevrolet",
+          "model": "trailblazer",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 54,
+          "make": "Chevrolet",
+          "model": "trailblazer",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 8
+      },
+      {
+        "truth": {
+          "class_id": 59,
+          "make": "Jeep",
+          "model": "liberty",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 68,
+          "make": "Jeep",
+          "model": "liberty",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 8
+      },
+      {
+        "truth": {
+          "class_id": 62,
+          "make": "Ford",
+          "model": "taurus",
+          "year_start": 1998,
+          "year_end": 2000,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 4,
+          "make": "Ford",
+          "model": "taurus",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 8
+      },
+      {
+        "truth": {
+          "class_id": 6,
+          "make": "Ford",
+          "model": "explorer",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 0,
+          "make": "Ford",
+          "model": "explorer",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 7
+      },
+      {
+        "truth": {
+          "class_id": 20,
+          "make": "Ford",
+          "model": "mustang",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 40,
+          "make": "Ford",
+          "model": "mustang",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "count": 7
+      },
+      {
+        "truth": {
+          "class_id": 22,
+          "make": "Chevrolet",
+          "model": "silverado",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 56,
+          "make": "Chevrolet",
+          "model": "silverado",
+          "year_start": 1998,
+          "year_end": 2000,
+          "image_count": 120
+        },
+        "count": 7
+      },
+      {
+        "truth": {
+          "class_id": 39,
+          "make": "Chevrolet",
+          "model": "impala",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 7,
+          "make": "Chevrolet",
+          "model": "impala",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "count": 7
+      },
+      {
+        "truth": {
+          "class_id": 44,
+          "make": "Dodge",
+          "model": "grand caravan",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 35,
+          "make": "Dodge",
+          "model": "grand caravan",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 7
+      },
+      {
+        "truth": {
+          "class_id": 55,
+          "make": "Ford",
+          "model": "escape",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 64,
+          "make": "Ford",
+          "model": "escape",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 7
+      },
+      {
+        "truth": {
+          "class_id": 76,
+          "make": "Ford",
+          "model": "focus",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 26,
+          "make": "Ford",
+          "model": "focus",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 7
+      },
+      {
+        "truth": {
+          "class_id": 2,
+          "make": "Nissan",
+          "model": "altima",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 8,
+          "make": "Nissan",
+          "model": "altima",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 6
+      },
+      {
+        "truth": {
+          "class_id": 8,
+          "make": "Nissan",
+          "model": "altima",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 2,
+          "make": "Nissan",
+          "model": "altima",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "count": 6
+      },
+      {
+        "truth": {
+          "class_id": 18,
+          "make": "Ford",
+          "model": "mustang",
+          "year_start": 1998,
+          "year_end": 2000,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 40,
+          "make": "Ford",
+          "model": "mustang",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "count": 6
+      },
+      {
+        "truth": {
+          "class_id": 19,
+          "make": "Toyota",
+          "model": "camry",
+          "year_start": 1998,
+          "year_end": 2000,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 9,
+          "make": "Honda",
+          "model": "accord",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 6
+      },
+      {
+        "truth": {
+          "class_id": 35,
+          "make": "Dodge",
+          "model": "grand caravan",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 44,
+          "make": "Dodge",
+          "model": "grand caravan",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "count": 6
+      },
+      {
+        "truth": {
+          "class_id": 61,
+          "make": "Ford",
+          "model": "f150",
+          "year_start": 1998,
+          "year_end": 2000,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 38,
+          "make": "Ford",
+          "model": "f150",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 6
+      },
+      {
+        "truth": {
+          "class_id": 4,
+          "make": "Ford",
+          "model": "taurus",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 46,
+          "make": "Ford",
+          "model": "taurus",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "count": 5
+      },
+      {
+        "truth": {
+          "class_id": 11,
+          "make": "Toyota",
+          "model": "camry",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 65,
+          "make": "Toyota",
+          "model": "camry",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "count": 5
+      },
+      {
+        "truth": {
+          "class_id": 36,
+          "make": "Dodge",
+          "model": "durango",
+          "year_start": 1998,
+          "year_end": 2000,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 47,
+          "make": "Dodge",
+          "model": "durango",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 5
+      },
+      {
+        "truth": {
+          "class_id": 43,
+          "make": "Ford",
+          "model": "expedition",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 78,
+          "make": "Ford",
+          "model": "expedition",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "count": 5
+      },
+      {
+        "truth": {
+          "class_id": 43,
+          "make": "Ford",
+          "model": "expedition",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 24,
+          "make": "Ford",
+          "model": "expedition",
+          "year_start": 1998,
+          "year_end": 2000,
+          "image_count": 120
+        },
+        "count": 5
+      },
+      {
+        "truth": {
+          "class_id": 45,
+          "make": "Jeep",
+          "model": "grand cherokee",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 53,
+          "make": "Jeep",
+          "model": "grand cherokee",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 5
+      },
+      {
+        "truth": {
+          "class_id": 3,
+          "make": "Honda",
+          "model": "accord",
+          "year_start": 1998,
+          "year_end": 2000,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 9,
+          "make": "Honda",
+          "model": "accord",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "count": 4
+      },
+      {
+        "truth": {
+          "class_id": 7,
+          "make": "Chevrolet",
+          "model": "impala",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 31,
+          "make": "Chevrolet",
+          "model": "impala",
+          "year_start": 2007,
+          "year_end": 2009,
+          "image_count": 120
+        },
+        "count": 4
+      },
+      {
+        "truth": {
+          "class_id": 12,
+          "make": "Honda",
+          "model": "accord",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 98,
+          "make": "Ford",
+          "model": "fusion",
+          "year_start": 2010,
+          "year_end": 2012,
+          "image_count": 120
+        },
+        "count": 4
+      },
+      {
+        "truth": {
+          "class_id": 19,
+          "make": "Toyota",
+          "model": "camry",
+          "year_start": 1998,
+          "year_end": 2000,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 74,
+          "make": "Toyota",
+          "model": "camry",
+          "year_start": 1995,
+          "year_end": 1997,
+          "image_count": 120
+        },
+        "count": 4
+      },
+      {
+        "truth": {
+          "class_id": 20,
+          "make": "Ford",
+          "model": "mustang",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 18,
+          "make": "Ford",
+          "model": "mustang",
+          "year_start": 1998,
+          "year_end": 2000,
+          "image_count": 120
+        },
+        "count": 4
+      },
+      {
+        "truth": {
+          "class_id": 26,
+          "make": "Ford",
+          "model": "focus",
+          "year_start": 2001,
+          "year_end": 2003,
+          "image_count": 120
+        },
+        "predicted": {
+          "class_id": 76,
+          "make": "Ford",
+          "model": "focus",
+          "year_start": 2004,
+          "year_end": 2006,
+          "image_count": 120
+        },
+        "count": 4
+      }
+    ]
+  },
+  "limitations": [
+    "Research-only image rights; no vehicle/site/camera/date grouping. The frozen test split is repeatable but cannot certify production performance.",
+    "Closed-set results do not measure unknown or unsupported vehicle rejection.",
+    "Web-sale photographs differ from fixed dealership entrance/exit video."
+  ]
+}

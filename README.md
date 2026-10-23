@@ -42,7 +42,7 @@ Open `http://localhost:5173`. After dependencies and models are installed, `run_
 
 Milestones A and B are development-complete for the current prototype, not production-certified. Existing plate-box localization measured 97.55% precision, 91.71% recall, and 94.54% F1. The frozen 451-image exact complete-plate OCR benchmark measured 91.13% (411/451); the high-confidence accepted subset measured 98.55% (340/345) at 76.50% coverage. Multi-frame performance still requires a labelled dealership-video benchmark.
 
-Milestone C is active. VMMRdb tooling is included for research and plumbing validation, but the source images require a separate commercial-rights review before production use. Live camera/RTSP ingestion remains a Milestone D task.
+Milestone C is active. The first frozen 100-class VMMR research test measured 38.38% exact make+model+three-year-range top-1, 56.96% make+model top-1, and 65.06% make top-1 on 1,803 images. The system is implemented, but this accuracy is not sufficient to close the milestone. VMMRdb also requires a separate commercial-rights review before production use. Live camera/RTSP ingestion remains a Milestone D task.
 
 Set `AIEYE_PLATE_SCAN_FPS` to override the plate cadence (0.1–15 FPS). Set `AIEYE_PLATE_REVIEW_SIMILARITY` to tune which non-exact OCR strings enter the review queue; the default is `0.78`. `AIEYE_PLATE_MIRROR_FALLBACK` enables the guarded mirrored-camera pass, and `AIEYE_PLATE_MIRROR_THRESHOLD` controls when it runs (default `0.72`). These settings affect recall, runtime, and the number of false review candidates. They do not change the definition of an exact match.
 

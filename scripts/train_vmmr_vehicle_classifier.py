@@ -21,10 +21,11 @@ from torchvision import models, transforms
 
 
 class ZipVehicleDataset(Dataset):
-    def __init__(self, archive: Path, samples: list[dict], transform):
+    def __init__(self, archive: Path, samples: list[dict], transform, extracted_root: Path | None = None):
         self.archive_path = Path(archive)
         self.samples = samples
         self.transform = transform
+        self.extracted_root = Path(extracted_root) if extracted_root else None
         self._archive = None
 
     def __len__(self):
@@ -37,9 +38,16 @@ class ZipVehicleDataset(Dataset):
 
     def __getitem__(self, index):
         item = self.samples[index]
-        with self._source().open(item["member"]) as source:
-            with Image.open(BytesIO(source.read())) as image:
+        if self.extracted_root:
+            path = (self.extracted_root / item["member"]).resolve()
+            if self.extracted_root.resolve() not in path.parents:
+                raise ValueError("Manifest member escapes the extracted dataset root.")
+            with Image.open(path) as image:
                 value = self.transform(image.convert("RGB"))
+        else:
+            with self._source().open(item["member"]) as source:
+                with Image.open(BytesIO(source.read())) as image:
+                    value = self.transform(image.convert("RGB"))
         return value, int(item["class_id"])
 
 
@@ -87,14 +95,20 @@ def main():
     parser.add_argument("--device", choices=("cpu", "cuda"))
     parser.add_argument("--cpu-threads", type=int, default=4)
     parser.add_argument("--sample-limit", type=int)
+    parser.add_argument("--extracted-root", type=Path,
+                        help="Optional ignored cache containing manifest member paths.")
+    parser.add_argument("--pretrained", action="store_true",
+                        help="Initialize MobileNetV3 from ImageNet weights.")
+    parser.add_argument("--freeze-backbone-epochs", type=int, default=0,
+                        help="Train only the classifier for this many initial epochs.")
     args = parser.parse_args()
     if args.epochs < 1 or args.batch_size < 1:
         raise SystemExit("epochs and batch size must be positive")
     random.seed(args.seed); torch.manual_seed(args.seed)
     torch.set_num_threads(max(1, args.cpu_threads))
     manifest = json.loads(args.manifest.read_text(encoding="utf-8"))
-    if manifest.get("purpose") != "research_development_only":
-        raise SystemExit("Refusing a manifest without the research-development designation.")
+    if manifest.get("purpose") not in ("research_development_only", "frozen_research_benchmark"):
+        raise SystemExit("Refusing a manifest without a research-only designation.")
     classes = manifest.get("classes") or []
     if len(classes) < 2:
         raise SystemExit("At least two classes are required.")
@@ -109,19 +123,27 @@ def main():
     transforms_by_split = make_transforms()
     loaders = {
         name: DataLoader(
-            ZipVehicleDataset(Path(manifest["archive"]["path"]), values, transforms_by_split[name]),
+            ZipVehicleDataset(Path(manifest["archive"]["path"]), values, transforms_by_split[name], args.extracted_root),
             batch_size=args.batch_size, shuffle=name == "train", num_workers=0,
         ) for name, values in split_samples.items()
     }
-    model = models.mobilenet_v3_small(weights=None)
+    weights = models.MobileNet_V3_Small_Weights.DEFAULT if args.pretrained else None
+    model = models.mobilenet_v3_small(weights=weights)
     model.classifier[-1] = torch.nn.Linear(model.classifier[-1].in_features, len(classes))
+    if args.freeze_backbone_epochs:
+        for parameter in model.features.parameters():
+            parameter.requires_grad = False
     model = model.to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate)
+    optimizer = torch.optim.AdamW((item for item in model.parameters() if item.requires_grad), lr=args.learning_rate)
     loss_function = torch.nn.CrossEntropyLoss()
     history, best = [], -1.0
     args.output_dir.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
     for epoch in range(1, args.epochs + 1):
+        if args.freeze_backbone_epochs and epoch == args.freeze_backbone_epochs + 1:
+            for parameter in model.features.parameters():
+                parameter.requires_grad = True
+            optimizer = torch.optim.AdamW(model.parameters(), lr=args.learning_rate * .2)
         model.train(); total_loss = total = 0
         for images, targets in loaders["train"]:
             images, targets = images.to(device), targets.to(device)
@@ -135,17 +157,27 @@ def main():
         if metrics["top1_accuracy"] > best:
             best = metrics["top1_accuracy"]
             cpu_model = model.to("cpu").eval()
-            exported = torch.export.export(cpu_model, (torch.zeros(1, 3, 224, 224),))
+            batch_dimension = torch.export.Dim("batch", min=1, max=128)
+            # A batch larger than one prevents torch.export from specializing
+            # the example input to a fixed singleton batch.
+            exported = torch.export.export(
+                cpu_model, (torch.zeros(2, 3, 224, 224),),
+                dynamic_shapes=({0: batch_dimension},),
+            )
             torch.export.save(exported, str(args.output_dir / "vehicle_attributes.pt2"))
             model = cpu_model.to(device)
     label_manifest = {
         "schema_version": 1, "input_size": 224, "classes": classes,
         "dataset": manifest["dataset"], "training_manifest": str(args.manifest.resolve()),
-        "result_scope": "development_only_not_production_accuracy",
+        "result_scope": "research_only_not_production_accuracy",
+        "model_architecture": "mobilenet_v3_small",
+        "pretrained_imagenet": args.pretrained,
     }
     (args.output_dir / "labels.json").write_text(json.dumps(label_manifest, indent=2) + "\n", encoding="utf-8")
     report = {
         "device": device, "epochs": args.epochs, "classes": len(classes),
+        "pretrained_imagenet": args.pretrained,
+        "freeze_backbone_epochs": args.freeze_backbone_epochs,
         "train_samples": len(split_samples["train"]),
         "development_samples": len(split_samples["development"]),
         "best_development_top1": best, "history": history,

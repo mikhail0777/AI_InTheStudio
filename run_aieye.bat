@@ -8,6 +8,13 @@ if "%ROOT_DIR:~-1%"=="\" set "ROOT_DIR=%ROOT_DIR:~0,-1%"
 set "CHECK_ONLY=0"
 set "OPEN_BROWSER=1"
 
+rem Automatically enable the locally trained research classifier when it is
+rem present. Its manifest marks it research-only and the UI keeps outputs as
+rem reviewable candidates rather than confirmed vehicle identity.
+set "LOCAL_VMMR_DIR=%ROOT_DIR%\datasets\extracted\training\vmmr_benchmark_100"
+if not defined LOTTRACE_VEHICLE_ATTRIBUTE_MODEL if exist "%LOCAL_VMMR_DIR%\vehicle_attributes.pt2" set "LOTTRACE_VEHICLE_ATTRIBUTE_MODEL=%LOCAL_VMMR_DIR%\vehicle_attributes.pt2"
+if not defined LOTTRACE_VEHICLE_ATTRIBUTE_MANIFEST if exist "%LOCAL_VMMR_DIR%\labels.json" set "LOTTRACE_VEHICLE_ATTRIBUTE_MANIFEST=%LOCAL_VMMR_DIR%\labels.json"
+
 if /I "%~1"=="--check" set "CHECK_ONLY=1"
 if /I "%~1"=="--no-browser" set "OPEN_BROWSER=0"
 if not "%~1"=="" if /I not "%~1"=="--check" if /I not "%~1"=="--no-browser" goto usage

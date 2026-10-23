@@ -56,7 +56,7 @@ class LocalVehicleAttributeProvider:
     @property
     def provenance(self):
         return ModelProvenance(
-            provider="local-torchscript", model_name=self.model_path.name,
+            provider="local-pytorch-export", model_name=self.model_path.name,
             model_version=self.model_hash, device=self.device,
             metadata={
                 "task": "vehicle-make-model-year-candidates",
