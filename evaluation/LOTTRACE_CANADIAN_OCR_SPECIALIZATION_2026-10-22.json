@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "release_decision": {
+    "validation_exact_target": 0.95,
+    "target_met": false,
+    "production_candidate_promoted": false,
+    "untouched_ontario_quebec_final_test_available": false
+  },
+  "preprocessing_ablation": {
+    "split": "validation",
+    "plates": 159,
+    "model": "cct-s-v2-global-model",
+    "model_sha256": "384bbbd2cea3ef54761d3df70822ef3a349ee1a112aeafddbe0e3ba06bc6e47b",
+    "raw": {
+      "exact_matches": 83,
+      "exact_plate_accuracy": 0.5220125786163522,
+      "character_accuracy": 0.8526504941599281,
+      "character_error_rate": 0.14734950584007186,
+      "read_coverage": 1.0
+    },
+    "best": {
+      "variant": "clahe",
+      "exact_matches": 86,
+      "exact_plate_accuracy": 0.5408805031446541,
+      "exact_plate_accuracy_wilson_95": [
+        0.46337169342598966,
+        0.6164605562612007
+      ],
+      "character_accuracy": 0.8616352201257862,
+      "character_error_rate": 0.13836477987421383,
+      "read_coverage": 1.0
+    },
+    "decision": "rejected; below retained YOLO validation baseline",
+    "full_ignored_report_sha256": "e9b48b5d53f38c82f0db39f72775c0b6dcb4fbc1649fd48dc30b4277a8e4989d",
+    "dataset_derivation_manifest_sha256": "f8f387fa9eeaa84a353e001699b03b4b87b5fe489ed06d3fff3bce2f235751a9",
+    "evaluation_script_sha256": "1c6ce83e3bcc74ea8b725ec56368bc2d2a647e0ca092d6bab3f6026556c0cbea"
+  },
+  "official_fastplateocr_canada_artifacts": {
+    "metric": "plate_acc (exact full-string accuracy)",
+    "cct-s-v2-global-model": 0.9627131819725037,
+    "cct-xs-v2-global-model": 0.9535898566246033,
+    "global-plates-mobile-vit-v2-model": 0.9078590869903564,
+    "denominator": null,
+    "validation_split_published": false,
+    "ontario_quebec_breakdown_published": false,
+    "lottrace_evidence": false
+  },
+  "fastplateocr_training_preparation": {
+    "train_plates": 3982,
+    "validation_plates": 159,
+    "source_test_excluded": true,
+    "region_labels_fabricated": false,
+    "training_started": false,
+    "blocker": "Only Python 3.14.8 is installed; official Keras training backend and CLI are unavailable."
+  },
+  "truthful_baseline": {
+    "yolo_validation_exact": {
+      "matches": 131,
+      "total": 159,
+      "accuracy": 0.8238993710691824
+    },
+    "yolo_parseq_validation_exact": {
+      "matches": 136,
+      "total": 159,
+      "accuracy": 0.8553459119496856
+    },
+    "development_regression_is_not_final_test": true
+  }
+}

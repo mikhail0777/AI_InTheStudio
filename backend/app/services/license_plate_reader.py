@@ -17,11 +17,25 @@ from app.models.open_vocabulary import ModelProvenance
 
 DETECTOR_MODEL = "yolo-v9-t-384-license-plate-end2end"
 OCR_MODEL = "cct-xs-v2-global-model"
+DIRECT_CROP_OCR_MODEL = "cct-s-v2-global-model"
+DIRECT_CROP_OCR_SHA256 = "384bbbd2cea3ef54761d3df70822ef3a349ee1a112aeafddbe0e3ba06bc6e47b"
 DETECTOR_SHA256 = "888397b96d761c89db40bc9c305838e8652660f5e282c2cadebbe8d2951a77a8"
 OCR_SHA256 = "8031afb5fdc6b4d80462c9d542f1284ebd2cfddf5dbacd62609848d7e2855f44"
+OCR_MODES = {
+    "existing": {
+        "model": OCR_MODEL, "sha256": OCR_SHA256,
+        "release_status": "production_baseline",
+    },
+    "fastplate-cct-s-experiment": {
+        "model": "cct-s-v2-global-model",
+        "sha256": "384bbbd2cea3ef54761d3df70822ef3a349ee1a112aeafddbe0e3ba06bc6e47b",
+        "release_status": "validation_underperformed_do_not_auto_promote",
+    },
+}
 DETECTOR_CONFIDENCE_THRESHOLD = .4
 _MODEL_LOCK = threading.RLock()
-_MODEL_CACHE = None
+_MODEL_CACHE = {}
+_DIRECT_OCR_CACHE = {}
 
 
 def normalize_plate(value: str) -> str:
@@ -36,7 +50,10 @@ class PlateReading:
     source_variant: str = "original"
 
 
-_CONFUSABLE = str.maketrans({"O": "0", "Q": "0", "I": "1", "L": "1", "S": "5", "B": "8", "Z": "2"})
+_CONFUSABLE = str.maketrans({
+    "O": "0", "Q": "0", "I": "1", "L": "1", "S": "5", "B": "8",
+    "Z": "2", "G": "6", "T": "7",
+})
 
 
 def plate_edit_distance(left: str, right: str) -> int:
@@ -83,37 +100,70 @@ def _intersection_over_union(left: Sequence[int], right: Sequence[int]) -> float
 
 
 class LicensePlateReader:
-    def __init__(self):
-        self.reader = self._load()
+    def __init__(self, *, mode: str | None = None):
+        self.mode = mode or os.environ.get("AIEYE_PLATE_OCR_MODE", "existing")
+        if self.mode not in OCR_MODES:
+            raise ValueError(
+                f"AIEYE_PLATE_OCR_MODE must be one of: {', '.join(sorted(OCR_MODES))}"
+            )
+        self.ocr_config = OCR_MODES[self.mode]
+        self.reader = self._load(self.ocr_config["model"])
+        self.crop_reader = self._load_direct_ocr(DIRECT_CROP_OCR_MODEL)
 
     @staticmethod
-    def _load():
+    def _load(ocr_model: str = OCR_MODEL):
         global _MODEL_CACHE
         with _MODEL_LOCK:
-            if _MODEL_CACHE is None:
+            if ocr_model not in _MODEL_CACHE:
                 try:
                     from fast_alpr import ALPR
-                    _MODEL_CACHE = ALPR(
+                    _MODEL_CACHE[ocr_model] = ALPR(
                         detector_model=DETECTOR_MODEL, detector_conf_thresh=DETECTOR_CONFIDENCE_THRESHOLD,
-                        ocr_model=OCR_MODEL, ocr_device="cpu",
+                        ocr_model=ocr_model, ocr_device="cpu",
                     )
                 except Exception as error:
                     raise RuntimeError(
                         "License-plate recognition models are unavailable. "
                         "Run: python backend/download_models.py"
                     ) from error
-            return _MODEL_CACHE
+            return _MODEL_CACHE[ocr_model]
+
+    @staticmethod
+    def _load_direct_ocr(ocr_model: str = DIRECT_CROP_OCR_MODEL):
+        global _DIRECT_OCR_CACHE
+        with _MODEL_LOCK:
+            if ocr_model not in _DIRECT_OCR_CACHE:
+                try:
+                    from fast_alpr.default_ocr import DefaultOCR
+                    _DIRECT_OCR_CACHE[ocr_model] = DefaultOCR(hub_ocr_model=ocr_model, device="cpu")
+                except Exception as error:
+                    raise RuntimeError(
+                        "Direct plate-crop OCR model is unavailable. "
+                        "Run: python backend/download_models.py"
+                    ) from error
+            return _DIRECT_OCR_CACHE[ocr_model]
 
     @property
     def provenance(self):
         return ModelProvenance(
-            provider="fast-alpr", model_name=f"{DETECTOR_MODEL}+{OCR_MODEL}",
+            provider="fast-alpr", model_name=f"{DETECTOR_MODEL}+{self.ocr_config['model']}",
             model_version="0.4.0", device="cpu",
             metadata={
                 "task": "automatic-license-plate-recognition",
                 "detector": {"name": DETECTOR_MODEL, "sha256": DETECTOR_SHA256,
                              "confidence_threshold": DETECTOR_CONFIDENCE_THRESHOLD},
-                "ocr": {"name": OCR_MODEL, "sha256": OCR_SHA256},
+                "ocr": {
+                    "name": self.ocr_config["model"],
+                    "sha256": self.ocr_config["sha256"],
+                    "mode": self.mode,
+                    "release_status": self.ocr_config["release_status"],
+                },
+                "direct_crop_ocr": {
+                    "name": DIRECT_CROP_OCR_MODEL,
+                    "sha256": DIRECT_CROP_OCR_SHA256,
+                    "selection": "OpenALPR 300-image development split; padded direct-crop OCR",
+                    "scope": "already-localized crop candidate generation only",
+                },
             },
         )
 
@@ -191,11 +241,52 @@ class LicensePlateReader:
         return self._deduplicate(readings)
 
     def read_crop(self, crop: np.ndarray, *, source_variant: str = "enhanced_crop") -> List[PlateReading]:
-        """OCR an already-localized derivative without claiming new localization."""
-        return [PlateReading(
-            text=item.text, confidence=item.confidence, bbox=item.bbox,
-            source_variant=source_variant,
-        ) for item in self._deduplicate(self._read_region(crop))]
+        """Run OCR directly on an already-localized plate crop.
+
+        Sending a known crop through the detector again can trim characters or
+        select decorative text. The recognizer therefore receives the crop
+        directly plus a border-preserving padded derivative. Both remain raw
+        candidates; disagreement is never silently rewritten into a match.
+        """
+        if crop is None or crop.size == 0:
+            return []
+        ocr = getattr(self, "crop_reader", None) or getattr(self.reader, "ocr", None)
+        if ocr is None or not hasattr(ocr, "predict"):
+            return [PlateReading(
+                text=item.text, confidence=item.confidence, bbox=item.bbox,
+                source_variant=source_variant,
+            ) for item in self._deduplicate(self._read_region(crop))]
+        height, width = crop.shape[:2]
+        pad_x, pad_y = max(2, round(width * .08)), max(2, round(height * .12))
+        variants = {
+            source_variant: crop,
+            f"{source_variant}_padded": cv2.copyMakeBorder(
+                crop, pad_y, pad_y, pad_x, pad_x, cv2.BORDER_REPLICATE,
+            ),
+        }
+        best_by_text: dict[str, PlateReading] = {}
+        for variant, image in variants.items():
+            result = ocr.predict(image)
+            if not result:
+                continue
+            text = normalize_plate(result.text)
+            if not 3 <= len(text) <= 10:
+                continue
+            reading = PlateReading(
+                text=text,
+                confidence=self._confidence(result.confidence),
+                bbox=[0, 0, width, height],
+                source_variant=variant,
+            )
+            current = best_by_text.get(text)
+            if current is None or reading.confidence > current.confidence:
+                best_by_text[text] = reading
+        # Validation selected the padded crop as the primary direct-OCR view.
+        # Confidence is retained as evidence but is not calibrated well enough
+        # to let a conflicting raw view overrule that selection.
+        return sorted(best_by_text.values(), key=lambda item: (
+            item.source_variant.endswith("_padded"), item.confidence,
+        ), reverse=True)
 
     def read_vehicle(self, frame: np.ndarray, bbox: Sequence[float]) -> List[PlateReading]:
         x1, y1, x2, y2 = map(int, bbox)

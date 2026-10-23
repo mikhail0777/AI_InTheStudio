@@ -104,6 +104,35 @@ class MilestoneAEventTests(unittest.TestCase):
         self.assertEqual(uncertain["event"]["review_reason"], "ocr_candidates_conflict")
         self.assertIsNone(uncertain["event"]["matched_vehicle_id"])
 
+    def test_raw_multi_frame_ocr_derives_event_plate_and_preserves_observations(self):
+        vehicle = vehicle_records.save_vehicle(self.user, {"plate": "CVTV604", "status": "off_lot"})
+        plate_observations = [
+            {
+                "frame_idx": 30, "timestamp_seconds": 3.0, "quality_score": .88,
+                "quality_metrics": {"width": 180, "height": 45},
+                "raw_plate_crop_reference": "plate-30.png",
+                "candidates": [{"text": "CVTV604", "confidence": .91}],
+            },
+            {
+                "frame_idx": 50, "timestamp_seconds": 5.0, "quality_score": .83,
+                "quality_metrics": {"width": 170, "height": 43},
+                "raw_plate_crop_reference": "plate-50.png",
+                "candidates": [{"text": "CVTV604", "confidence": .87}],
+            },
+        ]
+        result = vehicle_events.create_crossing_event(self.user, self.payload(
+            track_id="track-derived", consensus_plate="WRONG1", plate_match_state="uncertain",
+            plate_observations=plate_observations,
+        ))
+        event = result["event"]
+        self.assertEqual(event["consensus_plate"], "CVTV604")
+        self.assertEqual(event["plate_match_state"], "exact_consensus")
+        self.assertEqual(event["matched_vehicle_id"], vehicle["vehicle_id"])
+        self.assertEqual(event["best_plate_crop"], "plate-30.png")
+        self.assertEqual(len(event["ocr_candidates"]), 2)
+        self.assertTrue(all(item["selected_for_consensus"] for item in event["ocr_candidates"]))
+        self.assertEqual(event["evidence"]["plate_consensus"]["state"], "exact_consensus")
+
     def test_crossing_outside_finite_gate_segment_is_rejected(self):
         outside = self.payload(track_id="outside", observations=[
             {**self.payload()["observations"][0], "center_x": .95},

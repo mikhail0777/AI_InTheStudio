@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "objective": "Find and evaluate commercially usable open OCR data and local models without weakening split integrity.",
+  "dataset_search": {
+    "commercially_reusable_canadian_multiframe_transcribed_dataset_found": false,
+    "public_availability_treated_as_permission": false,
+    "accepted_for_download": [
+      "faisalthaheem/open-lpr source and pinned OCR artifacts"
+    ],
+    "rejected_or_deferred": [
+      "Indian ANPR corpus: declared files absent",
+      "UFPR-ALPR: non-commercial",
+      "AMLPR: non-commercial images",
+      "ICPR 2026 LRLPR: non-commercial",
+      "UCSD/Calit2: commercial rights not established",
+      "0xnu European dataset: contradictory rights text and no transcriptions",
+      "CCPD: permissive but large and mismatched Chinese domain"
+    ]
+  },
+  "open_lpr_onnx_development_result": {
+    "model_sha256": "71443c7381a5f851cbec81d1e6557e8b56956078aa503056978852b0cdfc3d60",
+    "dictionary_sha256": "c9007c1e471102735d65ed5e6bf2c197f4c3b926f7005c61143ac9c37c25adce",
+    "plates": 300,
+    "exact_matches": 180,
+    "exact_plate_accuracy": 0.6,
+    "character_accuracy": 0.8784994400895857,
+    "decision": "rejected as primary reader"
+  },
+  "clean_synthetic_parseq_result": {
+    "training_real_crops": 2273,
+    "training_synthetic_crops": 5000,
+    "synthetic_seed": 20261022,
+    "synthetic_font_allowlist": "DejaVuSans*.ttf",
+    "synthetic_font_license_required": true,
+    "checkpoint_sha256": "01f6b47fd4c2c314298f66b4a0653727ccc3929797b97afda9f4f1115dc06b3f",
+    "real_validation": {
+      "exact_matches": 115,
+      "plates": 159,
+      "exact_plate_accuracy": 0.7232704402515723,
+      "character_accuracy": 0.9398023360287511
+    },
+    "openalpr_development": {
+      "exact_matches": 249,
+      "plates": 300,
+      "exact_plate_accuracy": 0.83,
+      "character_accuracy": 0.9496080627099664,
+      "unique_cct_s_failures_fixed": 7,
+      "cct_s_failures_oracle_combined_exact": 270,
+      "cct_s_failures_oracle_combined_accuracy": 0.9
+    },
+    "decision": "retain as research verifier candidate; do not replace CCT-S or use oracle selection"
+  },
+  "production_primary_reader": {
+    "name": "cct-s-v2-global-model direct-crop OCR",
+    "development_exact_matches": 263,
+    "development_plates": 300,
+    "development_exact_plate_accuracy": 0.8766666666666667,
+    "unchanged": true
+  },
+  "limitations": [
+    "The 300-image OpenALPR split is development data, not untouched final evidence.",
+    "Synthetic images are training augmentation and never accuracy evidence.",
+    "No online public dataset found can replace a consented, labelled dealership-video benchmark."
+  ]
+}

@@ -11,25 +11,35 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from app.services.license_plate_reader import normalize_plate, plate_similarity
+from app.services.plate_profiles import PlateRegionProfile, assess_candidate_format, get_plate_profile
 
 
 @dataclass(frozen=True)
 class RankedPlateCandidate:
     text: str
+    raw_texts: tuple[str, ...]
     distinct_frames: int
     observation_count: int
     weighted_support: float
     best_confidence: float
     frame_indices: tuple[int, ...]
+    format_state: str = "not_applied"
+    matched_formats: tuple[str, ...] = ()
+    format_ranking_contribution: float = 0.0
 
     def as_dict(self) -> dict:
         return {
             "text": self.text,
+            "normalized_text": self.text,
+            "raw_texts": list(self.raw_texts),
             "distinct_frames": self.distinct_frames,
             "observation_count": self.observation_count,
             "weighted_support": round(self.weighted_support, 6),
             "best_confidence": round(self.best_confidence, 6),
             "frame_indices": list(self.frame_indices),
+            "format_state": self.format_state,
+            "matched_formats": list(self.matched_formats),
+            "format_ranking_contribution": self.format_ranking_contribution,
         }
 
 
@@ -40,7 +50,11 @@ def _bounded(value, default=0.0) -> float:
         return default
 
 
-def rank_plate_candidates(observations: Iterable[dict], *, top_k: int = 5) -> list[RankedPlateCandidate]:
+def rank_plate_candidates(
+    observations: Iterable[dict], *, top_k: int = 5,
+    profile: str | PlateRegionProfile | None = None,
+    plate_type: str | None = None, layout: str | None = None,
+) -> list[RankedPlateCandidate]:
     """Rank exact OCR strings with at most one vote per text and frame.
 
     Each observation may contain a ``candidates`` list (raw and enhanced OCR
@@ -52,6 +66,7 @@ def rank_plate_candidates(observations: Iterable[dict], *, top_k: int = 5) -> li
     by_text: dict[str, list[tuple[int, float, float]]] = defaultdict(list)
     best_by_text_and_frame: dict[tuple[str, int], tuple[float, float]] = {}
     observation_counts: dict[str, int] = defaultdict(int)
+    raw_texts: dict[str, set[str]] = defaultdict(set)
     for fallback_index, observation in enumerate(observations):
         frame_index = int(observation.get("frame_idx", fallback_index))
         quality = _bounded(observation.get("quality_score"), .5)
@@ -61,7 +76,8 @@ def rank_plate_candidates(observations: Iterable[dict], *, top_k: int = 5) -> li
         }]
         best_in_frame: dict[str, tuple[float, float]] = {}
         for candidate in candidates:
-            text = normalize_plate(str(candidate.get("text") or ""))
+            raw_text = str(candidate.get("text") or "")
+            text = normalize_plate(raw_text)
             if not 3 <= len(text) <= 10:
                 continue
             confidence = _bounded(candidate.get("confidence"))
@@ -69,6 +85,7 @@ def rank_plate_candidates(observations: Iterable[dict], *, top_k: int = 5) -> li
             # high-confidence identity by itself.
             support = confidence * (.7 + .3 * quality)
             observation_counts[text] += 1
+            raw_texts[text].add(raw_text)
             current = best_in_frame.get(text)
             if current is None or support > current[0]:
                 best_in_frame[text] = (support, confidence)
@@ -80,28 +97,47 @@ def rank_plate_candidates(observations: Iterable[dict], *, top_k: int = 5) -> li
     for (text, frame_index), (support, confidence) in best_by_text_and_frame.items():
         by_text[text].append((frame_index, support, confidence))
 
-    ranked = [RankedPlateCandidate(
-        text=text,
-        distinct_frames=len({item[0] for item in votes}),
-        observation_count=observation_counts[text],
-        weighted_support=sum(item[1] for item in votes),
-        best_confidence=max(item[2] for item in votes),
-        frame_indices=tuple(sorted({item[0] for item in votes})),
-    ) for text, votes in by_text.items()]
+    ranked = []
+    for text, votes in by_text.items():
+        format_assessment = assess_candidate_format(
+            text, profile, plate_type=plate_type, layout=layout,
+        )
+        ranked.append(RankedPlateCandidate(
+            text=text, raw_texts=tuple(sorted(raw_texts[text])),
+            distinct_frames=len({item[0] for item in votes}),
+            observation_count=observation_counts[text],
+            weighted_support=sum(item[1] for item in votes),
+            best_confidence=max(item[2] for item in votes),
+            frame_indices=tuple(sorted({item[0] for item in votes})),
+            format_state=format_assessment["state"],
+            matched_formats=tuple(format_assessment["matched_formats"]),
+            format_ranking_contribution=format_assessment["contribution"],
+        ))
     ranked.sort(key=lambda item: (
-        item.distinct_frames, item.weighted_support, item.best_confidence, item.text
+        item.distinct_frames,
+        item.weighted_support + item.format_ranking_contribution,
+        item.weighted_support, item.best_confidence, item.text,
     ), reverse=True)
     return ranked[:top_k]
 
 
-def build_plate_consensus(observations: Iterable[dict], *, top_k: int = 5) -> dict:
+def build_plate_consensus(
+    observations: Iterable[dict], *, top_k: int = 5,
+    profile: str | PlateRegionProfile | None = None,
+    plate_type: str | None = None, layout: str | None = None,
+) -> dict:
     """Return a transparent consensus decision and ranked alternatives."""
-    ranked = rank_plate_candidates(observations, top_k=top_k)
+    selected_profile = get_plate_profile(profile)
+    ranked = rank_plate_candidates(
+        observations, top_k=top_k, profile=selected_profile,
+        plate_type=plate_type, layout=layout,
+    )
     if not ranked:
         return {
             "selected_plate": None, "state": "uncertain", "reason": "no_valid_candidates",
             "ranked_candidates": [], "confusable_alternatives": [], "near_match_groups": [],
             "requires_review": True, "decision_score": 0.0,
+            "region_profile": selected_profile.name,
         }
     winner = ranked[0]
     runner_up = ranked[1] if len(ranked) > 1 else None
@@ -122,6 +158,9 @@ def build_plate_consensus(observations: Iterable[dict], *, top_k: int = 5) -> di
         state, reason = "uncertain", "repeated_reading_has_insufficient_ocr_support"
     else:
         state, reason = "uncertain", "single_frame_support"
+    if selected_profile.name != "unknown" and winner.format_state != "supported":
+        state = "uncertain"
+        reason = f"regional_format_{winner.format_state}_requires_review"
     confusable = [item.text for item in ranked[1:] if plate_similarity(item.text, winner.text) >= .90]
     near_match_groups = []
     remaining = list(ranked)
@@ -153,10 +192,15 @@ def build_plate_consensus(observations: Iterable[dict], *, top_k: int = 5) -> di
         "near_match_groups": near_match_groups,
         "requires_review": state != "exact_consensus",
         "decision_score": round(decision_score, 6),
+        "region_profile": selected_profile.name,
+        "plate_type": plate_type,
+        "layout": layout,
+        "review_decision": "auto_accept" if state == "exact_consensus" else "requires_review",
         "decision_policy": {
             "minimum_independent_exact_frames": 2,
             "minimum_best_ocr_confidence": .5,
             "minimum_weighted_support": .8,
             "near_matches_are_review_only": True,
+            "regional_formats_rank_candidates_but_never_rewrite_text": True,
         },
     }

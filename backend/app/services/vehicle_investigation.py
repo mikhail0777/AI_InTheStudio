@@ -18,8 +18,9 @@ from app.models.open_vocabulary import EntityDetection, EntityTrack, EvidenceAss
 from app.models.schemas import TargetConfiguration, VideoMetadata
 from app.services.generic_search import _extract_clip
 from app.services.license_plate_reader import LicensePlateReader, normalize_plate, plate_similarity
-from app.services.plate_consensus import build_plate_consensus
+from app.services.plate_profiles import get_plate_profile
 from app.services.plate_evidence import save_plate_derivatives
+from app.services.plate_track_consensus import build_track_plate_consensus
 from app.services.query_parser import StructuredQueryParser
 from app.services.vehicle_sightings import save_sighting
 from app.services.vehicle_recognizer import VehicleRecognizer
@@ -125,6 +126,7 @@ class VehicleInvestigationManager:
         )
         _status(session_id, 5, "plate_scan")
         reader = LicensePlateReader()
+        region_profile = get_plate_profile(os.environ.get("AIEYE_PLATE_REGION_PROFILE", "unknown"))
         vehicle_recognizer = VehicleRecognizer(str(Path(database.DB_DIR) / "evidence"))
         threshold = float(os.environ.get("AIEYE_PLATE_REVIEW_SIMILARITY", "0.78"))
         if not 0 <= threshold <= 1:
@@ -134,6 +136,11 @@ class VehicleInvestigationManager:
             "review_similarity_threshold": threshold,
             "scan_fps": scan_fps,
             "consensus": {"name": "exact-string-independent-frame-v1", "top_k": 5},
+            "region_profile": {
+                "name": region_profile.name,
+                "source": region_profile.source,
+                "format_rules_are_ranking_only": True,
+            },
         }
         evidence_dir = Path(database.DB_DIR) / "evidence" / session_id
         evidence_dir.mkdir(parents=True, exist_ok=True)
@@ -221,16 +228,19 @@ class VehicleInvestigationManager:
         _status(session_id, 82, "evidence_review")
         results = []
         for sighting_number, sighting in enumerate(_group_sightings(observations), start=1):
-            consensus = build_plate_consensus(sighting)
+            consensus, frame_selection = build_track_plate_consensus(
+                sighting, profile=region_profile,
+            )
+            selected_sighting = list(frame_selection.observations) or sighting
             repeated_candidate = consensus["selected_plate"] or sighting[0]["text"]
             repeated_frames = (consensus["ranked_candidates"][0]["distinct_frames"]
                                if consensus["ranked_candidates"] else 0)
-            exact = [item for item in sighting if any(
+            exact = [item for item in selected_sighting if any(
                 normalize_plate(candidate["text"]) == requested_plate
                 for candidate in item.get("candidates") or []
             )]
             exact_frames = _distinct_frames(exact)
-            partial = [item for item in sighting if any(
+            partial = [item for item in selected_sighting if any(
                 requested_plate in normalize_plate(candidate["text"])
                 for candidate in item.get("candidates") or []
             )]
@@ -241,15 +251,15 @@ class VehicleInvestigationManager:
             )
             strong = consensus["state"] == "exact_consensus" and selected_matches
             classification = "strong_match" if strong else "possible_match"
-            supporting = [item for item in sighting if any(
+            supporting = [item for item in selected_sighting if any(
                 normalize_plate(candidate["text"]) == repeated_candidate
                 for candidate in item.get("candidates") or []
-            )] or sighting
+            )] or selected_sighting
             best = max(supporting, key=lambda item: (
                 item["quality_score"], item["similarity"], item["confidence"]
             ))
             confidence = max(
-                candidate["confidence"] for item in sighting
+                candidate["confidence"] for item in selected_sighting
                 for candidate in item.get("candidates") or []
             )
             repeat_support = min(1.0, max(exact_frames, repeated_frames) / 3.0)

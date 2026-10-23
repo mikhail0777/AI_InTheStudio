@@ -2,15 +2,17 @@
 from __future__ import annotations
 
 import argparse
+from dataclasses import dataclass
 import hashlib
 import json
 import os
 from pathlib import Path
 import random
+import string
 import sys
 import time
 
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
@@ -24,6 +26,75 @@ from scripts.audit_yolo_ocr_dataset import load_class_names
 from scripts.train_ctc_plate_ocr import collect_samples
 
 
+SYNTHETIC_PATTERNS = (
+    "LLLLDDD",  # Ontario-style passenger layout
+    "LDDLLL",   # Quebec-style passenger layout
+    "DDDLLL",
+    "LLLDDD",
+    "DLLLDDD",  # common North-American alternating layouts
+    "LLDDDDD",
+    "LLLLDD",
+    "AAAAAAA",  # vanity/general alphanumeric
+)
+
+
+@dataclass(frozen=True)
+class SyntheticPlateSample:
+    seed: int
+    sequence: str
+
+
+def synthetic_sequence(seed: int) -> str:
+    rng = random.Random(seed)
+    pattern = rng.choice(SYNTHETIC_PATTERNS)
+    return "".join(
+        rng.choice(string.ascii_uppercase) if token == "L"
+        else rng.choice(string.digits) if token == "D"
+        else rng.choice(string.ascii_uppercase + string.digits)
+        for token in pattern
+    )
+
+
+def render_synthetic_plate(sample: SyntheticPlateSample, font_paths: list[Path]) -> Image.Image:
+    """Render deterministic training data; never use synthetic plates as test truth."""
+    if not font_paths:
+        raise ValueError("At least one permitted TrueType font is required for synthetic training.")
+    rng = random.Random(sample.seed)
+    width, height = rng.randint(210, 300), rng.randint(62, 94)
+    backgrounds = ((244, 244, 238), (235, 239, 244), (245, 235, 158), (232, 238, 220))
+    inks = ((20, 35, 75), (18, 18, 18), (28, 62, 96), (38, 48, 38))
+    image = Image.new("RGB", (width, height), rng.choice(backgrounds))
+    draw = ImageDraw.Draw(image)
+    border = rng.randint(2, 4)
+    draw.rounded_rectangle(
+        (border, border, width - border - 1, height - border - 1),
+        radius=rng.randint(5, 11), outline=rng.choice(inks), width=border,
+    )
+    font_size = int(height * rng.uniform(.53, .70))
+    font = ImageFont.truetype(str(rng.choice(font_paths)), font_size)
+    text_box = draw.textbbox((0, 0), sample.sequence, font=font, stroke_width=0)
+    text_width, text_height = text_box[2] - text_box[0], text_box[3] - text_box[1]
+    if text_width > width * .88:
+        font_size = max(16, int(font_size * width * .88 / text_width))
+        font = ImageFont.truetype(str(rng.choice(font_paths)), font_size)
+        text_box = draw.textbbox((0, 0), sample.sequence, font=font)
+        text_width, text_height = text_box[2] - text_box[0], text_box[3] - text_box[1]
+    x = (width - text_width) // 2 - text_box[0] + rng.randint(-2, 2)
+    y = (height - text_height) // 2 - text_box[1] + rng.randint(-2, 2)
+    draw.text((x, y), sample.sequence, font=font, fill=rng.choice(inks))
+    bolt_color = (125, 125, 120)
+    bolt_radius = max(1, height // 34)
+    for bx in (int(width * .08), int(width * .92)):
+        by = int(height * rng.choice((.18, .5, .82)))
+        draw.ellipse((bx - bolt_radius, by - bolt_radius, bx + bolt_radius, by + bolt_radius), fill=bolt_color)
+    # Sparse dirt/sensor noise without changing the ground-truth string.
+    for _ in range(rng.randint(0, 18)):
+        px, py = rng.randrange(width), rng.randrange(height)
+        shade = rng.randint(75, 205)
+        draw.point((px, py), fill=(shade, shade, shade))
+    return image
+
+
 def file_sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -33,15 +104,20 @@ def file_sha256(path: Path) -> str:
 
 
 class PARSeqPlateDataset(Dataset):
-    def __init__(self, samples, transform, training: bool):
+    def __init__(self, samples, transform, training: bool, font_paths: list[Path] | None = None):
         self.samples = samples; self.transform = transform; self.training = training
+        self.font_paths = font_paths or []
 
     def __len__(self): return len(self.samples)
 
     def __getitem__(self, index):
         sample = self.samples[index]
-        with Image.open(sample.image) as raw:
-            image = raw.convert("RGB")
+        if isinstance(sample, SyntheticPlateSample):
+            image = render_synthetic_plate(sample, self.font_paths)
+        else:
+            with Image.open(sample.image) as raw:
+                image = raw.convert("RGB")
+        try:
             if self.training:
                 image = ImageEnhance.Brightness(image).enhance(random.uniform(.8, 1.2))
                 image = ImageEnhance.Contrast(image).enhance(random.uniform(.8, 1.25))
@@ -63,6 +139,8 @@ class PARSeqPlateDataset(Dataset):
                         interpolation=T.InterpolationMode.BICUBIC,
                     )
             return self.transform(image), sample.sequence
+        finally:
+            image.close()
 
 
 def canonical_loss(model, images, labels):
@@ -101,6 +179,11 @@ def main() -> int:
     parser.add_argument("--batch", type=int, default=16)
     parser.add_argument("--learning-rate", type=float, default=1e-5)
     parser.add_argument("--initial-checkpoint", type=Path)
+    parser.add_argument("--synthetic-samples", type=int, default=0)
+    parser.add_argument("--synthetic-seed", type=int, default=20261022)
+    parser.add_argument("--font-dir", type=Path, help="Directory containing permitted .ttf fonts.")
+    parser.add_argument("--font-pattern", default="DejaVuSans*.ttf")
+    parser.add_argument("--font-license", type=Path)
     parser.add_argument("--torch-home", type=Path, default=ROOT / "backend" / "data" / "torch")
     args = parser.parse_args(); random.seed(0); torch.manual_seed(0)
     os.environ["TORCH_HOME"] = str(args.torch_home.resolve())
@@ -113,7 +196,20 @@ def main() -> int:
     names = load_class_names(args.dataset / "data.yaml")
     train = collect_samples(args.dataset, "train", names, max_length=model.hparams.max_label_length)
     valid = collect_samples(args.dataset, "valid", names, max_length=model.hparams.max_label_length)
-    train_loader = DataLoader(PARSeqPlateDataset(train, transform, True), batch_size=args.batch,
+    if args.synthetic_samples < 0:
+        parser.error("--synthetic-samples must be non-negative")
+    font_paths = sorted(args.font_dir.glob(args.font_pattern)) if args.font_dir else []
+    if args.synthetic_samples and not font_paths:
+        parser.error("--synthetic-samples requires --font-dir/--font-pattern matching a .ttf font")
+    if args.synthetic_samples and (not args.font_license or not args.font_license.is_file()):
+        parser.error("--synthetic-samples requires an existing --font-license file")
+    synthetic = [
+        SyntheticPlateSample(seed=args.synthetic_seed + index,
+                             sequence=synthetic_sequence(args.synthetic_seed + index))
+        for index in range(args.synthetic_samples)
+    ]
+    train = list(train) + synthetic
+    train_loader = DataLoader(PARSeqPlateDataset(train, transform, True, font_paths), batch_size=args.batch,
                               shuffle=True, num_workers=0)
     valid_loader = DataLoader(PARSeqPlateDataset(valid, transform, False), batch_size=args.batch,
                               shuffle=False, num_workers=0)
@@ -136,6 +232,12 @@ def main() -> int:
         "architecture": "official pretrained PARSeq, canonical-order fine-tune", "train_samples": len(train),
         "validation_samples": len(valid), "epochs": args.epochs, "learning_rate": args.learning_rate,
         "initial_checkpoint": str(args.initial_checkpoint.resolve()) if args.initial_checkpoint else None,
+        "synthetic_samples": args.synthetic_samples,
+        "synthetic_seed": args.synthetic_seed if args.synthetic_samples else None,
+        "synthetic_patterns": list(SYNTHETIC_PATTERNS) if args.synthetic_samples else [],
+        "synthetic_fonts": [str(path.resolve()) for path in font_paths],
+        "synthetic_font_license": str(args.font_license.resolve()) if args.font_license else None,
+        "synthetic_data_policy": "training only; never accuracy or benchmark evidence",
         "training_augmentations": [
             "brightness 0.8-1.2", "contrast 0.8-1.25", "mild Gaussian blur",
             "mild horizontal motion blur", "mild perspective distortion", "rotation +/-2 degrees",

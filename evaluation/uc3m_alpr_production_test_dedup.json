@@ -1,0 +1,292 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-21T02:09:36.734577+00:00",
+  "dataset": {
+    "name": "UC3M-LP",
+    "version": "Zenodo record 17152029",
+    "root": "C:\\Personal\\GitProjects\\AI_InTheStudio\\evaluation\\datasets\\uc3m\\UC3M-LP",
+    "split": "test",
+    "license": "ODbL-1.0",
+    "images_selected": 395,
+    "images_evaluated": 395,
+    "invalid_images": 0,
+    "ground_truth_plates": 491
+  },
+  "runtime": {
+    "python": "3.14.8 (tags/v3.14.8:8e6e75d, Sep 30 2026, 18:19:33) [MSC v.1944 64 bit (AMD64)]",
+    "platform": "Windows-11-10.0.26300-SP0",
+    "device": "cpu",
+    "elapsed_seconds": 52.50765230000252,
+    "images_per_second": 7.522713027487254
+  },
+  "model": {
+    "provider": "fast-alpr",
+    "model_name": "yolo-v9-t-384-license-plate-end2end+cct-xs-v2-global-model",
+    "model_version": "0.4.0",
+    "device": "cpu",
+    "metadata": {
+      "task": "automatic-license-plate-recognition"
+    }
+  },
+  "model_files": [
+    {
+      "path": "C:\\Users\\Mikhail\\.cache\\fast-plate-ocr\\cct-xs-v2-global-model\\cct_xs_v2_global.onnx",
+      "bytes": 3344292,
+      "sha256": "8031afb5fdc6b4d80462c9d542f1284ebd2cfddf5dbacd62609848d7e2855f44"
+    },
+    {
+      "path": "C:\\Users\\Mikhail\\.cache\\fast-plate-ocr\\cct-xs-v2-global-model\\cct_xs_v2_global_plate_config.yaml",
+      "bytes": 1725,
+      "sha256": "0335c74a305173bb6f393efed0fde03cadeaa0b649ed8e19f431016d8232d0a6"
+    },
+    {
+      "path": "C:\\Users\\Mikhail\\.cache\\open-image-models\\yolo-v9-t-384-license-plate-end2end\\yolo-v9-t-384-license-plates-end2end.onnx",
+      "bytes": 7771218,
+      "sha256": "888397b96d761c89db40bc9c305838e8652660f5e282c2cadebbe8d2951a77a8"
+    }
+  ],
+  "inference_mode": "production",
+  "localization": {
+    "iou_0.50": {
+      "true_positive": 384,
+      "false_positive": 113,
+      "false_negative": 107,
+      "precision": 0.772635814889336,
+      "recall": 0.7820773930753564,
+      "f1": 0.777327935222672,
+      "precision_wilson_95": [
+        0.7337783907525699,
+        0.8073110003655493
+      ],
+      "recall_wilson_95": [
+        0.7434477697267002,
+        0.8163274776023054
+      ],
+      "mean_matched_iou": 0.780606497825477
+    },
+    "iou_0.70": {
+      "true_positive": 298,
+      "false_positive": 199,
+      "false_negative": 193,
+      "precision": 0.5995975855130785,
+      "recall": 0.6069246435845214,
+      "f1": 0.6032388663967612,
+      "precision_wilson_95": [
+        0.5559151209670997,
+        0.641752221175682
+      ],
+      "recall_wilson_95": [
+        0.5630517270421025,
+        0.6491374461331523
+      ],
+      "mean_matched_iou": 0.8215680488469576
+    }
+  },
+  "ocr": {
+    "plates_with_published_partial_transcription": 491,
+    "localized_and_read": 384,
+    "read_coverage": 0.7820773930753564,
+    "published_position_exact_matches": 0,
+    "published_position_plate_accuracy": 0.0,
+    "published_position_plate_accuracy_wilson_95": [
+      0.0,
+      0.007763009247141676
+    ],
+    "published_character_edits": 606,
+    "published_ground_truth_characters": 2458,
+    "published_character_error_rate": 0.24654190398698128,
+    "published_normalized_edit_similarity": 0.7534580960130187,
+    "full_exact_plate_accuracy": null,
+    "full_exact_plate_accuracy_reason": "UC3M-LP masks two characters in every published plate string.",
+    "top_k_full_plate_accuracy": null
+  },
+  "ocr_by_split": {
+    "test": {
+      "plates_with_published_partial_transcription": 491,
+      "localized_and_read": 384,
+      "read_coverage": 0.7820773930753564,
+      "published_position_exact_matches": 0,
+      "published_position_plate_accuracy": 0.0,
+      "published_position_plate_accuracy_wilson_95": [
+        0.0,
+        0.007763009247141676
+      ],
+      "published_character_edits": 606,
+      "published_ground_truth_characters": 2458,
+      "published_character_error_rate": 0.24654190398698128,
+      "published_normalized_edit_similarity": 0.7534580960130187,
+      "full_exact_plate_accuracy": null,
+      "full_exact_plate_accuracy_reason": "UC3M-LP masks two characters in every published plate string.",
+      "top_k_full_plate_accuracy": null
+    }
+  },
+  "ocr_by_lighting": {
+    "D": {
+      "plates_with_published_partial_transcription": 432,
+      "localized_and_read": 339,
+      "read_coverage": 0.7847222222222222,
+      "published_position_exact_matches": 0,
+      "published_position_plate_accuracy": 0.0,
+      "published_position_plate_accuracy_wilson_95": [
+        0.0,
+        0.008813890333169308
+      ],
+      "published_character_edits": 528,
+      "published_ground_truth_characters": 2161,
+      "published_character_error_rate": 0.24433132808884775,
+      "published_normalized_edit_similarity": 0.7556686719111523,
+      "full_exact_plate_accuracy": null,
+      "full_exact_plate_accuracy_reason": "UC3M-LP masks two characters in every published plate string.",
+      "top_k_full_plate_accuracy": null
+    },
+    "N": {
+      "plates_with_published_partial_transcription": 59,
+      "localized_and_read": 45,
+      "read_coverage": 0.7627118644067796,
+      "published_position_exact_matches": 0,
+      "published_position_plate_accuracy": 0.0,
+      "published_position_plate_accuracy_wilson_95": [
+        0.0,
+        0.061129370526788386
+      ],
+      "published_character_edits": 78,
+      "published_ground_truth_characters": 297,
+      "published_character_error_rate": 0.26262626262626265,
+      "published_normalized_edit_similarity": 0.7373737373737373,
+      "full_exact_plate_accuracy": null,
+      "full_exact_plate_accuracy_reason": "UC3M-LP masks two characters in every published plate string.",
+      "top_k_full_plate_accuracy": null
+    }
+  },
+  "search": {
+    "exact": {
+      "available": false,
+      "reason": "Every UC3M-LP plate transcription masks two characters."
+    },
+    "partial_2_character": {
+      "queries": 399,
+      "true_positive": 951,
+      "false_positive": 513,
+      "false_negative": 292,
+      "precision": 0.6495901639344263,
+      "recall": 0.7650844730490748,
+      "f1": 0.7026228297007757,
+      "precision_wilson_95": [
+        0.6247884237134281,
+        0.6736089252427063
+      ],
+      "recall_wilson_95": [
+        0.7407219067889456,
+        0.7878136141772124
+      ]
+    }
+  },
+  "common_substitutions": [
+    {
+      "expected": "0",
+      "observed": "O",
+      "count": 9
+    },
+    {
+      "expected": "0",
+      "observed": "C",
+      "count": 5
+    },
+    {
+      "expected": "7",
+      "observed": "1",
+      "count": 2
+    },
+    {
+      "expected": "6",
+      "observed": "H",
+      "count": 2
+    },
+    {
+      "expected": "3",
+      "observed": "B",
+      "count": 2
+    },
+    {
+      "expected": "9",
+      "observed": "7",
+      "count": 2
+    },
+    {
+      "expected": "5",
+      "observed": "9",
+      "count": 2
+    },
+    {
+      "expected": "0",
+      "observed": "L",
+      "count": 2
+    },
+    {
+      "expected": "5",
+      "observed": "1",
+      "count": 2
+    },
+    {
+      "expected": "1",
+      "observed": "J",
+      "count": 2
+    },
+    {
+      "expected": "4",
+      "observed": "D",
+      "count": 2
+    },
+    {
+      "expected": "1",
+      "observed": "F",
+      "count": 2
+    },
+    {
+      "expected": "J",
+      "observed": "W",
+      "count": 1
+    },
+    {
+      "expected": "8",
+      "observed": "B",
+      "count": 1
+    },
+    {
+      "expected": "6",
+      "observed": "R",
+      "count": 1
+    },
+    {
+      "expected": "5",
+      "observed": "8",
+      "count": 1
+    },
+    {
+      "expected": "8",
+      "observed": "A",
+      "count": 1
+    },
+    {
+      "expected": "0",
+      "observed": "B",
+      "count": 1
+    },
+    {
+      "expected": "B",
+      "observed": "S",
+      "count": 1
+    },
+    {
+      "expected": "4",
+      "observed": "2",
+      "count": 1
+    }
+  ],
+  "limitations": [
+    "UC3M-LP contains Spanish/European plates, not a dealership deployment sample.",
+    "UC3M-LP masks two privacy-sensitive characters in every plate; full exact-plate accuracy and full-plate top-k accuracy cannot be calculated.",
+    "Published-position accuracy and character error rate score only the characters UC3M-LP releases; they are not full OCR accuracy.",
+    "Production mode ranks/deduplicates with OCR confidence; localization metrics are operating-point metrics, not COCO AP."
+  ]
+}

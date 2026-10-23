@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-22",
+  "dataset": "datasets/extracted/plate_ocr_36_consensus/test/images",
+  "dataset_status": "development regression; repeatedly inspected; not a final test",
+  "prediction_source": "datasets/extracted/audits/plate_ocr_yolo_parseq_ensemble_regression.json",
+  "adjudication": {
+    "source": "project owner visual review of raw crops",
+    "blind": false,
+    "reason_not_blind": "Expected plate text is encoded in each filename.",
+    "ground_truth_changed": false,
+    "model_predictions_used_to_assign_readability": false,
+    "categories": {
+      "unreadable": [
+        "DRR5486",
+        "ESG0I82",
+        "EXW5621",
+        "FAD1D87",
+        "FEV2F86",
+        "FFI9F76",
+        "FNE5F48",
+        "FVX3A86",
+        "FYO7994",
+        "FZH9B39",
+        "GDP2A03",
+        "QTN0C61",
+        "QXA1I06",
+        "RTM2J54",
+        "SVS8C94",
+        "SWP1J55"
+      ],
+      "challenging": [
+        "FZO4A16",
+        "GDC7I31"
+      ],
+      "clearly_readable": [
+        "DDR4E73",
+        "EDS6E81",
+        "EFP3J61",
+        "FEE8E26",
+        "FEN9843",
+        "FFJ9915",
+        "FRV9992",
+        "FYB1H98",
+        "GHS4D14",
+        "OIE3J60",
+        "QOK5D06",
+        "RUX2G58",
+        "RVN8G42",
+        "RVX4F36",
+        "SDW4F75",
+        "STQ3H16",
+        "SVN5D49",
+        "SWJ6B02",
+        "SYT6B27"
+      ]
+    }
+  },
+  "quality_distribution": {
+    "all": 37,
+    "unreadable": 16,
+    "unreadable_fraction": 0.43243243243243246,
+    "challenging": 2,
+    "challenging_fraction": 0.05405405405405406,
+    "clearly_readable": 19,
+    "clearly_readable_fraction": 0.5135135135135135
+  },
+  "metrics": {
+    "all_crops": {
+      "exact_matches": 23,
+      "plates": 37,
+      "exact_plate_accuracy": 0.6216216216216216,
+      "exact_plate_accuracy_wilson_95": [
+        0.46100430439217654,
+        0.7593600082420173
+      ],
+      "character_accuracy": 0.8996138996138996,
+      "character_error_rate": 0.10038610038610038
+    },
+    "readable_or_challenging": {
+      "exact_matches": 19,
+      "plates": 21,
+      "exact_plate_accuracy": 0.9047619047619048,
+      "exact_plate_accuracy_wilson_95": [
+        0.7108586092608176,
+        0.9734812325619255
+      ],
+      "character_accuracy": 0.9863945578231292,
+      "character_error_rate": 0.013605442176870748
+    },
+    "clearly_readable_only": {
+      "exact_matches": 19,
+      "plates": 19,
+      "exact_plate_accuracy": 1.0,
+      "exact_plate_accuracy_wilson_95": [
+        0.8318207759473837,
+        1.0
+      ],
+      "character_accuracy": 1.0,
+      "character_error_rate": 0.0
+    },
+    "unreadable_subset_diagnostic": {
+      "exact_matches": 4,
+      "plates": 16,
+      "exact_plate_accuracy": 0.25,
+      "character_accuracy": 0.7857142857142857,
+      "interpretation": "Diagnostic only; visually unverifiable crops are not valid positive OCR evidence."
+    },
+    "challenging_subset_diagnostic": {
+      "exact_matches": 0,
+      "plates": 2,
+      "exact_plate_accuracy": 0.0,
+      "character_accuracy": 0.8571428571428572
+    }
+  },
+  "decision": {
+    "headline_result_changed": false,
+    "promotion_gate_met": false,
+    "interpretation": "Readable-only results explain the all-crop collapse but are post-hoc, non-blind development diagnostics and cannot establish final-test accuracy.",
+    "required_product_behavior": "Unreadable and unresolved challenging crops must abstain or require review rather than confirm identity."
+  }
+}

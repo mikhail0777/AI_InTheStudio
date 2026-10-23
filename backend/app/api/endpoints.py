@@ -59,6 +59,7 @@ class CrossingEventInput(BaseModel):
     plate_match_state: str="uncertain"; observations: list[TrackObservationInput]
     best_vehicle_crop: str|None=None; best_plate_crop: str|None=None
     ocr_candidates: list[dict]=Field(default_factory=list)
+    plate_observations: list[dict]=Field(default_factory=list)
     evidence: dict=Field(default_factory=dict); model_manifest: dict=Field(default_factory=dict)
 class RetentionInput(BaseModel):
     source_video_days: int; derived_media_days: int; sightings_days: int; audit_days: int; inspections_days:int=1095; incidents_days:int=2555

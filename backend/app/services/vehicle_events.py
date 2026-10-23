@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 
 from app.database import get_db_connection
 from app.services.governance import audit
+from app.services.plate_track_consensus import build_track_plate_consensus, plate_observation_score
 
 
 def _plate(value: str | None) -> str | None:
@@ -146,6 +147,30 @@ def _match_vehicle(conn, dealership_id, normalized_plate):
 
 
 def create_crossing_event(user, values):
+    values = dict(values)
+    plate_observations = list(values.get("plate_observations") or [])
+    if plate_observations:
+        consensus, selection = build_track_plate_consensus(plate_observations)
+        values["consensus_plate"] = consensus.get("selected_plate")
+        values["plate_match_state"] = consensus["state"]
+        # Preserve every raw observation while explicitly marking the subset
+        # that contributed to the decision.
+        selected_indices = set(selection.selected_frame_indices)
+        values["ocr_candidates"] = [
+            {**item, "selected_for_consensus": int(item.get("frame_idx", -1)) in selected_indices}
+            for item in plate_observations
+        ]
+        evidence = dict(values.get("evidence") or {})
+        evidence["plate_consensus"] = consensus
+        values["evidence"] = evidence
+        manifest = dict(values.get("model_manifest") or {})
+        manifest["multi_frame_ocr"] = consensus["frame_selection"]["policy"]
+        values["model_manifest"] = manifest
+        if not values.get("best_plate_crop") and selection.observations:
+            best = max(selection.observations, key=plate_observation_score)
+            values["best_plate_crop"] = (
+                best.get("raw_plate_crop_reference") or best.get("plate_crop_reference")
+            )
     observations = values.get("observations") or []
     if len(observations) < 2:
         raise ValueError("At least two tracked observations are required.")

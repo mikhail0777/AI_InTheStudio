@@ -89,6 +89,57 @@ def enhance_plate_crop(crop: np.ndarray) -> np.ndarray:
     return cv2.addWeighted(enhanced, 1.35, blurred, -.35, 0)
 
 
+def preprocessing_variants(crop: np.ndarray) -> dict[str, np.ndarray]:
+    """Return deterministic, non-mutating OCR ablation candidates.
+
+    The variants are independent derivatives of the raw crop.  ``motion_deblur``
+    is emitted only for objectively low-sharpness inputs; it is still merely a
+    candidate and must win on validation before production use.
+    """
+    if crop is None or crop.size == 0:
+        raise ValueError("A non-empty plate crop is required.")
+    raw = crop.copy()
+    height, width = raw.shape[:2]
+    pad_x, pad_y = max(2, round(width * .08)), max(2, round(height * .12))
+    padded = cv2.copyMakeBorder(raw, pad_y, pad_y, pad_x, pad_x, cv2.BORDER_REPLICATE)
+    rectified, applied = rectify_plate_crop(raw)
+    gray = cv2.cvtColor(raw, cv2.COLOR_BGR2GRAY) if raw.ndim == 3 else raw.copy()
+    gray_bgr = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(gray)
+    normalized = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
+    denoised = cv2.fastNlMeansDenoisingColored(raw, None, 5, 5, 7, 21)
+    blurred = cv2.GaussianBlur(raw, (0, 0), 1.0)
+    sharpened = cv2.addWeighted(raw, 1.5, blurred, -.5, 0)
+    variants = {
+        "raw": raw,
+        "padded": padded,
+        "perspective_rectified": rectified if applied else raw.copy(),
+        "grayscale": gray_bgr,
+        "clahe": cv2.cvtColor(clahe, cv2.COLOR_GRAY2BGR),
+        "exposure_normalized": cv2.cvtColor(normalized, cv2.COLOR_GRAY2BGR),
+        "denoised": denoised,
+        "sharpened": sharpened,
+        "resize_2x": cv2.resize(raw, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC),
+        "resize_4x": cv2.resize(raw, None, fx=4, fy=4, interpolation=cv2.INTER_CUBIC),
+    }
+    if float(quality_metrics(raw)["sharpness"]) < 80.0:
+        smooth = cv2.GaussianBlur(raw, (0, 0), 1.8)
+        variants["motion_deblur_candidate"] = cv2.addWeighted(raw, 2.0, smooth, -1.0, 0)
+    return variants
+
+
+def save_preprocessing_variants(crop: np.ndarray, directory: Path, stem: str) -> dict[str, str]:
+    """Persist ablation derivatives separately; never replace the source crop."""
+    directory.mkdir(parents=True, exist_ok=True)
+    saved = {}
+    for name, image in preprocessing_variants(crop).items():
+        path = directory / f"{stem}_{name}.png"
+        if not cv2.imwrite(str(path), image):
+            raise OSError(f"Could not save preprocessing derivative: {name}")
+        saved[name] = str(path)
+    return saved
+
+
 def save_plate_derivatives(frame: np.ndarray, bbox, directory: Path, stem: str) -> dict:
     """Persist lossless raw and enhanced crops with auditable quality metadata."""
     directory.mkdir(parents=True, exist_ok=True)

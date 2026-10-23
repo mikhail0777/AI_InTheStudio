@@ -6,7 +6,10 @@ import cv2
 import numpy as np
 
 from app.services.plate_consensus import build_plate_consensus, rank_plate_candidates
-from app.services.plate_evidence import enhance_plate_crop, quality_metrics, rectify_plate_crop, save_plate_derivatives
+from app.services.plate_evidence import (
+    enhance_plate_crop, preprocessing_variants, quality_metrics, rectify_plate_crop,
+    save_plate_derivatives, save_preprocessing_variants,
+)
 
 
 class PlateConsensusTests(unittest.TestCase):
@@ -72,6 +75,44 @@ class PlateConsensusTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             rank_plate_candidates([], top_k=0)
 
+    def test_ontario_profile_ranks_without_rewriting_raw_ocr(self):
+        ranked = rank_plate_candidates([
+            {"frame_idx": 1, "quality_score": 1, "candidates": [
+                {"text": "AB-CD 123", "confidence": .80},
+                {"text": "ABC1234", "confidence": .80},
+            ]},
+        ], profile="ontario")
+        self.assertEqual(ranked[0].text, "ABCD123")
+        self.assertEqual(ranked[0].raw_texts, ("AB-CD 123",))
+        self.assertEqual(ranked[0].format_state, "supported")
+
+    def test_unsupported_regional_format_requires_review(self):
+        result = build_plate_consensus([
+            {"frame_idx": 1, "text": "ABC1234", "confidence": .95},
+            {"frame_idx": 2, "text": "ABC1234", "confidence": .95},
+        ], profile="quebec")
+        self.assertEqual(result["selected_plate"], "ABC1234")
+        self.assertEqual(result["state"], "uncertain")
+        self.assertTrue(result["requires_review"])
+        self.assertIn("unsupported", result["reason"])
+
+    def test_supported_quebec_format_can_retain_exact_consensus(self):
+        result = build_plate_consensus([
+            {"frame_idx": 1, "text": "A12BCD", "confidence": .95},
+            {"frame_idx": 2, "text": "A12BCD", "confidence": .95},
+        ], profile="quebec", plate_type="passenger", layout="single_row")
+        self.assertEqual(result["state"], "exact_consensus")
+        self.assertEqual(result["review_decision"], "auto_accept")
+
+    def test_special_plate_never_silently_accepted_by_standard_profile(self):
+        result = build_plate_consensus([
+            {"frame_idx": 1, "text": "ABCD123", "confidence": .95},
+            {"frame_idx": 2, "text": "ABCD123", "confidence": .95},
+        ], profile="ontario", plate_type="vanity")
+        self.assertEqual(result["state"], "uncertain")
+        self.assertEqual(result["ranked_candidates"][0]["normalized_text"], "ABCD123")
+        self.assertEqual(result["ranked_candidates"][0]["raw_texts"], ["ABCD123"])
+
 
 class PlateEvidenceTests(unittest.TestCase):
     def test_guarded_perspective_correction_rectifies_plate_quadrilateral(self):
@@ -98,6 +139,21 @@ class PlateEvidenceTests(unittest.TestCase):
             self.assertIsNotNone(raw)
             np.testing.assert_array_equal(raw, crop)
             self.assertNotEqual(saved["raw_path"], saved["enhanced_path"])
+
+    def test_preprocessing_ablation_preserves_raw_and_separates_derivatives(self):
+        crop = np.full((30, 100, 3), 120, np.uint8)
+        cv2.putText(crop, "A12", (5, 23), cv2.FONT_HERSHEY_SIMPLEX, .7, (240, 240, 240), 2)
+        original = crop.copy()
+        variants = preprocessing_variants(crop)
+        np.testing.assert_array_equal(crop, original)
+        np.testing.assert_array_equal(variants["raw"], original)
+        self.assertIn("padded", variants)
+        self.assertIn("perspective_rectified", variants)
+        self.assertEqual(variants["resize_4x"].shape[:2], (120, 400))
+        with tempfile.TemporaryDirectory() as root:
+            paths = save_preprocessing_variants(crop, Path(root), "sample")
+            self.assertEqual(set(paths), set(variants))
+            self.assertTrue(all(Path(path).is_file() for path in paths.values()))
 
 
 if __name__ == "__main__":

@@ -1,0 +1,130 @@
+{
+  "schema_version": 3,
+  "date": "2026-10-22",
+  "purpose": "Development-set crop-level OCR check on a deterministic sample of the official OpenALPR seg_and_ocr benchmark",
+  "selection": {
+    "available_images": 751,
+    "development_images": 300,
+    "untouched_final_images": 451,
+    "seed": 20261022,
+    "direct_ocr_frozen_manifest_sha256": "64ece453527f190a27c1c309471a20235ce267007408fc10e2b7ec92a4caeb44",
+    "local_training_reference_images": 3982,
+    "exact_overlap_rejections": 0,
+    "near_duplicate_rejections": 0,
+    "near_duplicate_hamming_distance": 1
+  },
+  "pipeline_correction": {
+    "problem": "The first diagnostic sent already-cropped plates through the detector again before OCR.",
+    "previous_detector_plus_ocr_exact": 0.7766666666666666,
+    "previous_detector_plus_ocr_character_accuracy": 0.9221724524076148,
+    "correction": "Known plate crops now go directly to OCR with an unmodified crop and a border-preserving padded derivative.",
+    "originals_modified": false
+  },
+  "direct_ocr_development_metrics": {
+    "plates": 300,
+    "plates_with_reading": 300,
+    "read_coverage": 1.0,
+    "exact_matches": 263,
+    "exact_plate_accuracy": 0.8766666666666667,
+    "exact_plate_accuracy_wilson_95": [
+      0.8346262759711767,
+      0.9091826857063321
+    ],
+    "topk_exact_matches": 264,
+    "topk_exact_plate_accuracy": 0.88,
+    "ground_truth_characters": 1786,
+    "character_edits": 66,
+    "character_error_rate": 0.036954087346024636,
+    "character_accuracy": 0.9630459126539753,
+    "operational_acceptance": {
+      "policy": "accept_at_or_above_fixed_ocr_confidence_else_review",
+      "confidence_threshold": 0.9995,
+      "accepted": 227,
+      "sent_to_review": 73,
+      "acceptance_coverage": 0.7566666666666667,
+      "accepted_exact_matches": 223,
+      "accepted_exact_precision": 0.9823788546255506,
+      "accepted_exact_precision_wilson_95": [
+        0.9555763847821789,
+        0.993126682330684
+      ]
+    }
+  },
+  "cct_s_development_ablation": {
+    "status": "promoted_for_already_localized_crop_candidate_generation_only",
+    "padded_exact_matches": 263,
+    "padded_exact_plate_accuracy": 0.8766666666666667,
+    "padded_character_accuracy": 0.9630459126539753,
+    "full_frame_policy": "The existing detector plus cct-xs model remains the full-frame reader."
+  },
+  "confidence_policy_freeze": {
+    "threshold": 0.9995,
+    "selected_on": "300-image development split",
+    "purpose": "Separate high-precision automatic acceptance from review; does not change the raw OCR prediction or overall exact accuracy.",
+    "frozen_before_final_evaluation": true
+  },
+  "final_confirmation_metrics": {
+    "frozen_manifest_sha256": "c91484e88aac8b75a096094ca4bed2d0278566c6fdbf4b12a4daed882d676bb6",
+    "plates": 451,
+    "plates_with_reading": 451,
+    "read_coverage": 1.0,
+    "exact_matches": 411,
+    "exact_plate_accuracy": 0.9113082039911308,
+    "exact_plate_accuracy_wilson_95": [
+      0.8814773200216707,
+      0.934191508765228
+    ],
+    "topk_exact_matches": 414,
+    "topk_exact_plate_accuracy": 0.917960088691796,
+    "ground_truth_characters": 2765,
+    "character_edits": 61,
+    "character_error_rate": 0.022061482820976492,
+    "character_accuracy": 0.9779385171790235,
+    "operational_acceptance": {
+      "confidence_threshold_frozen_on_development": 0.9995,
+      "accepted": 345,
+      "sent_to_review": 106,
+      "acceptance_coverage": 0.7649667405764967,
+      "accepted_exact_matches": 340,
+      "false_exact_assignments": 5,
+      "accepted_exact_precision": 0.9855072463768116,
+      "accepted_exact_precision_wilson_95": [
+        0.9665275408259836,
+        0.9937940939146604
+      ]
+    }
+  },
+  "visual_failure_audit": {
+    "finding": "Most residual failures were readable specialty or vanity plates, not impossible images.",
+    "examples": [
+      "Stacked class letters included by OCR but excluded from benchmark truth",
+      "Decorative symbols interpreted as characters",
+      "O/0 and I/1 glyph ambiguity",
+      "Several benchmark rows label a multi-zero plate as the single character 0"
+    ],
+    "policy": "Do not change ground truth post hoc. Predeclare normal-passenger eligibility and route unsupported layouts to review."
+  },
+  "human_reviewed_300_status": {
+    "readable": 271,
+    "challenging": 23,
+    "unreadable": 3,
+    "out_of_scope": 3,
+    "transcriptions_present": 0,
+    "readable_or_challenging_transcriptions_missing": 294,
+    "freeze_status": "rejected_as_incomplete"
+  },
+  "release_status": {
+    "ocr_complete": false,
+    "exact_95_percent_target_met": false,
+    "character_95_percent_target_met_on_development": true,
+    "character_95_percent_target_met_on_final": true,
+    "accepted_read_precision_95_percent_target_met_on_final": true,
+    "untouched_final_consumed": true
+  },
+  "limitations": [
+    "This measures OCR on already-cropped US plates, separately from full-frame localization.",
+    "The 300 images are development data; the separate 451-image split is final confirmation evidence for this frozen OCR path.",
+    "No overlap was found against known local fine-tuning data, but public-data exposure during third-party base-model pretraining cannot be ruled out.",
+    "Event-level accuracy still requires independent frames from labelled dealership video."
+  ]
+}
