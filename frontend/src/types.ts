@@ -1,6 +1,7 @@
 export interface TargetConfiguration {
   free_text_description: string;
   processing_mode: 'fast' | 'balanced' | 'thorough';
+  inventory_scan?: boolean;
   upper_clothing_type?: string;
   upper_clothing_color?: string;
   sleeve_length?: string;
@@ -42,7 +43,7 @@ export interface VehicleSighting {
   session_id: string;
   requested_plate: string;
   observed_plate: string;
-  match_kind: 'exact' | 'partial' | 'review_candidate' | 'vehicle_only';
+  match_kind: 'exact' | 'partial' | 'exact_consensus' | 'partial_consensus' | 'review_candidate' | 'vehicle_only';
   captured_at?: string | null;
   best_timestamp_seconds: number;
   camera_name?: string | null;
@@ -66,6 +67,11 @@ export interface VehicleSighting {
   review_status?: string | null;
   review_notes?: string | null;
   corrected_plate?: string | null;
+  vehicle_attribute_state?: string | null;
+  vehicle_attribute_candidates?: {
+    selected?: {make?: string; model?: string; year_start?: number; year_end?: number} | null;
+    ranked_candidates?: Array<Record<string, unknown>>;
+  };
 }
 
 export type SightingReviewAction = 'confirm' | 'reject' | 'reopen' | 'correct' | 'note';

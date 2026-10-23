@@ -1,70 +1,78 @@
-import React, { useState } from 'react';
-import { Camera, CarFront, Check, ChevronDown, FileVideo, Search, UploadCloud } from 'lucide-react';
-import { TargetConfiguration } from '../types';
+import React, {useState} from 'react';
+import {Camera, Check, FileVideo, Play, UploadCloud} from 'lucide-react';
+import {TargetConfiguration} from '../types';
 
-interface Props { onStartSession: (config: TargetConfiguration, videoFile: File) => void; isProcessing: boolean; onPreviewFile?: (file: File | null) => void; }
-const normalizePlate = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-const colors = ['Black', 'White', 'Silver', 'Grey', 'Red', 'Blue', 'Green', 'Yellow', 'Orange', 'Brown', 'Beige / Tan', 'Gold', 'Bronze', 'Purple', 'Pink', 'Burgundy / Maroon', 'Teal / Turquoise', 'Two-tone', 'Other / Unknown'];
+interface Props {
+  onStartSession: (config: TargetConfiguration, videoFile: File) => void;
+  isProcessing: boolean;
+  onPreviewFile?: (file: File | null) => void;
+}
 
-export const TargetForm: React.FC<Props> = ({ onStartSession, isProcessing, onPreviewFile }) => {
+export const TargetForm: React.FC<Props> = ({onStartSession, isProcessing, onPreviewFile}) => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [plate, setPlate] = useState('');
-  const [plateMode, setPlateMode] = useState<'exact' | 'partial'>('exact');
-  const [color, setColor] = useState(''); const [bodyType, setBodyType] = useState('');
   const [cameraName, setCameraName] = useState('');
   const [cameraRole, setCameraRole] = useState<NonNullable<TargetConfiguration['camera_role']>>('unknown');
   const [recordedStart, setRecordedStart] = useState('');
-  const [businessOpen, setBusinessOpen] = useState('08:00'); const [businessClose, setBusinessClose] = useState('20:00');
-  const [fromSeconds, setFromSeconds] = useState(''); const [toSeconds, setToSeconds] = useState('');
-  const [processingMode, setProcessingMode] = useState<'fast' | 'balanced' | 'thorough'>('balanced');
   const [error, setError] = useState('');
 
-  const handleSubmit = (event: React.FormEvent) => {
-    event.preventDefault(); setError('');
-    const normalizedPlate = normalizePlate(plate);
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
     if (!videoFile) return setError('Select an MP4, MOV, or MKV security recording.');
     if (videoFile.size > 4 * 1024 ** 3) return setError('The recording must be smaller than 4 GB.');
-    if (normalizedPlate && (normalizedPlate.length < 3 || normalizedPlate.length > 10)) return setError('Enter 3–10 letters or numbers for a full or partial licence plate.');
-    if (!normalizedPlate && !color && !bodyType) return setError('Enter a plate, colour, or coarse vehicle category.');
-    if (fromSeconds && toSeconds && Number(toSeconds) <= Number(fromSeconds)) return setError('The end of the search window must be after the start.');
-    const description = [color, bodyType || 'vehicle', normalizedPlate ? `with licence plate ${normalizedPlate}` : ''].filter(Boolean).join(' ');
     onStartSession({
-      free_text_description: description, processing_mode: processingMode,
-      required_attributes: [], optional_attributes: [], negative_attributes: [], min_alert_confidence: 0.65,
-      plate_number: normalizedPlate || undefined, plate_match_mode: plateMode,
-      vehicle_color: color || undefined, vehicle_body_type: bodyType || undefined,
-      camera_name: cameraName || undefined, camera_role: cameraRole,
-      recorded_start_at: recordedStart || undefined, business_open_time: businessOpen,
-      business_close_time: businessClose, search_start_seconds: fromSeconds ? Number(fromSeconds) : undefined,
-      search_end_seconds: toSeconds ? Number(toSeconds) : undefined,
+      free_text_description: 'Detect and record every supported vehicle in this recording.',
+      processing_mode: 'balanced',
+      inventory_scan: true,
+      required_attributes: [],
+      optional_attributes: [],
+      negative_attributes: [],
+      min_alert_confidence: 0.65,
+      camera_name: cameraName.trim() || undefined,
+      camera_role: cameraRole,
+      recorded_start_at: recordedStart || undefined,
     }, videoFile);
   };
 
   return <section className="surface investigation-form">
-    <div className="form-heading"><div className="form-icon"><CarFront size={20} /></div><div><span className="eyebrow">Case setup</span><h2>Find a vehicle</h2></div></div>
-    <p className="muted form-intro">Add the footage, then enter only what you know. Search by plate, vehicle details, or both.</p>
-    <form onSubmit={handleSubmit}><fieldset disabled={isProcessing} className="target-fields">
-      <div className="form-section"><div className="form-section-title"><span>1</span><h3><FileVideo size={15} /> Recording</h3></div>
-        <label className={`upload-dropzone ${videoFile ? 'has-file' : ''}`} htmlFor="video-upload"><input id="video-upload" type="file" accept=".mp4,.mov,.mkv" onChange={e => { const file = e.target.files?.[0] || null; setVideoFile(file); onPreviewFile?.(file); }} required /><div className="upload-icon">{videoFile ? <Check size={21} /> : <UploadCloud size={21} />}</div><div><strong>{videoFile ? videoFile.name : 'Choose a security recording'}</strong><span>{videoFile ? `${(videoFile.size / 1024 / 1024).toFixed(1)} MB · ready to scan` : 'MP4, MOV or MKV · up to 4 GB'}</span></div></label>
-        <details className="advanced-panel"><summary>Recording details <ChevronDown size={15} /></summary><div className="advanced-fields">
-          <div className="form-row"><div><label className="field-label">Recording begins</label><input className="input-slot" type="datetime-local" value={recordedStart} onChange={e => setRecordedStart(e.target.value)} /></div><div><label className="field-label">Camera name</label><input className="input-slot" value={cameraName} onChange={e => setCameraName(e.target.value)} placeholder="North gate" /></div></div>
-          <label className="field-label">Camera role</label><select className="input-slot" value={cameraRole} onChange={e => setCameraRole(e.target.value as typeof cameraRole)}><option value="unknown">Unspecified / general view</option><option value="lot_entry">Lot entrance</option><option value="lot_exit">Lot exit</option><option value="service_entry">Service entrance</option><option value="service_exit">Service exit</option><option value="lot_area">Inventory / lot area</option></select>
-          <div className="form-row"><div><label className="field-label">Business opens</label><input className="input-slot" type="time" value={businessOpen} onChange={e => setBusinessOpen(e.target.value)} /></div><div><label className="field-label">Business closes</label><input className="input-slot" type="time" value={businessClose} onChange={e => setBusinessClose(e.target.value)} /></div></div>
-        </div></details>
+    <div className="form-heading"><div className="form-icon"><Camera size={20}/></div><div><span className="eyebrow">Recording setup</span><h2>Analyse all vehicles</h2></div></div>
+    <p className="muted form-intro">LotTrace will find every supported vehicle, group repeat frames, read visible plates, and attach colour and vehicle candidates.</p>
+    <form onSubmit={submit}><fieldset disabled={isProcessing} className="target-fields">
+      <div className="form-section">
+        <div className="form-section-title"><span>1</span><h3><FileVideo size={15}/> Recording</h3></div>
+        <label className={`upload-dropzone ${videoFile ? 'has-file' : ''}`} htmlFor="video-upload">
+          <input id="video-upload" type="file" accept=".mp4,.mov,.mkv" onChange={event => {
+            const file = event.target.files?.[0] || null;
+            setVideoFile(file);
+            onPreviewFile?.(file);
+          }} required/>
+          <div className="upload-icon">{videoFile ? <Check size={21}/> : <UploadCloud size={21}/>}</div>
+          <div><strong>{videoFile ? videoFile.name : 'Choose a security recording'}</strong><span>{videoFile ? `${(videoFile.size / 1024 / 1024).toFixed(1)} MB · ready to analyse` : 'MP4, MOV or MKV · up to 4 GB'}</span></div>
+        </label>
       </div>
-      <div className="form-section"><div className="form-section-title"><span>2</span><h3><Search size={15} /> Known plate</h3><em>Optional</em></div>
-        <label className="field-label" htmlFor="plate">Licence plate or known fragment</label><input id="plate" className="input-slot plate-input" value={plate} maxLength={12} onChange={e => setPlate(e.target.value.toUpperCase())} placeholder="e.g. ABC1234" />
-        <div className="segmented-control"><button type="button" aria-pressed={plateMode === 'exact'} onClick={() => setPlateMode('exact')}>Full plate</button><button type="button" aria-pressed={plateMode === 'partial'} onClick={() => setPlateMode('partial')}>Partial plate</button></div>
-        <div className="form-row"><div><label className="field-label">From second</label><input className="input-slot" type="number" min="0" step="0.1" value={fromSeconds} onChange={e => setFromSeconds(e.target.value)} placeholder="Start" /></div><div><label className="field-label">To second</label><input className="input-slot" type="number" min="0" step="0.1" value={toSeconds} onChange={e => setToSeconds(e.target.value)} placeholder="End" /></div></div>
+      <div className="form-section">
+        <div className="form-section-title"><span>2</span><h3><Camera size={15}/> Camera context</h3></div>
+        <label className="field-label" htmlFor="camera-name">Camera name</label>
+        <input id="camera-name" className="input-slot" value={cameraName} onChange={event => setCameraName(event.target.value)} placeholder="Main gate"/>
+        <label className="field-label" htmlFor="camera-role">Movement</label>
+        <select id="camera-role" className="input-slot" value={cameraRole} onChange={event => setCameraRole(event.target.value as typeof cameraRole)}>
+          <option value="unknown">General view / direction unknown</option>
+          <option value="lot_entry">Entering the lot</option>
+          <option value="lot_exit">Leaving the lot</option>
+          <option value="service_entry">Entering service</option>
+          <option value="service_exit">Leaving service</option>
+          <option value="lot_area">Observed on the lot</option>
+        </select>
+        <label className="field-label" htmlFor="recorded-start">Recording start time</label>
+        <input id="recorded-start" className="input-slot" type="datetime-local" value={recordedStart} onChange={event => setRecordedStart(event.target.value)}/>
+        <p className="form-hint">When no clock time is provided, sightings use the timestamp inside the video.</p>
       </div>
-      <details className="form-section vehicle-details" open><summary><Camera size={15} /><strong>Vehicle details</strong><span>Search without a plate</span><ChevronDown size={15} /></summary><div className="advanced-fields">
-        <div className="form-row"><div><label className="field-label" htmlFor="vehicle-color">Colour</label><input id="vehicle-color" list="vehicle-colors" className="input-slot" value={color} onChange={e => setColor(e.target.value)} placeholder="Any colour" /><datalist id="vehicle-colors">{colors.map(item => <option key={item} value={item} />)}</datalist></div><div><label className="field-label" htmlFor="vehicle-category">Coarse category</label><select id="vehicle-category" className="input-slot" value={bodyType} onChange={e => setBodyType(e.target.value)}><option value="">Any vehicle</option><option value="car">Car</option><option value="truck">Truck</option><option value="bus">Bus</option><option value="motorcycle">Motorcycle</option></select></div></div>
-        <p className="form-hint"><strong>Make, model, and year are unavailable.</strong> The current model does not evaluate them.</p>
-      </div></details>
-      <div><label className="field-label">Scan depth</label><div className="scan-options">{(['fast', 'balanced', 'thorough'] as const).map(mode => <button key={mode} type="button" aria-pressed={processingMode === mode} onClick={() => setProcessingMode(mode)}><strong>{mode}</strong><span>{mode === 'fast' ? 'Quick pass' : mode === 'balanced' ? 'Recommended' : 'Max coverage'}</span></button>)}</div></div>
-      <p className="form-hint">AI observations are leads, not conclusions. Confirm every result against the original footage.</p>
+      <div className="analysis-summary">
+        <strong>Automatic processing</strong>
+        <span>Frame selection adapts to each vehicle track. Clear, independent plate views receive more weight than repeated blurry frames.</span>
+      </div>
       {error && <p role="alert" className="error-message">{error}</p>}
-      <button type="submit" className="button button-primary start-search" disabled={isProcessing}><Search size={18} />{isProcessing ? 'Investigation in progress' : 'Start vehicle search'}</button>
+      <button type="submit" className="button button-primary start-search" disabled={isProcessing}><Play size={18}/>{isProcessing ? 'Analysis in progress' : 'Analyse recording'}</button>
     </fieldset></form>
   </section>;
 };

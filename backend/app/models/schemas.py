@@ -25,6 +25,9 @@ class TargetConfiguration(BaseModel):
     optional_attributes: List[str] = Field(default_factory=list)
     negative_attributes: List[str] = Field(default_factory=list)
     min_alert_confidence: float = Field(default=0.60, ge=0, le=1)
+    # Recording-wide inventory mode: detect every supported vehicle rather
+    # than searching for a plate or an operator-supplied vehicle profile.
+    inventory_scan: bool = False
     reference_photo_path: Optional[str] = None
     # Dealership investigation fields. Vehicle appearance values are recorded as
     # operator-supplied context until a calibrated vehicle classifier is enabled.

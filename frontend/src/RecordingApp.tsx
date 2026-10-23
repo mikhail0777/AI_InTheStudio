@@ -78,14 +78,14 @@ export const RecordingApp: React.FC = () => {
     setResults([]); setSelectedResult(null); setVideoUrl(null); setJumpTimestamp(null);
     setClassificationFilter('matches'); setStartTime(''); setEndTime(''); setShowReportModal(false);
     try {
-      setUploadStage('Creating investigation');
+      setUploadStage('Creating recording analysis');
       const created = await createSession(config);
       setSession(created);
       setUploadStage('Uploading recording');
       const controller = new AbortController(); uploadController.current = controller;
       const uploaded = await uploadVideo(created.session_id, videoFile, setUploadProgress, controller.signal);
       if (uploaded.video_url) setVideoUrl(uploaded.video_url);
-      setUploadStage('Starting vehicle search');
+      setUploadStage('Starting vehicle and plate analysis');
       await startAnalysis(created.session_id, config);
       setSession(await getSessionStatus(created.session_id));
       setMonitoredSessionId(created.session_id);
@@ -144,10 +144,10 @@ export const RecordingApp: React.FC = () => {
     && result.end_seconds >= startSeconds && result.start_seconds <= endSeconds);
   const supportedCount = results.filter(result => result.classification === 'strong_match').length;
   const emptyDetail = isProcessing ? 'Sightings will appear after the recording has been scanned.'
-    : session?.status === 'completed' ? 'No supported sighting was found at the selected scan depth. Try Thorough mode or verify that the plate or vehicle is clearly visible.'
+    : session?.status === 'completed' ? 'No supported vehicle sighting was found. Verify that vehicles are visible and large enough in the source footage.'
     : session?.status === 'error' ? 'Processing stopped. Review the error and start a new investigation.'
     : session?.status === 'cancelled' ? 'Investigation cancelled. Existing evidence was retained.'
-    : 'Add a security recording and the vehicle information you know.';
+    : 'Add a security recording to build its vehicle timeline.';
   const reviewCount = results.filter(result => result.classification === 'possible_match').length;
 
   return <div className="app-shell">
@@ -162,14 +162,14 @@ export const RecordingApp: React.FC = () => {
           {previewUrl ? <video key={previewUrl} src={previewUrl} controls playsInline preload="metadata" aria-label="Preview selected recording"
             onLoadedMetadata={() => setPreviewError('')}
             onError={() => setPreviewError('This file uses a video codec that this browser cannot play. LotTrace may still be able to analyse it after upload.')}/> :
-            <div className="recording-placeholder"><FileVideo size={36}/><strong>No recording selected</strong><p>Choose a recording in the search form to preview it here.</p></div>}
+            <div className="recording-placeholder"><FileVideo size={36}/><strong>No recording selected</strong><p>Choose a recording to preview it here.</p></div>}
         </div>
         {previewError && <div className="preview-error" role="alert">{previewError}</div>}
         <p>{previewFile ? previewFile.name : 'Results will appear here once a recording has been analysed.'}</p>
       </section>}
       <div className={`evidence-workspace ${!session ? 'view-hidden' : ''}`}>
         <section className="workspace-heading">
-          <div><span className="eyebrow">Investigation workspace</span><h2>Review vehicle evidence</h2><p>{session ? 'Inspect detections against the original recording before confirming a sighting.' : 'Upload footage and describe the vehicle you need to find.'}</p></div>
+          <div><span className="eyebrow">Recording timeline</span><h2>Review every vehicle sighting</h2><p>{session ? 'Inspect vehicle, plate, colour, and make/model evidence against the original recording.' : 'Upload footage to detect all supported vehicles.'}</p></div>
           <div className="workspace-stats" aria-label="Evidence summary"><div><strong>{results.length}</strong><span>Sightings</span></div><div><strong>{supportedCount}</strong><span>Supported</span></div><div><strong>{reviewCount}</strong><span>Review</span></div></div>
         </section>
         <VideoPlayer videoUrl={videoUrl} status={session} selectedResult={selectedResult} jumpTimestamp={jumpTimestamp?.seconds} jumpKey={jumpTimestamp?.key} />

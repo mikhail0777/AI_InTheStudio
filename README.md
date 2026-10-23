@@ -1,18 +1,18 @@
 # LotTrace
 
-Local dealership video investigation for finding vehicles in recorded security footage.
+Local dealership vehicle-arrival, departure, and evidence software for recorded security footage.
 
-LotTrace is an operator-review tool, not an autonomous identification or enforcement system. Its first commercial slice is intentionally narrow: upload a dealership recording, search by a full/partial licence plate or a visible vehicle profile, review timestamped sightings, build a cross-recording vehicle history, and export an evidence report.
+LotTrace processes a recording into a reviewable timeline of every supported vehicle. Licence plates are the primary identity; colour and ranked make/model/year candidates provide supporting evidence. It is an operator-review tool, not an autonomous identification or enforcement system.
 
 ## MVP workflow
 
 1. Upload an MP4, MOV, or MKV recording exported from an existing camera/NVR.
-2. Enter a full/partial plate, or leave the plate blank and provide the vehicle details you know.
-3. Identify the camera and its role (lot/service entry, exit, or general area) and optionally set the recording's real start time.
-4. Select Fast, Balanced, or Thorough scan depth and an optional time window.
-5. Review supported and review-only vehicle/plate sightings against the original footage.
-6. Search the persistent sighting ledger by partial plate and vehicle profile, then export a printable evidence report.
-7. Delete the case from the header when its approved retention period ends; this removes the uploaded recording, ledger entries, and generated evidence.
+2. Identify the camera and its role (lot/service entry, exit, or general area) and optionally set the recording's real start time.
+3. Start analysis. LotTrace detects every supported vehicle; there is no required plate or vehicle search target.
+4. Repeated detections are grouped into a timeline, while adaptive frame selection favours clear, independent plate views.
+5. Review vehicle, plate, colour, and make/model evidence against the original footage.
+6. Search the persistent sighting ledger, review arrival/departure events, and inspect vehicle history.
+7. Delete a recording analysis when its approved retention period ends; this removes its upload and generated evidence.
 
 Plate searches use a dedicated dense scan rather than semantic keyframe retrieval. Full frames and overlapping tiles are read locally, OCR observations are grouped into time-based sightings, and common OCR confusions are shown as possible matches without being relabelled as exact reads. A guarded second pass can recover weak reads from mirrored camera footage; the transformation is retained in the evidence record. A supported plate result also requires the plate to be associated with a detected vehicle.
 
@@ -38,11 +38,11 @@ npm.cmd run dev
 
 Open `http://localhost:5173`. After dependencies and models are installed, `run_aieye.bat` can start both services.
 
-## Scan depth
+## Current stage
 
-- **Fast:** 1 sampled frame per second; no tiled OCR.
-- **Balanced:** 2 sampled frames per second with tiled OCR.
-- **Thorough:** 4 sampled frames per second with tiled OCR.
+Milestones A and B are development-complete for the current prototype, not production-certified. Existing plate-box localization measured 97.55% precision, 91.71% recall, and 94.54% F1. The frozen 451-image exact complete-plate OCR benchmark measured 91.13% (411/451); the high-confidence accepted subset measured 98.55% (340/345) at 76.50% coverage. Multi-frame performance still requires a labelled dealership-video benchmark.
+
+Milestone C is active. VMMRdb tooling is included for research and plumbing validation, but the source images require a separate commercial-rights review before production use. Live camera/RTSP ingestion remains a Milestone D task.
 
 Set `AIEYE_PLATE_SCAN_FPS` to override the plate cadence (0.1–15 FPS). Set `AIEYE_PLATE_REVIEW_SIMILARITY` to tune which non-exact OCR strings enter the review queue; the default is `0.78`. `AIEYE_PLATE_MIRROR_FALLBACK` enables the guarded mirrored-camera pass, and `AIEYE_PLATE_MIRROR_THRESHOLD` controls when it runs (default `0.72`). These settings affect recall, runtime, and the number of false review candidates. They do not change the definition of an exact match.
 
@@ -65,9 +65,22 @@ This is a local pilot build, not a network-ready multi-tenant service. It binds 
 - measure plate-search recall and false review candidates per video hour;
 - require an operator to verify evidence before contacting a customer, employee, insurer, or law-enforcement agency.
 
-The existing generic person/object research pipeline remains in the backend for regression compatibility, but it is not part of the LotTrace MVP interface.
+Shared generic detector, evidence, and clip utilities remain in the backend as compatibility internals. They are not part of the LotTrace interface and should be extracted before the remaining legacy runtime is removed.
 
-Vehicle presence, a coarse detector category, and mask-derived colour are machine observations. Sedan versus SUV versus coupe, make, model, model year, and trim are not yet machine-verified; they remain requested profile details for visual review. Automatic damage comparison is also not implemented; it requires paired views, controlled camera geometry, labelled data, and its own validation. See `docs/DEALERSHIP_MVP_ARCHITECTURE.md` for the live-camera extension boundary and production roadmap.
+Vehicle presence, a coarse detector category, and mask-derived colour are machine observations. Make/model/year candidates appear only when a local vehicle-attribute model is configured and remain reviewable. Automatic damage comparison is a separate workflow with its own validation requirements.
+
+## Repository map
+
+| Path | Purpose |
+| --- | --- |
+| `backend/app/services/vehicle_*` | Vehicle scanning, attributes, sightings, records, and events |
+| `backend/app/services/plate_*` | OCR evidence, ranking, and multi-frame consensus |
+| `frontend/src/workspace` | Dealership ledgers and review screens |
+| `frontend/src/components` | Recording analysis components |
+| `scripts` | Evaluation, dataset-audit, and training commands |
+| `evaluation` | Measured outputs and benchmark manifests, never runtime data |
+| `docs` | Current architecture, milestone, licensing, and evaluation reports |
+| `datasets`, `runs`, `videos` | Ignored local data and generated artifacts |
 
 ## Commercial licensing
 

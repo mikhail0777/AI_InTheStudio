@@ -10,6 +10,7 @@ from app import database
 from app.models.schemas import TargetConfiguration
 from app.models.schemas import VideoMetadata
 from app.models.open_vocabulary import ModelProvenance
+from app.services.license_plate_reader import PlateReading
 from app.services.vehicle_recognizer import VehicleObservation
 from app.services.vehicle_scan import VehicleScanManager, _category_matches, _group_tracks, _requested_color, is_vehicle_profile_search
 
@@ -63,6 +64,7 @@ class VehicleScanTests(unittest.TestCase):
                 target = TargetConfiguration(
                     free_text_description="red Tesla vehicle", processing_mode="balanced",
                     vehicle_color="red", vehicle_make="Tesla", camera_role="lot_entry",
+                    inventory_scan=True,
                 )
                 with database.get_db_connection() as conn:
                     conn.execute(
@@ -92,10 +94,23 @@ class VehicleScanTests(unittest.TestCase):
                             )]
                         return []
 
+                class FakePlateReader:
+                    provenance = PROVENANCE
+
+                    def __init__(self):
+                        pass
+
+                    def read_frame(self, frame, tiled=True):
+                        return [PlateReading("ABC123", .91, [100, 100, 180, 130])]
+
+                    def read_crop(self, crop, source_variant="enhanced_crop"):
+                        return [PlateReading("ABC123", .93, [0, 0, crop.shape[1], crop.shape[0]], source_variant)]
+
                 def fake_clip(source, start, end, destination):
                     Path(destination).write_bytes(b"clip")
 
                 with patch("app.services.vehicle_scan.VehicleRecognizer", FakeRecognizer), \
+                     patch("app.services.vehicle_scan.LicensePlateReader", FakePlateReader), \
                      patch("app.services.vehicle_scan._extract_clip", fake_clip):
                     results = VehicleScanManager.execute_analysis(
                         "case", target, run_id="run", checkpoint=lambda: None,
@@ -104,7 +119,9 @@ class VehicleScanTests(unittest.TestCase):
                 self.assertEqual(results[0].classification, "strong_match")
                 with database.get_db_connection() as conn:
                     sighting = conn.execute("SELECT * FROM vehicle_sightings").fetchone()
-                self.assertEqual(sighting["observed_plate"], "")
+                self.assertEqual(sighting["observed_plate"], "ABC123")
+                self.assertEqual(sighting["consensus_plate"], "ABC123")
+                self.assertEqual(sighting["match_kind"], "exact_consensus")
                 self.assertEqual(sighting["vehicle_color"], "red")
                 self.assertIsNone(sighting["vehicle_make"])
                 self.assertEqual(sighting["requested_vehicle_make"], "Tesla")

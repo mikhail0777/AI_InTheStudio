@@ -24,7 +24,7 @@ class UnifiedSearchManager:
             return VehicleInvestigationManager.execute_analysis(
                 session_id, target, run_id=run_id, checkpoint=checkpoint,
             )
-        if is_vehicle_profile_search(target):
+        if target.inventory_scan or is_vehicle_profile_search(target):
             return VehicleScanManager.execute_analysis(
                 session_id, target, run_id=run_id, checkpoint=checkpoint,
             )

@@ -18,10 +18,11 @@ test('recording preview exposes playback controls and codec errors',()=>{
  assert.match(source,/video codec that this browser cannot play/);
 });
 
-test('vehicle-only lookup fields are visible by default',()=>{
+test('recording analysis scans every vehicle without a target or scan-depth control',()=>{
  const source=read('../src/components/TargetForm.tsx');
- assert.match(source,/<details className="form-section vehicle-details" open>/);
- assert.match(source,/Search without a plate/);
+ assert.match(source,/inventory_scan: true/);
+ assert.match(source,/Analyse all vehicles/);
+ assert.doesNotMatch(source,/Known plate|Scan depth|processingMode/);
 });
 
 test('saved-sighting review exposes auditable multi-frame plate evidence',()=>{

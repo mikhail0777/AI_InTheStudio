@@ -31,6 +31,6 @@ export const Header: React.FC<HeaderProps> = ({ status, onNewMission, onOpenRepo
     </>}
     {status?.status === 'completed' && <button className="button button-secondary" onClick={onOpenReport}><FileText size={16} />Report</button>}
     {status && ['completed', 'error', 'cancelled'].includes(status.status) && <button className="button button-quiet danger-button" onClick={onDeleteCase}><Trash2 size={16} />Delete</button>}
-    <button className="button button-primary" disabled={isProcessing} onClick={onNewMission}><Plus size={17} />New investigation</button>
+    <button className="button button-primary" disabled={isProcessing} onClick={onNewMission}><Plus size={17} />New recording</button>
   </div>
 </header>;

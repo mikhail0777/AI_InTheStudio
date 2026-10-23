@@ -26,10 +26,12 @@ export const ResultCard: React.FC<Props> = ({ result, onJumpToTime, onSelectResu
   }));
   const requestedPlate = result.entities.map(entity => entity.attributes.requested_plate).find(Boolean);
   const sourceCrops = Array.from(new Set(result.entities.flatMap(entity => entity.detections.map(detection => detection.crop_path).filter((path): path is string => !!path))));
-  const observedPlates = Array.from(new Set(plateReadings.map(reading => reading.text).filter(Boolean)));
+  const consensusPlates = result.entities.map(entity => entity.attributes.observed_plate).filter(Boolean);
+  const observedPlates = Array.from(new Set([...consensusPlates, ...plateReadings.map(reading => reading.text)].filter(Boolean)));
   const observedVehicle = result.entities.map(entity => ({
     color: entity.attributes.vehicle_color,
     category: entity.attributes.vehicle_body_type,
+    identity: entity.attributes.vehicle_make_model as {make?: string; model?: string; year_start?: number; year_end?: number} | null,
     detected: entity.attributes.vehicle_detected,
   })).find(item => item.detected);
   const resultLabel = requestedPlate ? labels[result.classification] : (
@@ -40,7 +42,7 @@ export const ResultCard: React.FC<Props> = ({ result, onJumpToTime, onSelectResu
 
   return <article className="result-card">
     <div className="row-between">
-      <span className="status-label">Sighting · {requestedPlate ? String(requestedPlate) : 'vehicle profile'}</span>
+      <span className="status-label">Vehicle sighting · {observedPlates[0] ? String(observedPlates[0]) : 'plate unread'}</span>
       <span className={`candidate-badge ${result.classification}`}>{resultLabel}</span>
     </div>
     {result.best_frame_path && <button className="result-frame-button" onClick={() => setShowImage(true)} aria-label="Open full-size annotated evidence">
@@ -51,6 +53,7 @@ export const ResultCard: React.FC<Props> = ({ result, onJumpToTime, onSelectResu
       <button className="result-time-link" onClick={playOriginal}><Clock size={15} />{formatTime(result.start_seconds)}–{formatTime(result.end_seconds)} · play at {formatTime(result.best_timestamp_seconds)}</button>
       {!!observedPlates.length && <div className="plate-readout"><span>OCR read</span><strong>{observedPlates.join(' · ')}</strong></div>}
       {observedVehicle && <div className="vehicle-observation"><span>AI-observed vehicle</span><strong>{[observedVehicle.color, observedVehicle.category].filter(Boolean).join(' · ') || 'Vehicle detected'}</strong></div>}
+      {observedVehicle?.identity && <div className="vehicle-observation"><span>Make/model candidate</span><strong>{[observedVehicle.identity.make, observedVehicle.identity.model, observedVehicle.identity.year_start != null ? `${observedVehicle.identity.year_start}–${observedVehicle.identity.year_end ?? observedVehicle.identity.year_start}` : ''].filter(Boolean).join(' · ')}</strong></div>}
       <span className="muted">{resultLabel}</span>
       <strong>{result.explanation}</strong>
       {result.evidence.map(item => <p key={item.criterion_id} className={`evidence-${item.assessment}`}>{item.explanation}</p>)}

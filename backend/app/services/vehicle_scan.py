@@ -12,6 +12,10 @@ from app import database
 from app.models.open_vocabulary import EntityDetection, EntityTrack, EvidenceAssessment, SearchResult
 from app.models.schemas import TargetConfiguration, VideoMetadata
 from app.services.generic_search import _extract_clip
+from app.services.license_plate_reader import LicensePlateReader
+from app.services.plate_evidence import save_plate_derivatives
+from app.services.plate_profiles import get_plate_profile
+from app.services.plate_track_consensus import build_track_plate_consensus, plate_observation_score
 from app.services.query_parser import StructuredQueryParser
 from app.services.vehicle_investigation import MODE_SCAN_FPS, _status
 from app.services.vehicle_recognizer import VehicleObservation, VehicleRecognizer
@@ -25,6 +29,16 @@ def is_vehicle_profile_search(target: TargetConfiguration) -> bool:
         target.vehicle_make, target.vehicle_model, target.vehicle_year,
         target.vehicle_color, target.vehicle_body_type,
     ))
+
+
+def _plate_belongs_to_vehicle(vehicle_bbox, plate_bbox) -> bool:
+    """Require the plate centre to fall inside the detected vehicle."""
+    plate_x = (plate_bbox[0] + plate_bbox[2]) / 2
+    plate_y = (plate_bbox[1] + plate_bbox[3]) / 2
+    return (
+        vehicle_bbox[0] <= plate_x <= vehicle_bbox[2]
+        and vehicle_bbox[1] <= plate_y <= vehicle_bbox[3]
+    )
 
 
 def _iou(left, right) -> float:
@@ -127,6 +141,13 @@ class VehicleScanManager:
         evidence_dir = Path(database.DB_DIR) / "evidence" / session_id
         evidence_dir.mkdir(parents=True, exist_ok=True)
         recognizer = VehicleRecognizer(str(Path(database.DB_DIR) / "evidence"))
+        plate_reader = LicensePlateReader() if target.inventory_scan else None
+        region_profile = get_plate_profile("unknown")
+        plate_model_manifest = ({
+            "plate_reader": plate_reader.provenance.model_dump(mode="json"),
+            "consensus": {"name": "adaptive-quality-temporal-diversity-v1", "top_k": 5},
+            "region_profile": {"name": region_profile.name, "format_rules_are_ranking_only": True},
+        } if plate_reader else {})
         observations = []
         cap = cv2.VideoCapture(video.filepath)
         if not cap.isOpened():
@@ -150,12 +171,46 @@ class VehicleScanManager:
                     timestamp_seconds=frame_idx / video.fps,
                 )
                 kept = [item for item in detected if _category_matches(target.vehicle_body_type, item.category)]
+                frame_plate_readings = plate_reader.read_frame(frame, tiled=True) if plate_reader else []
                 if not kept:
                     source.unlink(missing_ok=True)
-                observations.extend({
-                    "frame_idx": frame_idx, "timestamp_seconds": frame_idx / video.fps,
-                    "frame_path": str(source), "vehicle": item,
-                } for item in kept)
+                for vehicle_position, item in enumerate(kept):
+                    plate_observations = []
+                    associated = [reading for reading in frame_plate_readings
+                                  if _plate_belongs_to_vehicle(item.bbox, reading.bbox)]
+                    for plate_position, reading in enumerate(associated):
+                        derivatives = save_plate_derivatives(
+                            frame, reading.bbox, evidence_dir,
+                            f"inventory_plate_{frame_idx:09d}_{vehicle_position:02d}_{plate_position:02d}",
+                        )
+                        candidates = [{
+                            "text": reading.text, "confidence": reading.confidence,
+                            "source_variant": reading.source_variant,
+                        }]
+                        candidates.extend({
+                            "text": candidate.text, "confidence": candidate.confidence,
+                            "source_variant": candidate.source_variant,
+                        } for candidate in plate_reader.read_crop(
+                            derivatives["enhanced_image"], source_variant="enhanced_crop"
+                        ))
+                        plate_observations.append({
+                            "frame_idx": frame_idx,
+                            "timestamp_seconds": frame_idx / video.fps,
+                            "frame_path": str(source),
+                            "bbox": list(reading.bbox),
+                            "text": reading.text,
+                            "confidence": reading.confidence,
+                            "candidates": candidates,
+                            "quality_score": derivatives["metrics"]["quality_score"],
+                            "quality_metrics": derivatives["metrics"],
+                            "raw_plate_crop_reference": f"/evidence/{session_id}/{Path(derivatives['raw_path']).name}",
+                            "enhanced_plate_crop_reference": f"/evidence/{session_id}/{Path(derivatives['enhanced_path']).name}",
+                        })
+                    observations.append({
+                        "frame_idx": frame_idx, "timestamp_seconds": frame_idx / video.fps,
+                        "frame_path": str(source), "vehicle": item,
+                        "plate_observations": plate_observations,
+                    })
                 with database.get_db_connection() as conn:
                     conn.execute("UPDATE frame_samples SET status='sampled' WHERE run_id=? AND frame_idx=?",
                                  (run_id, frame_idx))
@@ -167,6 +222,14 @@ class VehicleScanManager:
         requested_color = _requested_color(target.vehicle_color)
         results = []
         for number, track_items in enumerate(_group_tracks(observations), start=1):
+            plate_observations = [plate for item in track_items
+                                  for plate in item.get("plate_observations", [])]
+            plate_consensus, _ = build_track_plate_consensus(
+                plate_observations, profile=region_profile,
+            )
+            selected_plate = plate_consensus.get("selected_plate")
+            best_plate = (max(plate_observations, key=plate_observation_score)
+                          if plate_observations else None)
             attribute_consensus = build_vehicle_attribute_consensus([{
                 "frame_idx": item["frame_idx"],
                 "quality_score": item["vehicle"].confidence,
@@ -187,7 +250,8 @@ class VehicleScanManager:
             color = (44, 170, 70) if strong else (0, 170, 255)
             cv2.rectangle(image, (x1, y1), (x2, y2), color, 4)
             description = " ".join(value for value in (vehicle.color, vehicle.category) if value)
-            cv2.putText(image, (description or "vehicle").upper(), (max(0, x1), max(28, y1 - 10)),
+            display_label = " · ".join(value for value in (description, selected_plate) if value)
+            cv2.putText(image, (display_label or "vehicle").upper(), (max(0, x1), max(28, y1 - 10)),
                         cv2.FONT_HERSHEY_SIMPLEX, .7, color, 2)
             annotated = evidence_dir / f"vehicle_sighting_{number:03d}.jpg"
             if not cv2.imwrite(str(annotated), image, [cv2.IMWRITE_JPEG_QUALITY, 94]):
@@ -214,6 +278,8 @@ class VehicleScanManager:
                 end_seconds=last, detections=detections,
                 attributes={"vehicle_detected": True, "vehicle_color": vehicle.color,
                             "vehicle_body_type": vehicle.category,
+                            "observed_plate": selected_plate,
+                            "plate_consensus": plate_consensus,
                             "vehicle_attribute_consensus": attribute_consensus,
                             "vehicle_make_model": attribute_consensus["selected"],
                             "requested_vehicle_make": target.vehicle_make,
@@ -241,6 +307,19 @@ class VehicleScanManager:
                 entity_track_ids=[track.track_id], evidence_paths=[f"/evidence/{session_id}/{annotated.name}"],
                 provenance=vehicle.provenance,
             )]
+            if plate_observations:
+                evidence.append(EvidenceAssessment(
+                    criterion_id="vehicle-1.plate", kind="attribute",
+                    assessment=("supported" if plate_consensus["state"] == "exact_consensus"
+                                else "uncertain"),
+                    score=plate_consensus.get("decision_score", 0.0),
+                    explanation=(f"Multi-frame OCR selected {selected_plate}. "
+                                 f"{plate_consensus['reason'].replace('_', ' ')}."),
+                    timestamps=[item["timestamp_seconds"] for item in plate_observations],
+                    entity_track_ids=[track.track_id],
+                    evidence_paths=[best_plate["raw_plate_crop_reference"]] if best_plate else [],
+                    provenance=plate_reader.provenance if plate_reader else None,
+                ))
             if requested_color:
                 evidence.append(EvidenceAssessment(
                     criterion_id="vehicle-1.color", kind="attribute",
@@ -258,25 +337,53 @@ class VehicleScanManager:
                 classification="strong_match" if strong else "possible_match", overall_score=round(score, 4),
                 component_scores={"vehicle_confidence": round(vehicle.confidence, 4),
                                   "color_support": round(best_color_score, 4),
-                                  "multi_frame_support": round(min(1, distinct_frames / 3), 4)},
+                                  "multi_frame_support": round(min(1, distinct_frames / 3), 4),
+                                  "plate_consensus": round(plate_consensus.get("decision_score", 0.0), 4)},
                 entities=[track], evidence=evidence, explanation=explanation,
                 best_frame_path=f"/evidence/{session_id}/{annotated.name}",
-                clip_path=f"/evidence/{session_id}/{clip.name}", model_provenance=[vehicle.provenance],
+                clip_path=f"/evidence/{session_id}/{clip.name}",
+                model_provenance=[vehicle.provenance] + ([plate_reader.provenance] if plate_reader else []),
             )
             results.append(result)
             save_sighting(
                 session_id=session_id, search_id=search_id, result_id=result_id, target=target, video=video,
-                observation={"text": "", "confidence": 0.0, "similarity": best_color_score,
-                             "timestamp_seconds": best["timestamp_seconds"]},
+                observation={
+                    "text": selected_plate or "",
+                    "confidence": max((candidate.get("confidence", 0.0)
+                                       for item in plate_observations
+                                       for candidate in item.get("candidates", [])), default=0.0),
+                    "similarity": plate_consensus.get("decision_score", 0.0),
+                    "timestamp_seconds": best["timestamp_seconds"],
+                },
                 first_seen=first, last_seen=last, frame_path=result.best_frame_path,
-                clip_path=result.clip_path, match_kind="vehicle_only", vehicle=vehicle,
+                clip_path=result.clip_path,
+                match_kind=("exact_consensus" if plate_consensus["state"] == "exact_consensus"
+                            else "review_candidate" if plate_observations else "vehicle_only"),
+                vehicle=vehicle,
+                plate_analysis=({
+                    "consensus": plate_consensus,
+                    "best_observation": best_plate,
+                    "observations": [{
+                        "frame_idx": item["frame_idx"],
+                        "timestamp_seconds": item["timestamp_seconds"],
+                        "source_frame_reference": f"/evidence/{session_id}/{Path(item['frame_path']).name}",
+                        "bbox": item["bbox"],
+                        "raw_plate_crop_reference": item["raw_plate_crop_reference"],
+                        "enhanced_plate_crop_reference": item["enhanced_plate_crop_reference"],
+                        "quality_metrics": item["quality_metrics"],
+                        "candidates": item["candidates"],
+                        "model_manifest": plate_model_manifest,
+                    } for item in plate_observations],
+                } if plate_observations else None),
                 vehicle_attributes=attribute_consensus,
             )
 
         results.sort(key=lambda item: (item.classification == "strong_match", item.overall_score), reverse=True)
         metrics = {"stage_timings": {"total": round(time.perf_counter() - started, 6)},
                    "scan_fps": scan_fps, "frames_planned": len(frame_indices),
-                   "vehicle_observations": len(observations), "result_count": len(results)}
+                   "vehicle_observations": len(observations),
+                   "plate_observations": sum(len(item.get("plate_observations", [])) for item in observations),
+                   "result_count": len(results)}
         with database.get_db_connection() as conn:
             conn.execute("BEGIN IMMEDIATE")
             conn.executemany(

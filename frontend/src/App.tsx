@@ -93,7 +93,7 @@ function Workspace({user}:{user:AuthUser}) {
         {!sample && view === 'inspections' && <InspectionsPage/>}
         {!sample && view === 'incidents' && <OperationalIncidentsPage canManage={user.role==='manager'||user.role==='administrator'}/>}
         <div hidden={view !== 'recording' || sample}>
-          {view === 'recording' && <PageHeading title="Analyse a recording" description="Upload footage, search for a vehicle, and review the source frames."/>}
+          {view === 'recording' && <PageHeading title="Analyse a recording" description="Upload footage and build a timeline of every supported vehicle and readable plate."/>}
           <Suspense fallback={<div className="empty" role="status">Loading recording tools…</div>}>
             <div className="recording-app"><RecordingApp/></div>
           </Suspense>
@@ -102,7 +102,7 @@ function Workspace({user}:{user:AuthUser}) {
     </div>
     {sample && toast && <div className="toast" role="status"><Check size={19}/><span>{toast}</span><button aria-label="Dismiss notification" onClick={() => notify('')}><X size={17}/></button></div>}
     {help && <Modal title="Using LotTrace" onClose={() => setHelp(false)}>
-      <p><strong>Analyse recording</strong> searches your footage using the configured LotTrace backend. Check the source frames before confirming a result.</p>
+      <p><strong>Analyse recording</strong> detects all supported vehicles, groups repeated frames, reads visible plates, and saves a reviewable timeline.</p>
       <p><strong>Saved sightings</strong> searches observations stored by that backend. An empty list means no records match; a connection error means the backend could not be reached.</p>
       <p><strong>Sample records</strong> is a separate, fictional dataset for trying review and incident workflows. It does not measure detection accuracy or include your footage.</p>
       <button className="button button-primary full" onClick={() => { setHelp(false); switchSource('local'); }}>Open your recordings <ArrowRight size={17}/></button>
