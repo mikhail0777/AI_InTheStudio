@@ -11,7 +11,7 @@ set "OPEN_BROWSER=1"
 rem Automatically enable the locally trained research classifier when it is
 rem present. Its manifest marks it research-only and the UI keeps outputs as
 rem reviewable candidates rather than confirmed vehicle identity.
-set "LOCAL_VMMR_DIR=%ROOT_DIR%\datasets\extracted\training\vmmr_benchmark_100"
+set "LOCAL_VMMR_DIR=%ROOT_DIR%\datasets\extracted\training\vmmr_benchmark_100_efficientnet_b0"
 if not defined LOTTRACE_VEHICLE_ATTRIBUTE_MODEL if exist "%LOCAL_VMMR_DIR%\vehicle_attributes.pt2" set "LOTTRACE_VEHICLE_ATTRIBUTE_MODEL=%LOCAL_VMMR_DIR%\vehicle_attributes.pt2"
 if not defined LOTTRACE_VEHICLE_ATTRIBUTE_MANIFEST if exist "%LOCAL_VMMR_DIR%\labels.json" set "LOTTRACE_VEHICLE_ATTRIBUTE_MANIFEST=%LOCAL_VMMR_DIR%\labels.json"
 

@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "scope": "external_vmmr_candidate_development_research_only",
+  "source_repository": "https://huggingface.co/Jordo23/vehicle-classifier",
+  "source_revision": "7a0a0ee5584202b5eba858cf7464f5ca6b7341b3",
+  "manifest_sha256": "e114b89214a4b98fb3cb91fcd0bb37a870801f0826fa61ff8d8f08629226796d",
+  "model_sha256": "99e73cd7591a6c3ecad07b50515af50759fa95e5833fa7ddb066f716ab229b76",
+  "mapping_sha256": "590ea5b36eba57bec388aacd03dfc5cc489b41bc85f24b89f5411e2ac59e6086",
+  "architecture": "efficientnet_b4",
+  "external_classes": 8949,
+  "metrics": {
+    "samples": 1795,
+    "exact_make_model_year_range_top1": 0.898050139275766,
+    "exact_make_model_year_range_top1_count": 1612,
+    "exact_top1_wilson_95": [
+      0.883191446082348,
+      0.9112087457704909
+    ],
+    "exact_make_model_year_range_top5": 0.9922005571030641,
+    "exact_make_model_source_year_top1": 0.8133704735376045,
+    "make_model_top1": 0.9877437325905293,
+    "make_top1": 0.996100278551532
+  },
+  "limitations": [
+    "Research-only image rights; no vehicle/site/camera/date grouping. The frozen test split is repeatable but cannot certify production performance.",
+    "The checkpoint was trained on VMMRdb, so this is not cross-dataset evidence.",
+    "Development results select candidates; only the frozen test can measure the selected candidate."
+  ]
+}

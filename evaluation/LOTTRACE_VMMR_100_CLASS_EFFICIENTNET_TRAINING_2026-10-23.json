@@ -1,0 +1,119 @@
+{
+  "device": "cpu",
+  "epochs": 15,
+  "classes": 100,
+  "pretrained_imagenet": true,
+  "freeze_backbone_epochs": 2,
+  "train_samples": 8402,
+  "development_samples": 1795,
+  "best_development_top1": 0.6573816155988857,
+  "history": [
+    {
+      "epoch": 1,
+      "train_loss": 4.289655018352208,
+      "samples": 1795,
+      "top1_accuracy": 0.16824512534818942,
+      "top5_accuracy": 0.43899721448467965
+    },
+    {
+      "epoch": 2,
+      "train_loss": 3.658426735464149,
+      "samples": 1795,
+      "top1_accuracy": 0.2233983286908078,
+      "top5_accuracy": 0.5147632311977716
+    },
+    {
+      "epoch": 3,
+      "train_loss": 2.6283986832351522,
+      "samples": 1795,
+      "top1_accuracy": 0.4986072423398329,
+      "top5_accuracy": 0.8378830083565459
+    },
+    {
+      "epoch": 4,
+      "train_loss": 1.9246940384930413,
+      "samples": 1795,
+      "top1_accuracy": 0.5604456824512535,
+      "top5_accuracy": 0.8919220055710306
+    },
+    {
+      "epoch": 5,
+      "train_loss": 1.6223070378588427,
+      "samples": 1795,
+      "top1_accuracy": 0.6,
+      "top5_accuracy": 0.9175487465181058
+    },
+    {
+      "epoch": 6,
+      "train_loss": 1.44140319204478,
+      "samples": 1795,
+      "top1_accuracy": 0.6161559888579388,
+      "top5_accuracy": 0.9158774373259053
+    },
+    {
+      "epoch": 7,
+      "train_loss": 1.3226311588196549,
+      "samples": 1795,
+      "top1_accuracy": 0.6228412256267409,
+      "top5_accuracy": 0.9259052924791087
+    },
+    {
+      "epoch": 8,
+      "train_loss": 1.2528376057158763,
+      "samples": 1795,
+      "top1_accuracy": 0.637883008356546,
+      "top5_accuracy": 0.9236768802228412
+    },
+    {
+      "epoch": 9,
+      "train_loss": 1.1816928724367486,
+      "samples": 1795,
+      "top1_accuracy": 0.645125348189415,
+      "top5_accuracy": 0.916991643454039
+    },
+    {
+      "epoch": 10,
+      "train_loss": 1.1276288286784353,
+      "samples": 1795,
+      "top1_accuracy": 0.633983286908078,
+      "top5_accuracy": 0.9203342618384401
+    },
+    {
+      "epoch": 11,
+      "train_loss": 1.0919683604148478,
+      "samples": 1795,
+      "top1_accuracy": 0.6540389972144847,
+      "top5_accuracy": 0.9175487465181058
+    },
+    {
+      "epoch": 12,
+      "train_loss": 1.057585321744548,
+      "samples": 1795,
+      "top1_accuracy": 0.6529247910863509,
+      "top5_accuracy": 0.9186629526462395
+    },
+    {
+      "epoch": 13,
+      "train_loss": 1.0387274056665956,
+      "samples": 1795,
+      "top1_accuracy": 0.6428969359331477,
+      "top5_accuracy": 0.9181058495821727
+    },
+    {
+      "epoch": 14,
+      "train_loss": 1.0238421288197224,
+      "samples": 1795,
+      "top1_accuracy": 0.6551532033426184,
+      "top5_accuracy": 0.9097493036211699
+    },
+    {
+      "epoch": 15,
+      "train_loss": 1.005484073680232,
+      "samples": 1795,
+      "top1_accuracy": 0.6573816155988857,
+      "top5_accuracy": 0.9220055710306406
+    }
+  ],
+  "elapsed_seconds": 4358.396528700017,
+  "limitation": "Research-only image rights; no vehicle/site/camera/date grouping. The frozen test split is repeatable but cannot certify production performance."
+}
