@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "benchmark": "DVM-Car Confirmed Fronts late-2010s subset",
+  "frozen_test_images": 729,
+  "audit_method": "All frozen test images rendered in deterministic class-grouped contact sheets and visually inspected after evaluation; no rows removed or relabelled in the reported score.",
+  "audited_images": 729,
+  "definite_source_defects": [
+    {
+      "sample_id": "ead5bc923937e9048e26",
+      "manifest_label": "Mazda CX-3 2016-2018",
+      "finding": "Image visibly contains a Toyota Yaris.",
+      "action": "Retained in frozen denominator; benchmark not rewritten post-test."
+    },
+    {
+      "sample_id": "f22e4537f23ad8dd524c",
+      "manifest_label": "Jaguar F-Type 2016-2018",
+      "finding": "Correct make/model but rear view appears in publisher's Confirmed Fronts archive.",
+      "action": "Retained in frozen denominator and recorded as a view-policy defect."
+    }
+  ],
+  "score_adjusted_after_audit": false
+}

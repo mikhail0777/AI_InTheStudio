@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "purpose": "commercially_reusable_modern_vehicle_intake",
+  "source": "Wikimedia Commons MediaWiki API",
+  "source_api": "https://commons.wikimedia.org/w/api.php",
+  "license_allowlist": ["CC0", "Public domain", "CC BY", "CC BY-SA"],
+  "label_policy": "Vehicle generation, expressed as a defensible production-year range; never infer an exact year from appearance.",
+  "classes": [
+    {"make": "Toyota", "model": "RAV4", "year_start": 2019, "year_end": 2026, "category": "Toyota RAV4 (XA50)"},
+    {"make": "Ford", "model": "F-150", "year_start": 2021, "year_end": 2026, "category": "Ford F-150 (fourteenth generation)"},
+    {"make": "Kia", "model": "Sportage", "year_start": 2022, "year_end": 2026, "category": "Kia Sportage (NQ5)"},
+    {"make": "Mazda", "model": "CX-5", "year_start": 2017, "year_end": 2026, "category": "Mazda CX-5 (KF)"},
+    {"make": "Chevrolet", "model": "Equinox", "year_start": 2018, "year_end": 2024, "category": "Chevrolet Equinox (third generation)"},
+    {"make": "Ford", "model": "Explorer", "year_start": 2020, "year_end": 2026, "category": "Ford Explorer (sixth generation)"},
+    {"make": "Hyundai", "model": "Elantra", "year_start": 2021, "year_end": 2026, "category": "Hyundai Elantra (CN7)"},
+    {"make": "Kia", "model": "Sorento", "year_start": 2021, "year_end": 2026, "category": "Kia Sorento (MQ4)"},
+    {"make": "Nissan", "model": "Rogue", "year_start": 2021, "year_end": 2026, "category": "Nissan Rogue (T33)"},
+    {"make": "Ford", "model": "Escape", "year_start": 2020, "year_end": 2026, "category": "Ford Escape (fourth generation)"},
+    {"make": "Toyota", "model": "Highlander", "year_start": 2020, "year_end": 2026, "category": "Toyota Highlander (XU70)"},
+    {"make": "Tesla", "model": "Model 3", "year_start": 2023, "year_end": 2026, "category": "Tesla Model 3 (2023–)"}
+  ]
+}

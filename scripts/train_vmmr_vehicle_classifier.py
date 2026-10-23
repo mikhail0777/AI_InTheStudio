@@ -38,7 +38,13 @@ class ZipVehicleDataset(Dataset):
 
     def __getitem__(self, index):
         item = self.samples[index]
-        if self.extracted_root:
+        if item.get("path"):
+            path = Path(item["path"]).resolve()
+            if not path.is_file():
+                raise FileNotFoundError(f"Manifest image does not exist: {path}")
+            with Image.open(path) as image:
+                value = self.transform(image.convert("RGB"))
+        elif self.extracted_root:
             path = (self.extracted_root / item["member"]).resolve()
             if self.extracted_root.resolve() not in path.parents:
                 raise ValueError("Manifest member escapes the extracted dataset root.")
@@ -85,6 +91,29 @@ def evaluate(model, loader, device):
     }
 
 
+def initialize_from_export(model, export_path: Path) -> int:
+    """Load a compatible backbone and copy the old classifier rows in order."""
+    source = torch.export.load(str(export_path)).module().state_dict()
+    target = model.state_dict()
+    classifier_weight = "classifier.1.weight"
+    classifier_bias = "classifier.1.bias"
+    if classifier_weight not in source or classifier_weight not in target:
+        raise ValueError("Export and target must use the expected torchvision classifier")
+    compatible = {
+        key: value for key, value in source.items()
+        if key in target and target[key].shape == value.shape
+        and key not in (classifier_weight, classifier_bias)
+    }
+    model.load_state_dict(compatible, strict=False)
+    old_classes = source[classifier_weight].shape[0]
+    if old_classes > target[classifier_weight].shape[0]:
+        raise ValueError("Initial export has more classes than the expanded model")
+    with torch.no_grad():
+        model.classifier[-1].weight[:old_classes].copy_(source[classifier_weight])
+        model.classifier[-1].bias[:old_classes].copy_(source[classifier_bias])
+    return old_classes
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("manifest", type=Path)
@@ -104,8 +133,12 @@ def main():
                         help="Optional ignored cache containing manifest member paths.")
     parser.add_argument("--pretrained", action="store_true",
                         help="Initialize the selected backbone from ImageNet weights.")
+    parser.add_argument("--initial-export-model", type=Path,
+                        help="Expand an existing export whose classes are the manifest's leading classes.")
     parser.add_argument("--freeze-backbone-epochs", type=int, default=0,
                         help="Train only the classifier for this many initial epochs.")
+    parser.add_argument("--metadata-only", action="store_true",
+                        help="Write labels for an already-created compatible checkpoint and exit.")
     args = parser.parse_args()
     if args.epochs < 1 or args.batch_size < 1:
         raise SystemExit("epochs and batch size must be positive")
@@ -125,6 +158,19 @@ def main():
     if not all(split_samples.values()):
         raise SystemExit("Both train and development samples are required.")
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+    label_manifest = {
+        "schema_version": 1, "input_size": args.input_size, "classes": classes,
+        "dataset": manifest["dataset"], "training_manifest": str(args.manifest.resolve()),
+        "result_scope": "research_only_not_production_accuracy",
+        "model_architecture": args.architecture,
+        "pretrained_imagenet": args.pretrained,
+        "architecture": args.architecture,
+        "label_smoothing": args.label_smoothing,
+    }
+    (args.output_dir / "labels.json").write_text(json.dumps(label_manifest, indent=2) + "\n", encoding="utf-8")
+    if args.metadata_only:
+        return
     transforms_by_split = make_transforms(args.input_size)
     loaders = {
         name: DataLoader(
@@ -139,6 +185,9 @@ def main():
         weights = models.MobileNet_V3_Small_Weights.DEFAULT if args.pretrained else None
         model = models.mobilenet_v3_small(weights=weights)
     model.classifier[-1] = torch.nn.Linear(model.classifier[-1].in_features, len(classes))
+    initialized_classes = 0
+    if args.initial_export_model:
+        initialized_classes = initialize_from_export(model, args.initial_export_model)
     if args.freeze_backbone_epochs:
         for parameter in model.features.parameters():
             parameter.requires_grad = False
@@ -150,7 +199,6 @@ def main():
     )
     loss_function = torch.nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
     history, best = [], -1.0
-    args.output_dir.mkdir(parents=True, exist_ok=True)
     started = time.perf_counter()
     for epoch in range(1, args.epochs + 1):
         if args.freeze_backbone_epochs and epoch == args.freeze_backbone_epochs + 1:
@@ -179,20 +227,10 @@ def main():
             )
             torch.export.save(exported, str(args.output_dir / "vehicle_attributes.pt2"))
             model = cpu_model.to(device)
-    label_manifest = {
-        "schema_version": 1, "input_size": args.input_size, "classes": classes,
-        "dataset": manifest["dataset"], "training_manifest": str(args.manifest.resolve()),
-        "result_scope": "research_only_not_production_accuracy",
-        "model_architecture": args.architecture,
-        "pretrained_imagenet": args.pretrained,
-        "architecture": args.architecture,
-        "input_size": args.input_size,
-        "label_smoothing": args.label_smoothing,
-    }
-    (args.output_dir / "labels.json").write_text(json.dumps(label_manifest, indent=2) + "\n", encoding="utf-8")
     report = {
         "device": device, "epochs": args.epochs, "classes": len(classes),
         "pretrained_imagenet": args.pretrained,
+        "initialized_leading_classes": initialized_classes,
         "freeze_backbone_epochs": args.freeze_backbone_epochs,
         "train_samples": len(split_samples["train"]),
         "development_samples": len(split_samples["development"]),
