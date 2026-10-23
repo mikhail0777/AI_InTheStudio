@@ -268,6 +268,8 @@ def init_db():
             requested_vehicle_year INTEGER,
             requested_vehicle_color TEXT,
             requested_vehicle_body_type TEXT,
+            vehicle_attribute_state TEXT,
+            vehicle_attribute_candidates_json JSON,
             source_filename TEXT,
             evidence_frame TEXT,
             evidence_clip TEXT,
@@ -297,6 +299,8 @@ def init_db():
         "consensus_details_json": "JSON",
         "best_plate_crop": "TEXT",
         "enhanced_plate_crop": "TEXT",
+        "vehicle_attribute_state": "TEXT",
+        "vehicle_attribute_candidates_json": "JSON",
     }
     for column, sql_type in sighting_additions.items():
         if column not in sighting_columns:

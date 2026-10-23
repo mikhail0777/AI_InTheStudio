@@ -85,6 +85,10 @@ class VehicleScanTests(unittest.TestCase):
                                 bbox=[20, 20, 250, 160], category="car", confidence=.9,
                                 color="red", color_confidence=.7, colors={"red": .7, "black": .3},
                                 crop_path=None, mask_path=None, provenance=PROVENANCE,
+                                make_model_candidates=({
+                                    "make": "Tesla", "model": "Model 3", "year_start": 2020,
+                                    "year_end": 2023, "confidence": .8,
+                                },),
                             )]
                         return []
 
@@ -104,6 +108,9 @@ class VehicleScanTests(unittest.TestCase):
                 self.assertEqual(sighting["vehicle_color"], "red")
                 self.assertIsNone(sighting["vehicle_make"])
                 self.assertEqual(sighting["requested_vehicle_make"], "Tesla")
+                self.assertEqual(sighting["vehicle_attribute_state"], "candidate_consensus")
+                attributes = __import__("json").loads(sighting["vehicle_attribute_candidates_json"])
+                self.assertEqual(attributes["selected"]["model"], "Model 3")
 
 
 if __name__ == "__main__":

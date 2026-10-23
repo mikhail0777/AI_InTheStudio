@@ -5,6 +5,7 @@ existing COCO segmentation model to prove that a plate belongs to a detected
 vehicle and to extract conservative, mask-based appearance observations.
 """
 from dataclasses import dataclass
+import os
 from pathlib import Path
 from typing import Optional, Sequence
 
@@ -26,6 +27,8 @@ class VehicleObservation:
     crop_path: Optional[str]
     mask_path: Optional[str]
     provenance: ModelProvenance
+    make_model_candidates: tuple[dict, ...] = ()
+    body_type_candidates: tuple[dict, ...] = ()
 
 
 def _contains_plate(vehicle_bbox: Sequence[float], plate_bbox: Sequence[float]) -> bool:
@@ -49,22 +52,50 @@ def _dominant_color(distribution: dict[str, float]) -> tuple[Optional[str], floa
 
 
 class VehicleRecognizer:
-    def __init__(self, evidence_root: str, provider=None):
+    def __init__(self, evidence_root: str, provider=None, attribute_provider=None):
+        self.evidence_root = Path(evidence_root).resolve()
         self.provider = provider or YoloDetectionProvider(evidence_root)
+        self.attribute_provider = attribute_provider
+        if self.attribute_provider is None:
+            model_path = os.environ.get("LOTTRACE_VEHICLE_ATTRIBUTE_MODEL")
+            manifest_path = os.environ.get("LOTTRACE_VEHICLE_ATTRIBUTE_MANIFEST")
+            if model_path and manifest_path:
+                from app.services.vehicle_attribute_model import LocalVehicleAttributeProvider
+                self.attribute_provider = LocalVehicleAttributeProvider(model_path, manifest_path)
 
-    @staticmethod
-    def _observation(detection: EntityDetection) -> VehicleObservation:
+    def _crop_path(self, value):
+        if not value:
+            return None
+        prefix = "/evidence/"
+        if value.startswith(prefix):
+            path = (self.evidence_root / value[len(prefix):]).resolve()
+            if self.evidence_root not in path.parents:
+                raise ValueError("Invalid vehicle crop path.")
+            return path
+        return Path(value).resolve()
+
+    def _observation(self, detection: EntityDetection) -> VehicleObservation:
         colors = {
             str(name): float(value)
             for name, value in (detection.attributes.get("colors") or {}).items()
         }
         color, color_confidence = _dominant_color(colors)
+        candidates = tuple(
+            dict(item) for item in detection.attributes.get("vehicle_make_model_candidates") or []
+        )
+        crop_path = self._crop_path(detection.crop_path)
+        if not candidates and self.attribute_provider is not None and crop_path and crop_path.is_file():
+            candidates = tuple(self.attribute_provider.predict(crop_path))
         return VehicleObservation(
             bbox=list(detection.bbox), category=detection.label,
             confidence=detection.confidence, color=color,
             color_confidence=color_confidence, colors=colors,
             crop_path=detection.crop_path, mask_path=detection.mask_path,
             provenance=detection.provenance,
+            make_model_candidates=candidates,
+            body_type_candidates=tuple(
+                dict(item) for item in detection.attributes.get("vehicle_body_type_candidates") or []
+            ),
         )
 
     def recognize_all(self, *, image_path: str, session_id: str, frame_idx: int,

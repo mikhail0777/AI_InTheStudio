@@ -46,8 +46,13 @@ def after_hours(captured: str | None, opening: str | None, closing: str | None) 
 def save_sighting(*, session_id: str, search_id: str, result_id: str,
                   target: TargetConfiguration, video: VideoMetadata, observation: dict[str, Any],
                   first_seen: float, last_seen: float, frame_path: str, clip_path: str,
-                  match_kind: str, vehicle=None, plate_analysis: dict[str, Any] | None = None) -> None:
+                  match_kind: str, vehicle=None, plate_analysis: dict[str, Any] | None = None,
+                  vehicle_attributes: dict[str, Any] | None = None) -> None:
     absolute_time = captured_at(target.recorded_start_at, observation["timestamp_seconds"])
+    vehicle_attributes = vehicle_attributes or {
+        "state": "unknown", "selected": None, "ranked_candidates": [],
+        "requires_review": True, "reason": "not_evaluated",
+    }
     with database.get_db_connection() as conn:
         conn.execute(
             """INSERT OR REPLACE INTO vehicle_sightings(
@@ -58,8 +63,9 @@ def save_sighting(*, session_id: str, search_id: str, result_id: str,
                vehicle_detection_confidence,vehicle_color_confidence,
                requested_vehicle_make,requested_vehicle_model,requested_vehicle_year,
                requested_vehicle_color,requested_vehicle_body_type,
+               vehicle_attribute_state,vehicle_attribute_candidates_json,
                source_filename,evidence_frame,evidence_clip)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (result_id, session_id, search_id, target.plate_number or "", observation["text"],
              target.plate_match_mode, match_kind, observation["confidence"], observation["similarity"],
              first_seen, last_seen, observation["timestamp_seconds"],
@@ -70,6 +76,7 @@ def save_sighting(*, session_id: str, search_id: str, result_id: str,
              vehicle.confidence if vehicle else None, vehicle.color_confidence if vehicle else None,
              target.vehicle_make, target.vehicle_model, target.vehicle_year,
              target.vehicle_color, target.vehicle_body_type,
+             vehicle_attributes.get("state"), json.dumps(vehicle_attributes),
              video.filename, frame_path, clip_path),
         )
         conn.execute("UPDATE vehicle_sightings SET dealership_id=(SELECT dealership_id FROM sessions WHERE session_id=?) WHERE sighting_id=?",(session_id,result_id))
@@ -144,7 +151,14 @@ def list_sightings(*, plate: str | None = None, make: str | None = None,
             + " ORDER BY COALESCE(captured_at, vehicle_sightings.created_at) DESC, best_timestamp_seconds DESC LIMIT ?",
             values,
         ).fetchall()
-    return [dict(row) for row in rows]
+    results = []
+    for row in rows:
+        item = dict(row)
+        item["vehicle_attribute_candidates"] = json.loads(
+            item.pop("vehicle_attribute_candidates_json", None) or "{}"
+        )
+        results.append(item)
+    return results
 
 
 def _public_sighting(conn, sighting_id: str) -> dict[str, Any]:

@@ -15,6 +15,7 @@ from app.services.generic_search import _extract_clip
 from app.services.query_parser import StructuredQueryParser
 from app.services.vehicle_investigation import MODE_SCAN_FPS, _status
 from app.services.vehicle_recognizer import VehicleObservation, VehicleRecognizer
+from app.services.vehicle_attribute_consensus import build_vehicle_attribute_consensus
 from app.services.vehicle_sightings import save_sighting
 from app.services.visual_features import color_match_score
 
@@ -166,6 +167,11 @@ class VehicleScanManager:
         requested_color = _requested_color(target.vehicle_color)
         results = []
         for number, track_items in enumerate(_group_tracks(observations), start=1):
+            attribute_consensus = build_vehicle_attribute_consensus([{
+                "frame_idx": item["frame_idx"],
+                "quality_score": item["vehicle"].confidence,
+                "candidates": list(item["vehicle"].make_model_candidates),
+            } for item in track_items])
             scored = [(color_match_score(requested_color, item["vehicle"].colors)[0]
                        if requested_color else 1.0, item) for item in track_items]
             best_color_score, best = max(scored, key=lambda value: (value[0], value[1]["vehicle"].confidence))
@@ -208,14 +214,26 @@ class VehicleScanManager:
                 end_seconds=last, detections=detections,
                 attributes={"vehicle_detected": True, "vehicle_color": vehicle.color,
                             "vehicle_body_type": vehicle.category,
+                            "vehicle_attribute_consensus": attribute_consensus,
+                            "vehicle_make_model": attribute_consensus["selected"],
                             "requested_vehicle_make": target.vehicle_make,
                             "requested_vehicle_model": target.vehicle_model,
                             "requested_vehicle_year": target.vehicle_year,
                             "requested_vehicle_color": target.vehicle_color,
                             "requested_vehicle_body_type": target.vehicle_body_type},
             )
-            explanation = (f"Detected a {description or 'vehicle'} in {distinct_frames} sampled frame(s). "
-                           "Make, model and year require visual confirmation.")
+            selected_attributes = attribute_consensus["selected"]
+            if selected_attributes:
+                years = (f", estimated {selected_attributes['year_start']}-{selected_attributes['year_end']}"
+                         if selected_attributes.get("year_start") is not None else "")
+                attribute_text = (
+                    f" Candidate consensus: {selected_attributes['make']} "
+                    f"{selected_attributes['model']}{years}; requires benchmark validation."
+                )
+            else:
+                attribute_text = " Make, model and year are unknown and require visual confirmation."
+            explanation = (f"Detected a {description or 'vehicle'} in {distinct_frames} sampled frame(s)."
+                           + attribute_text)
             evidence = [EvidenceAssessment(
                 criterion_id="vehicle-1", kind="entity", assessment="supported" if strong else "uncertain",
                 score=vehicle.confidence, explanation=explanation,
@@ -252,6 +270,7 @@ class VehicleScanManager:
                              "timestamp_seconds": best["timestamp_seconds"]},
                 first_seen=first, last_seen=last, frame_path=result.best_frame_path,
                 clip_path=result.clip_path, match_kind="vehicle_only", vehicle=vehicle,
+                vehicle_attributes=attribute_consensus,
             )
 
         results.sort(key=lambda item: (item.classification == "strong_match", item.overall_score), reverse=True)
