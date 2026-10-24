@@ -36,6 +36,13 @@ class LocalVehicleAttributeProvider:
         self.input_size = int(manifest.get("input_size", 224))
         if not 64 <= self.input_size <= 1024:
             raise RuntimeError("Vehicle attribute input size is invalid.")
+        rejection = manifest.get("unknown_rejection") or {}
+        self.unknown_rejection_threshold = rejection.get("minimum_top1_probability")
+        if self.unknown_rejection_threshold is not None:
+            self.unknown_rejection_threshold = float(self.unknown_rejection_threshold)
+            if not 0.0 <= self.unknown_rejection_threshold <= 1.0:
+                raise RuntimeError("Vehicle unknown-rejection threshold is invalid.")
+        self.unknown_rejection = rejection
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         exported_model = model is None
         if model is None:
@@ -64,6 +71,7 @@ class LocalVehicleAttributeProvider:
                 "class_count": len(self.labels),
                 "dataset": self.dataset,
                 "outputs_are_model_confidence_not_accuracy": True,
+                "unknown_rejection": self.unknown_rejection or None,
             },
         )
 
@@ -97,6 +105,11 @@ class LocalVehicleAttributeProvider:
                 raise RuntimeError("Vehicle model output does not match its label manifest.")
             probabilities = self.torch.softmax(logits, dim=1)[0]
             values, indices = self.torch.topk(probabilities, min(top_k, len(self.labels)))
+        if (
+            self.unknown_rejection_threshold is not None
+            and float(values[0].detach().cpu()) < self.unknown_rejection_threshold
+        ):
+            return []
         candidates = []
         for confidence, index in zip(values.detach().cpu().tolist(), indices.detach().cpu().tolist()):
             label = dict(self.labels[int(index)])

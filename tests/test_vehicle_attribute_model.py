@@ -50,6 +50,29 @@ class VehicleAttributeModelTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 provider.predict(image)
 
+    def test_calibrated_unknown_threshold_can_return_no_candidates(self):
+        with tempfile.TemporaryDirectory() as root:
+            root = Path(root)
+            image = root / "vehicle.jpg"
+            cv2.imwrite(str(image), np.full((100, 180, 3), 120, np.uint8))
+            manifest = root / "labels.json"
+            manifest.write_text(json.dumps({
+                "classes": [{"make": "Honda"}, {"make": "Kia"}],
+                "unknown_rejection": {
+                    "method": "maximum_softmax_probability",
+                    "minimum_top1_probability": .95,
+                    "calibrated_on": "development_only",
+                },
+            }), encoding="utf-8")
+            provider = LocalVehicleAttributeProvider(
+                root / "unused.pt", manifest, device="cpu", model=FixedModel(),
+            )
+            self.assertEqual(provider.predict(image), [])
+            self.assertEqual(
+                provider.provenance.metadata["unknown_rejection"]["calibrated_on"],
+                "development_only",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

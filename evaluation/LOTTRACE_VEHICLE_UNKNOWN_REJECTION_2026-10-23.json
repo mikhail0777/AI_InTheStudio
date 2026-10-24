@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "scope": "development_calibrated_unknown_rejection_with_frozen_test",
+  "manifest_sha256": "c314e5fdd268570c9e9236d85f7d69a0b677c4d9be6f2fc47f67227eb98a5508",
+  "model_sha256": "8a044b31734da869e81541cc9c3fa4f3bf40a950ba6a891b7de50f686d75c336",
+  "calibration": {
+    "threshold": 0.24485623836517334,
+    "known_acceptance": 0.913515687851971,
+    "unknown_rejection": 0.625,
+    "balanced_accuracy": 0.7692578439259855,
+    "minimum_known_acceptance_requested": 0.9
+  },
+  "development": {
+    "known_samples": 2486,
+    "known_accepted": 2271,
+    "known_acceptance": 0.913515687851971,
+    "known_exact_and_accepted": 1806,
+    "known_exact_among_accepted": 0.7952443857331571,
+    "unknown_samples": 16,
+    "unknown_rejected": 10,
+    "unknown_rejection": 0.625,
+    "false_exact_assignments_on_unknown": 6,
+    "review_rate": 0.08992805755395683
+  },
+  "test": {
+    "known_samples": 2549,
+    "known_accepted": 2341,
+    "known_acceptance": 0.9183993723028638,
+    "known_exact_and_accepted": 1881,
+    "known_exact_among_accepted": 0.8035027765912004,
+    "unknown_samples": 17,
+    "unknown_rejected": 10,
+    "unknown_rejection": 0.5882352941176471,
+    "false_exact_assignments_on_unknown": 7,
+    "review_rate": 0.08495713172252534
+  },
+  "limitations": [
+    "Unsupported classes are a small curated proxy, not the open world.",
+    "Still photographs do not certify dealership-video unknown rejection.",
+    "Maximum softmax probability is a baseline uncertainty signal, not calibrated truth."
+  ]
+}

@@ -16,7 +16,7 @@ from zipfile import ZipFile
 
 from PIL import Image
 import torch
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 from torchvision import models, transforms
 
 
@@ -137,6 +137,8 @@ def main():
                         help="Expand an existing export whose classes are the manifest's leading classes.")
     parser.add_argument("--freeze-backbone-epochs", type=int, default=0,
                         help="Train only the classifier for this many initial epochs.")
+    parser.add_argument("--balanced-sampling", action="store_true",
+                        help="Sample training classes uniformly despite unequal class sizes.")
     parser.add_argument("--metadata-only", action="store_true",
                         help="Write labels for an already-created compatible checkpoint and exit.")
     args = parser.parse_args()
@@ -167,17 +169,35 @@ def main():
         "pretrained_imagenet": args.pretrained,
         "architecture": args.architecture,
         "label_smoothing": args.label_smoothing,
+        "balanced_sampling": args.balanced_sampling,
     }
     (args.output_dir / "labels.json").write_text(json.dumps(label_manifest, indent=2) + "\n", encoding="utf-8")
     if args.metadata_only:
         return
     transforms_by_split = make_transforms(args.input_size)
-    loaders = {
-        name: DataLoader(
-            ZipVehicleDataset(Path(manifest["archive"]["path"]), values, transforms_by_split[name], args.extracted_root),
-            batch_size=args.batch_size, shuffle=name == "train", num_workers=0,
-        ) for name, values in split_samples.items()
-    }
+    train_sampler = None
+    if args.balanced_sampling:
+        counts: dict[int, int] = {}
+        for item in split_samples["train"]:
+            class_id = int(item["class_id"])
+            counts[class_id] = counts.get(class_id, 0) + 1
+        weights = [1.0 / counts[int(item["class_id"])] for item in split_samples["train"]]
+        generator = torch.Generator().manual_seed(args.seed)
+        train_sampler = WeightedRandomSampler(
+            weights, num_samples=len(weights), replacement=True, generator=generator,
+        )
+    loaders = {}
+    for name, values in split_samples.items():
+        loaders[name] = DataLoader(
+            ZipVehicleDataset(
+                Path(manifest["archive"]["path"]), values,
+                transforms_by_split[name], args.extracted_root,
+            ),
+            batch_size=args.batch_size,
+            shuffle=name == "train" and train_sampler is None,
+            sampler=train_sampler if name == "train" else None,
+            num_workers=0,
+        )
     if args.architecture == "efficientnet_b0":
         weights = models.EfficientNet_B0_Weights.DEFAULT if args.pretrained else None
         model = models.efficientnet_b0(weights=weights)
@@ -232,6 +252,7 @@ def main():
         "pretrained_imagenet": args.pretrained,
         "initialized_leading_classes": initialized_classes,
         "freeze_backbone_epochs": args.freeze_backbone_epochs,
+        "balanced_sampling": args.balanced_sampling,
         "train_samples": len(split_samples["train"]),
         "development_samples": len(split_samples["development"]),
         "best_development_top1": best, "history": history,

@@ -3,6 +3,10 @@
   "purpose": "commercially_reusable_modern_vehicle_intake",
   "source": "Wikimedia Commons MediaWiki API",
   "source_api": "https://commons.wikimedia.org/w/api.php",
+  "rights_guidance": [
+    "https://commons.wikimedia.org/wiki/Commons:Reusing_content_outside_Wikimedia/licenses/en",
+    "https://creativecommons.org/licenses/by-sa/4.0/"
+  ],
   "license_allowlist": ["CC0", "Public domain", "CC BY", "CC BY-SA"],
   "label_policy": "Vehicle generation, expressed as a defensible production-year range; never infer an exact year from appearance.",
   "classes": [
@@ -17,6 +21,10 @@
     {"make": "Nissan", "model": "Rogue", "year_start": 2021, "year_end": 2026, "category": "Nissan Rogue (T33)"},
     {"make": "Ford", "model": "Escape", "year_start": 2020, "year_end": 2026, "category": "Ford Escape (fourth generation)"},
     {"make": "Toyota", "model": "Highlander", "year_start": 2020, "year_end": 2026, "category": "Toyota Highlander (XU70)"},
-    {"make": "Tesla", "model": "Model 3", "year_start": 2023, "year_end": 2026, "category": "Tesla Model 3 (2023–)"}
+    {"make": "Tesla", "model": "Model 3", "year_start": 2023, "year_end": 2026, "category": "Tesla Model 3 (2023–)"},
+    {"make": "Polestar", "model": "2", "year_start": 2020, "year_end": 2026, "category": "Polestar 2", "role": "unknown"},
+    {"make": "Rivian", "model": "R1T", "year_start": 2022, "year_end": 2026, "category": "Rivian R1T", "role": "unknown"},
+    {"make": "Lucid", "model": "Air", "year_start": 2022, "year_end": 2026, "category": "Lucid Air", "role": "unknown"},
+    {"make": "Genesis", "model": "GV70", "year_start": 2022, "year_end": 2026, "category": "Genesis GV70", "role": "unknown"}
   ]
 }

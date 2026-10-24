@@ -46,7 +46,7 @@ def api(params: dict) -> dict:
     raise RuntimeError("unreachable")
 
 
-def category_files(category: str, limit: int) -> list[dict]:
+def category_files(category: str, limit: int, candidate_multiplier: int = 4) -> list[dict]:
     titles: list[str] = []
     continuation = None
     while len(titles) < limit * 2:
@@ -61,6 +61,11 @@ def category_files(category: str, limit: int) -> list[dict]:
         continuation = result.get("continue", {}).get("cmcontinue")
         if not continuation:
             break
+    # Categories can contain hundreds of files. Select a stable, bounded
+    # candidate pool before the more expensive metadata and download work.
+    titles = sorted(
+        set(titles), key=lambda title: hashlib.sha256(f"{category}|{title}".encode()).hexdigest()
+    )[:limit * candidate_multiplier]
     batches = [titles[start:start + 40] for start in range(0, len(titles), 40)]
 
     def metadata_batch(batch: list[str]) -> dict:
@@ -127,7 +132,10 @@ def main() -> None:
     parser.add_argument("--detector", type=Path, required=True)
     parser.add_argument("--min-sharpness", type=float, default=80.0)
     parser.add_argument("--min-vehicle-area", type=float, default=.12)
+    parser.add_argument("--candidate-multiplier", type=int, default=4)
     args = parser.parse_args()
+    if args.max_per_class < 1 or args.candidate_multiplier < 1:
+        raise SystemExit("max-per-class and candidate-multiplier must be positive")
 
     from ultralytics import YOLO
     config_bytes = args.sources.read_bytes()
@@ -142,7 +150,7 @@ def main() -> None:
     for class_id, label in enumerate(config["classes"]):
         accepted_for_class = 0
         eligible_metadata = []
-        for item in category_files(label["category"], args.max_per_class):
+        for item in category_files(label["category"], args.max_per_class, args.candidate_multiplier):
             reason = None
             if not commercial_license_allowed(item["license"]): reason = "license_not_allowlisted"
             elif not item.get("download_url"): reason = "missing_download_url"
@@ -187,6 +195,7 @@ def main() -> None:
             capture_basis = "|".join((item.get("artist") or "unknown", item.get("date_time_original") or item["title"]))
             samples.append({
                 "sample_id": sample_id, "class_id": class_id, "label": label,
+                "role": label.get("role", "supported"),
                 "source": item, "original_path": str(original_path.resolve()), "crop_path": str(crop_path.resolve()),
                 "download_sha256": hashlib.sha256(payload).hexdigest(), "quality": metrics,
                 "vehicle_detection": {"confidence": round(boxes[0][1], 6), "area_fraction": round(boxes[0][0], 6), "bbox": [x1, y1, x2, y2]},
@@ -201,13 +210,15 @@ def main() -> None:
     manifest = {
         "schema_version": 1, "purpose": "modern_vehicle_intake_pending_review",
         "source_config_sha256": hashlib.sha256(config_bytes).hexdigest(),
+        "source_config": config,
         "detector_sha256": hashlib.sha256(args.detector.read_bytes()).hexdigest(),
         "quality_policy": {
             "min_source_dimension": 640, "min_sharpness": args.min_sharpness,
             "min_luma_stddev": 25, "luma_range": [25, 230], "min_vehicle_area": args.min_vehicle_area,
             "reject_multiple_similar_vehicles": True, "exact_dhash_deduplication": True,
         },
-        "classes": config["classes"], "samples": samples, "rejected": rejected,
+        "classes": [dict(item, class_id=index) for index, item in enumerate(config["classes"])],
+        "samples": samples, "rejected": rejected,
         "counts": {"accepted_pending_review": len(samples), "rejected": len(rejected)},
     }
     (args.output_root / "intake_manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
