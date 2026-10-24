@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "scope": "development_calibrated_make_model_review_gate_with_frozen_regression_test",
+  "manifest_sha256": "70837b1b8b83b050e56029d7f4446f0c588d382244db5afb64a7fcf15abc92d4",
+  "model_sha256": "dab4077244263aafecb3c5d55da09665bb3dd7e6e146225ab16287b523fdcc08",
+  "make_model_groups": 79,
+  "calibration": {
+    "threshold": 0.29755204916000366,
+    "accepted": 2355,
+    "exact": 2238,
+    "precision": 0.9503184713375796,
+    "coverage": 0.9538274605103281,
+    "minimum_development_precision": 0.95
+  },
+  "development": {
+    "samples": 2469,
+    "overall_make_model_accuracy": 0.9246658566221142,
+    "overall_exact_count": 2283,
+    "accepted": 2355,
+    "reviewed": 114,
+    "coverage": 0.9538274605103281,
+    "review_rate": 0.046172539489671933,
+    "accepted_make_model_accuracy": 0.9503184713375796,
+    "accepted_exact_count": 2238,
+    "accepted_accuracy_wilson_95": [
+      0.9407858872382765,
+      0.9583843355287919
+    ],
+    "false_accepted_assignments": 117
+  },
+  "test": {
+    "samples": 2532,
+    "overall_make_model_accuracy": 0.9210110584518167,
+    "overall_exact_count": 2332,
+    "accepted": 2426,
+    "reviewed": 106,
+    "coverage": 0.9581358609794629,
+    "review_rate": 0.04186413902053712,
+    "accepted_make_model_accuracy": 0.9435284418796372,
+    "accepted_exact_count": 2289,
+    "accepted_accuracy_wilson_95": [
+      0.9336224260429532,
+      0.9520320647831509
+    ],
+    "false_accepted_assignments": 137
+  },
+  "limitations": [
+    "Both image sources are restricted to research evaluation; DVM licensing metadata conflicts. Web/dealer photos do not certify dealership video.",
+    "Accuracy among accepted predictions is not accuracy across every vehicle.",
+    "Rejected predictions require review and reduce automatic coverage.",
+    "This is a closed-set still-image regression benchmark, not dealership video."
+  ]
+}

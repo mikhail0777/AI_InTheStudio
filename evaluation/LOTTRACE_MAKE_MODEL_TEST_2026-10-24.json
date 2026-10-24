@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "scope": "grouped_make_model_frozen_regression_test",
+  "split": "test",
+  "manifest_sha256": "70837b1b8b83b050e56029d7f4446f0c588d382244db5afb64a7fcf15abc92d4",
+  "model_sha256": "dab4077244263aafecb3c5d55da09665bb3dd7e6e146225ab16287b523fdcc08",
+  "source_classes": 79,
+  "make_model_groups": 79,
+  "aggregation": "sum_softmax_probability_across_year_range_classes_with_same_normalized_make_model",
+  "metrics": {
+    "samples": 2532,
+    "make_model_top1": 0.9210110584518167,
+    "make_model_top1_count": 2332,
+    "make_model_top1_wilson_95": [
+      0.909856023546428,
+      0.9308905430750899
+    ],
+    "make_model_top5": 0.9822274881516587,
+    "make_top1": 0.9415481832543444,
+    "macro_f1_make_model": 0.9373760121095025
+  },
+  "source_metrics": {
+    "DVM-Car Confirmed Fronts late-2010s subset": {
+      "samples": 729,
+      "make_model_top1": 0.9972565157750343,
+      "make_model_top1_count": 727,
+      "make_model_top1_wilson_95": [
+        0.9900526096821289,
+        0.9992473149791847
+      ],
+      "make_model_top5": 0.9972565157750343,
+      "make_top1": 0.9972565157750343,
+      "macro_f1_make_model": 0.9980200032525615
+    },
+    "VMMRdb": {
+      "samples": 1803,
+      "make_model_top1": 0.8901830282861897,
+      "make_model_top1_count": 1605,
+      "make_model_top1_wilson_95": [
+        0.8749130404654186,
+        0.9037939086867961
+      ],
+      "make_model_top5": 0.9761508596783139,
+      "make_top1": 0.9190238491403216,
+      "macro_f1_make_model": 0.8880036679017728
+    }
+  },
+  "limitations": [
+    "Both image sources are restricted to research evaluation; DVM licensing metadata conflicts. Web/dealer photos do not certify dealership video.",
+    "This is a closed-set make/model benchmark."
+  ]
+}

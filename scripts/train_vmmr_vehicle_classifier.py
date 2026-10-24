@@ -114,6 +114,18 @@ def initialize_from_export(model, export_path: Path) -> int:
     return old_classes
 
 
+def initialize_backbone_from_export(model, export_path: Path) -> int:
+    """Load only compatible non-classifier weights from an existing export."""
+    source = torch.export.load(str(export_path)).module().state_dict()
+    target = model.state_dict()
+    compatible = {
+        key: value for key, value in source.items()
+        if key in target and target[key].shape == value.shape and not key.startswith("classifier.")
+    }
+    model.load_state_dict(compatible, strict=False)
+    return len(compatible)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("manifest", type=Path)
@@ -135,6 +147,8 @@ def main():
                         help="Initialize the selected backbone from ImageNet weights.")
     parser.add_argument("--initial-export-model", type=Path,
                         help="Expand an existing export whose classes are the manifest's leading classes.")
+    parser.add_argument("--initial-backbone-model", type=Path,
+                        help="Load only compatible feature weights from an existing export.")
     parser.add_argument("--freeze-backbone-epochs", type=int, default=0,
                         help="Train only the classifier for this many initial epochs.")
     parser.add_argument("--balanced-sampling", action="store_true",
@@ -142,6 +156,8 @@ def main():
     parser.add_argument("--metadata-only", action="store_true",
                         help="Write labels for an already-created compatible checkpoint and exit.")
     args = parser.parse_args()
+    if args.initial_export_model and args.initial_backbone_model:
+        raise SystemExit("Choose either initial-export-model or initial-backbone-model, not both")
     if args.epochs < 1 or args.batch_size < 1:
         raise SystemExit("epochs and batch size must be positive")
     random.seed(args.seed); torch.manual_seed(args.seed)
@@ -170,6 +186,7 @@ def main():
         "architecture": args.architecture,
         "label_smoothing": args.label_smoothing,
         "balanced_sampling": args.balanced_sampling,
+        "prediction_task": manifest.get("prediction_task", "make_model_year_range"),
     }
     (args.output_dir / "labels.json").write_text(json.dumps(label_manifest, indent=2) + "\n", encoding="utf-8")
     if args.metadata_only:
@@ -206,8 +223,11 @@ def main():
         model = models.mobilenet_v3_small(weights=weights)
     model.classifier[-1] = torch.nn.Linear(model.classifier[-1].in_features, len(classes))
     initialized_classes = 0
+    initialized_backbone_tensors = 0
     if args.initial_export_model:
         initialized_classes = initialize_from_export(model, args.initial_export_model)
+    elif args.initial_backbone_model:
+        initialized_backbone_tensors = initialize_backbone_from_export(model, args.initial_backbone_model)
     if args.freeze_backbone_epochs:
         for parameter in model.features.parameters():
             parameter.requires_grad = False
@@ -251,6 +271,7 @@ def main():
         "device": device, "epochs": args.epochs, "classes": len(classes),
         "pretrained_imagenet": args.pretrained,
         "initialized_leading_classes": initialized_classes,
+        "initialized_backbone_tensors": initialized_backbone_tensors,
         "freeze_backbone_epochs": args.freeze_backbone_epochs,
         "balanced_sampling": args.balanced_sampling,
         "train_samples": len(split_samples["train"]),
