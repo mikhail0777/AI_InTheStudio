@@ -11,6 +11,11 @@ export interface VehicleEvent {
  boundary_name:string;best_vehicle_crop:string|null;best_plate_crop:string|null;
  previous_status:string|null;new_status:string|null;
 }
+export interface SystemReadiness {
+ runtime_status:'healthy'|'degraded';production_certified:false;
+ checks:Record<string,{ok:boolean;[key:string]:unknown}>;
+ capabilities:Record<string,boolean>;release_blockers:string[];accuracy_note:string;
+}
 export interface PlateOcrCandidate {text:string;confidence:number;source_variant:string}
 export interface PlateOcrObservation {
  observation_id:string;frame_idx:number;timestamp_seconds:number;
@@ -33,6 +38,7 @@ export const getVehicles=()=>json<VehicleRecord[]>(`${API_BASE}/vehicles`);
 export const createVehicleRecord=(body:Record<string,unknown>)=>json<VehicleRecord>(`${API_BASE}/vehicles`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
 export const getVehicleTimeline=(id:string)=>json<TimelineItem[]>(`${API_BASE}/vehicles/${encodeURIComponent(id)}/timeline`);
 export const getVehicleEvents=(review_state?:string)=>json<VehicleEvent[]>(`${API_BASE}/vehicle-events${review_state?`?review_state=${encodeURIComponent(review_state)}`:''}`);
+export const getSystemReadiness=()=>json<SystemReadiness>(`${API_BASE}/system/readiness`);
 export const getPlateAnalysis=(sightingId:string)=>json<PlateAnalysis>(`${API_BASE}/vehicle-sightings/${encodeURIComponent(sightingId)}/plate-analysis`);
 export const linkSighting=(sightingId:string,vehicle_id:string,reason:string)=>json(`${API_BASE}/vehicle-sightings/${encodeURIComponent(sightingId)}/link`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vehicle_id,reason})});
 export interface InspectionMedia {media_id:string;viewpoint:string;source_filename:string;sha256:string;width:number;height:number;evidence_url:string|null}

@@ -385,3 +385,4 @@
 .plate-analysis{margin:20px 0;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
 .plate-evidence-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0}
 .plate-evidence-grid figure{margin:0}.plate-evidence-grid img{width:100%;max-height:150px;object-fit:contain;background:#111;border-radius:8px}.plate-evidence-grid figcaption{margin-top:6px;color:var(--muted);font-size:.85rem}
+.readiness-grid,.readiness-list{display:grid;gap:.75rem}.readiness-grid{grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.readiness-grid>div,.readiness-list>div{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.85rem 1rem;border:1px solid var(--line);border-radius:10px;background:#fff}.blocker-list{margin:.25rem 0 0;padding-left:1.4rem}.blocker-list li{margin:.65rem 0;line-height:1.5}

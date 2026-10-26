@@ -18,7 +18,26 @@ Plate searches use a dedicated dense scan rather than semantic keyframe retrieva
 
 When no plate is known, a second dense path detects cars, trucks, buses, and motorcycles, groups repeated observations, and filters by mask-derived colour and coarse vehicle category. It does not use the plate filename, requested profile, or another answer key as detector input.
 
-## Run locally
+## Run as a desktop application
+
+The primary development experience is now a native LotTrace window. The
+desktop shell starts and stops the private local API automatically and stores
+runtime data under the user's Windows application-data directory.
+
+```powershell
+python -m pip install -r backend/requirements.txt
+python backend/download_models.py
+cd frontend
+npm.cmd install
+npm.cmd run desktop:dev
+```
+
+The browser-based Vite launcher remains available for frontend development,
+but it is not the intended dealership product experience. Windows packaging
+instructions and remaining distribution gates are documented in
+`docs/LOTTRACE_DESKTOP_DISTRIBUTION.md`.
+
+## Run browser development servers
 
 Python 3.10–3.14 and Node.js are supported. From the repository root:
 
@@ -36,13 +55,20 @@ npm.cmd install
 npm.cmd run dev
 ```
 
-Open `http://localhost:5173`. After dependencies and models are installed, `run_aieye.bat` can start both services.
+Open `http://localhost:5173`. After dependencies and models are installed, `run_aieye.bat` can start both development services.
 
 ## Current stage
 
 Milestones A and B are development-complete for the current prototype, not production-certified. Existing plate-box localization measured 97.55% precision, 91.71% recall, and 94.54% F1. The frozen 451-image exact complete-plate OCR benchmark measured 91.13% (411/451); the high-confidence accepted subset measured 98.55% (340/345) at 76.50% coverage. Multi-frame performance still requires a labelled dealership-video benchmark.
 
-Milestone C is active. A clean EfficientNet-B0 upgrade raised the frozen 100-class VMMR research test from 38.38% to 67.78% exact make+model+three-year-range top-1, from 56.96% to 89.35% make+model top-1, and from 65.06% to 92.68% make top-1 on 1,803 images. Top-5 exact accuracy is 92.73%. The system is implemented, but year-range accuracy and unsupported-vehicle rejection are not sufficient to close the milestone. VMMRdb also requires a separate commercial-rights review before production use. Live camera/RTSP ingestion remains a Milestone D task.
+Milestone C is development-complete with year removed from visual recognition. The frozen grouped make+model benchmark measured 92.10% top-1 (2,332/2,532), 98.22% top-5, and 94.15% make-only accuracy. This is a closed-set research still-image result and does not certify dealership-video performance or commercial distribution of the checkpoint.
+
+Milestone D is active. The application now has an Electron desktop shell,
+private backend lifecycle, per-user data storage, runtime-readiness screen, and
+Windows packaging configuration. Automatic track-to-boundary event wiring,
+live camera ingestion, backup/restore certification, redistributable production
+model assets, installer code signing, and the dealership-video release
+benchmark remain incomplete.
 
 Set `AIEYE_PLATE_SCAN_FPS` to override the plate cadence (0.1–15 FPS). Set `AIEYE_PLATE_REVIEW_SIMILARITY` to tune which non-exact OCR strings enter the review queue; the default is `0.78`. `AIEYE_PLATE_MIRROR_FALLBACK` enables the guarded mirrored-camera pass, and `AIEYE_PLATE_MIRROR_THRESHOLD` controls when it runs (default `0.72`). These settings affect recall, runtime, and the number of false review candidates. They do not change the definition of an exact match.
 
@@ -57,7 +83,7 @@ Set `AIEYE_PLATE_SCAN_FPS` to override the plate cadence (0.1–15 FPS). Set `AI
 
 ## Pilot limitations
 
-This is a local pilot build, not a network-ready multi-tenant service. It binds to localhost and has no account system. Do not expose it directly to a LAN or the internet. Before operational use:
+This is a local pilot build, not a network-ready multi-tenant service. It binds to localhost and has server-enforced local accounts and roles. Do not expose it directly to a LAN or the internet. Before operational use:
 
 - obtain written authorization for the footage and document the business purpose;
 - define access, retention, deletion, and disclosure policies;
@@ -77,6 +103,8 @@ Vehicle presence, a coarse detector category, and mask-derived colour are machin
 | `backend/app/services/plate_*` | OCR evidence, ranking, and multi-frame consensus |
 | `frontend/src/workspace` | Dealership ledgers and review screens |
 | `frontend/src/components` | Recording analysis components |
+| `frontend/desktop` | Native Electron lifecycle and security boundary |
+| `desktop` | Python backend packaging specification |
 | `scripts` | Evaluation, dataset-audit, and training commands |
 | `evaluation` | Measured outputs and benchmark manifests, never runtime data |
 | `docs` | Current architecture, milestone, licensing, and evaluation reports |

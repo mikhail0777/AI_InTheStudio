@@ -1,13 +1,19 @@
 {
   "name": "lottrace-frontend",
+  "productName": "LotTrace",
   "private": true,
   "version": "1.0.0",
+  "main": "desktop/main.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "test": "node --experimental-strip-types --test tests/*.test.mjs",
     "test:e2e": "playwright test",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build --configLoader runner",
+    "desktop:dev": "npm run build && electron .",
+    "desktop:backend": "python ../scripts/build_desktop_backend.py",
+    "desktop:package": "npm run build && npm run desktop:backend && electron-forge package",
+    "desktop:make": "npm run build && npm run desktop:backend && electron-forge make",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -17,10 +23,13 @@
     "react-fast-marquee": "^1.6.5"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^8.0.1",
+    "@electron-forge/maker-squirrel": "^8.0.1",
     "@playwright/test": "^1.64.1",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
     "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^45.0.0",
     "source-map-js": "^1.2.2",
     "typescript": "^5.2.2",
     "vite": "^8.3.4"

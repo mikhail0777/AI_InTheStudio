@@ -1,5 +1,5 @@
 import React, {Suspense, useState} from 'react';
-import {ArrowLeftRight,ArrowRight, Camera, Car, Check, ChevronRight, HelpCircle, History, LayoutDashboard, LogOut, Menu, Search, ShieldCheck, Upload, Video, X} from 'lucide-react';
+import {ArrowLeftRight,ArrowRight, Camera, Car, Check, ChevronRight, HelpCircle, History, LayoutDashboard, LogOut, Menu, Search, Server, ShieldCheck, Upload, Video, X} from 'lucide-react';
 import {logoutAuth,type AuthUser} from './api';
 import {WorkspaceProvider, useWorkspace} from './workspace/store';
 import type {View} from './workspace/model';
@@ -16,6 +16,7 @@ import {VehicleRecordsPage} from './workspace/VehicleRecordsPage';
 import {InspectionsPage} from './workspace/InspectionsPage';
 import {OperationalIncidentsPage} from './workspace/OperationalIncidentsPage';
 import {VehicleEventsPage} from './workspace/VehicleEventsPage';
+import {SystemReadinessPage} from './workspace/SystemReadinessPage';
 import './recording.css';
 
 const RecordingApp = React.lazy(() => import('./RecordingApp').then(m => ({default: m.RecordingApp})));
@@ -33,6 +34,7 @@ const localNav = [
   {id: 'records', label: 'Vehicle records', icon: Car},
   {id: 'inspections', label: 'Condition inspections', icon: Camera},
   {id: 'incidents', label: 'Incidents', icon: ShieldCheck},
+  {id: 'readiness', label: 'System readiness', icon: Server},
 ] as const;
 
 function Workspace({user}:{user:AuthUser}) {
@@ -92,6 +94,7 @@ function Workspace({user}:{user:AuthUser}) {
         {!sample && view === 'records' && <VehicleRecordsPage canManage={user.role==='manager'||user.role==='administrator'}/>}
         {!sample && view === 'inspections' && <InspectionsPage/>}
         {!sample && view === 'incidents' && <OperationalIncidentsPage canManage={user.role==='manager'||user.role==='administrator'}/>}
+        {!sample && view === 'readiness' && <SystemReadinessPage/>}
         <div hidden={view !== 'recording' || sample}>
           {view === 'recording' && <PageHeading title="Analyse a recording" description="Upload footage and build a timeline of every supported vehicle and readable plate."/>}
           <Suspense fallback={<div className="empty" role="status">Loading recording tools…</div>}>

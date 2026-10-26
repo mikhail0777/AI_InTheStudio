@@ -20,7 +20,7 @@ from app.services.analysis_worker import queue_analysis, queue_proxy, control_an
 from app.services.generic_search import OpenVocabularySearchManager, load_search_results
 from app.services.vehicle_sightings import list_sightings
 from app.services import governance, vehicle_records, vehicle_events
-from app.services import condition_incidents
+from app.services import condition_incidents, system_readiness
 
 router = APIRouter(prefix="/api")
 MAX_VIDEO_BYTES = int(os.environ.get("AIEYE_MAX_VIDEO_BYTES", 4 * 1024**3))
@@ -91,6 +91,11 @@ def _session_cookie(response,token):
 @router.get("/auth/status")
 def auth_status(request:Request):
     return {"configured":governance.configured(),"user":governance.authenticate(request.cookies.get("lottrace_session"))}
+
+@router.get("/system/readiness")
+def readiness(request:Request):
+    _user(request)
+    return system_readiness.runtime_readiness()
 
 @router.post("/auth/bootstrap")
 def auth_bootstrap(values:BootstrapInput,response:Response):

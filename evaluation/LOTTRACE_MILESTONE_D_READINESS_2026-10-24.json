@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-26T03:07:41.229191+00:00",
+  "milestone": "D - production certification",
+  "production_certified": false,
+  "decision": "not_ready_for_production",
+  "capabilities": {
+    "recorded_video_analysis": true,
+    "durable_job_queue_and_restart_recovery": true,
+    "multi_frame_ocr_consensus": true,
+    "vehicle_make_model_recognition": true,
+    "immutable_events_and_status_transitions": true,
+    "authentication_roles_audit_retention_exports": true,
+    "desktop_application_shell": true,
+    "automatic_worker_to_crossing_event_wiring": false,
+    "live_camera_ingestion": false,
+    "backup_restore_certified": false,
+    "deployment_security_certified": false,
+    "signed_self_contained_windows_installer": false
+  },
+  "release_gates": [
+    {
+      "name": "Eligible vehicle crossing event recall",
+      "target": ">=99%",
+      "measured_value": null,
+      "status": "unmeasured",
+      "evidence": "none",
+      "note": "Requires held-out dealership video with labelled crossings."
+    },
+    {
+      "name": "Plate localization recall on eligible events",
+      "target": ">=99%",
+      "measured_value": null,
+      "status": "unmeasured",
+      "evidence": "evaluation/license_plate_recognition_v13_detection_results.json",
+      "note": "Still-image plate-box recall is 91.71%; it is not an event-level video result."
+    },
+    {
+      "name": "OCR character accuracy",
+      "target": ">=99%",
+      "measured_value": 0.9779385171790235,
+      "status": "below_target",
+      "evidence": "evaluation/LOTTRACE_OPENALPR_300_OCR_2026-10-22.json",
+      "note": "Measured on 451 held-out cropped plates, not dealership-video events."
+    },
+    {
+      "name": "Exact full-plate event accuracy",
+      "target": ">=99%",
+      "measured_value": null,
+      "status": "unmeasured",
+      "evidence": "evaluation/LOTTRACE_OPENALPR_300_OCR_2026-10-22.json",
+      "note": "Single-crop exact accuracy is 91.13%; multi-frame event accuracy is unmeasured."
+    },
+    {
+      "name": "Plate-to-vehicle association precision",
+      "target": ">=99%",
+      "measured_value": null,
+      "status": "unmeasured",
+      "evidence": "none",
+      "note": "No labelled dealership-video association benchmark exists."
+    },
+    {
+      "name": "Plate-to-vehicle association recall",
+      "target": ">=98%",
+      "measured_value": null,
+      "status": "unmeasured",
+      "evidence": "none",
+      "note": "No labelled dealership-video association benchmark exists."
+    },
+    {
+      "name": "False exact assignments / false sightings per hour",
+      "target": "reported",
+      "measured_value": null,
+      "status": "unmeasured",
+      "evidence": "none",
+      "note": "Requires negative and positive dealership footage with labelled duration."
+    },
+    {
+      "name": "Make + model top-1",
+      "target": ">=95% development objective",
+      "measured_value": 0.9210110584518167,
+      "status": "below_target",
+      "evidence": "evaluation/LOTTRACE_MAKE_MODEL_TEST_2026-10-24.json",
+      "note": "Closed-set research still-image result; dealership-video and unknown-vehicle performance remain unmeasured."
+    },
+    {
+      "name": "General vehicle detector recall",
+      "target": ">=99% eligible crossings",
+      "measured_value": 0.6589537223340041,
+      "status": "not_comparable_below_target",
+      "evidence": "evaluation/coco_vehicle_results.json",
+      "note": "COCO still-image recall is not the declared eligible dealership-crossing metric."
+    }
+  ],
+  "blockers": [
+    "automatic_worker_to_crossing_event_wiring",
+    "live_camera_ingestion",
+    "backup_restore_certified",
+    "deployment_security_certified",
+    "signed_self_contained_windows_installer",
+    "Eligible vehicle crossing event recall",
+    "Plate localization recall on eligible events",
+    "OCR character accuracy",
+    "Exact full-plate event accuracy",
+    "Plate-to-vehicle association precision",
+    "Plate-to-vehicle association recall",
+    "False exact assignments / false sightings per hour",
+    "Make + model top-1",
+    "General vehicle detector recall"
+  ],
+  "evidence_files": {
+    "evaluation/license_plate_recognition_v13_detection_results.json": "34b7dac7119a478398dd80940ccc0e9c7ef845970c4e9f4aa017680701ae8a94",
+    "evaluation/LOTTRACE_OPENALPR_300_OCR_2026-10-22.json": "9fefffade20b6a76f51e30e8f8f59d608fa8c24f9744b641ba42e9d46387cd46",
+    "evaluation/LOTTRACE_MAKE_MODEL_TEST_2026-10-24.json": "de86802d7483c22ea4e5dbc3838840795be5781c5f66e8a8d1960e0818a5f414",
+    "evaluation/coco_vehicle_results.json": "b7a502f58f0f50d6109f0830404667d32feb35589bf0c70e6023484a33a8fe40"
+  },
+  "functional_verification": {
+    "backend_tests": 275,
+    "frontend_tests": 20,
+    "browser_tests": 7,
+    "frontend_build": "passed"
+  },
+  "interpretation": "Functional software tests and healthy runtime checks do not prove model accuracy. Certification remains false until every declared dealership-video gate is measured and passed."
+}

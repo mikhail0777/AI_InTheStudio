@@ -1,5 +1,6 @@
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -45,6 +46,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1", "[::1]"])
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault(
+        "Content-Security-Policy",
+        "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; "
+        "style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; "
+        "font-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'",
+    )
+    return response
 
 
 @app.middleware("http")
@@ -96,6 +112,12 @@ app.mount("/evidence", StaticFiles(directory=os.path.join(DATA_DIR, "evidence"))
 
 # Include API Router
 app.include_router(api_router)
+
+# Desktop distributions point this at the packaged Vite build. Development
+# continues to use Vite directly, so the API remains independently testable.
+frontend_dir = os.environ.get("LOTTRACE_FRONTEND_DIR")
+if frontend_dir and (Path(frontend_dir) / "index.html").is_file():
+    app.mount("/app", StaticFiles(directory=frontend_dir, html=True), name="desktop-app")
 
 @app.get("/")
 def read_root():

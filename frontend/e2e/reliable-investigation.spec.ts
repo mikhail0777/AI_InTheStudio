@@ -26,9 +26,8 @@ test('upload, proxy playback, seeking, and polling preserve document scroll',asy
  const submitted=await mockInvestigation(page,'polling');
  await page.goto('/#/recording');
  await page.locator('#video-upload').setInputFiles(videoPath);
- await page.locator('#plate').fill('ABC123');
- await page.getByRole('button',{name:'Start vehicle search'}).click();
- await expect(page.getByText('Review vehicle evidence')).toBeVisible();
+ await page.locator('.start-search').click();
+ await expect(page.getByText('Review every vehicle sighting')).toBeVisible();
  const video=page.locator('.video-stage video');await expect(video).toBeVisible();
  await video.evaluate(async(node:HTMLVideoElement)=>{await node.play();});
  await expect.poll(()=>video.evaluate((node:HTMLVideoElement)=>node.currentTime)).toBeGreaterThan(0);
@@ -36,13 +35,12 @@ test('upload, proxy playback, seeking, and polling preserve document scroll',asy
  await expect.poll(()=>video.evaluate((node:HTMLVideoElement)=>node.currentTime)).toBeGreaterThan(3.5);
  await page.evaluate(()=>window.scrollTo(0,document.body.scrollHeight));const before=await page.evaluate(()=>window.scrollY);
  await page.waitForTimeout(1700);expect(await page.evaluate(()=>window.scrollY)).toBe(before);
- expect(submitted().plate_match_mode).toBe('exact');
+ expect(submitted().inventory_scan).toBe(true);expect(submitted().plate_number).toBeUndefined();
 });
 
-test('partial plate and vehicle-only searches send only evaluated attributes',async({page})=>{
+test('automatic recording analysis submits camera context without invented vehicle attributes',async({page})=>{
  const submitted=await mockInvestigation(page);
- await page.goto('/#/recording');await page.locator('#video-upload').setInputFiles(videoPath);await page.locator('#plate').fill('ABC');await page.getByRole('button',{name:'Partial plate'}).click();await page.getByRole('button',{name:'Start vehicle search'}).click();await expect.poll(()=>submitted()?.plate_match_mode).toBe('partial');expect(submitted().vehicle_make).toBeUndefined();
- await page.reload();await page.locator('#video-upload').setInputFiles(videoPath);await page.getByLabel('Colour').fill('Red');await page.getByLabel('Coarse category').selectOption('car');await page.getByRole('button',{name:'Start vehicle search'}).click();await expect.poll(()=>submitted()?.vehicle_color).toBe('Red');expect(submitted().vehicle_body_type).toBe('car');expect(submitted().plate_number).toBeUndefined();await expect(page.getByText('Make, model, and year are unavailable.')).toBeVisible();
+ await page.goto('/#/recording');await page.locator('#video-upload').setInputFiles(videoPath);await page.getByLabel('Camera name').fill('North gate');await page.getByLabel('Movement').selectOption('lot_entry');await page.locator('.start-search').click();await expect.poll(()=>submitted()?.inventory_scan).toBe(true);expect(submitted().camera_name).toBe('North gate');expect(submitted().camera_role).toBe('lot_entry');expect(submitted().plate_number).toBeUndefined();expect(submitted().vehicle_make).toBeUndefined();expect(submitted().vehicle_model).toBeUndefined();expect(submitted().vehicle_year).toBeUndefined();
 });
 
 test('saved sighting review persists across a page reload',async({page})=>{
