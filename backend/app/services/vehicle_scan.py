@@ -22,6 +22,7 @@ from app.services.vehicle_recognizer import VehicleObservation, VehicleRecognize
 from app.services.vehicle_attribute_consensus import build_vehicle_attribute_consensus
 from app.services.vehicle_sightings import save_sighting
 from app.services.visual_features import color_match_score
+from app.services.automatic_vehicle_events import submit_recording_track
 
 
 def is_vehicle_profile_search(target: TargetConfiguration) -> bool:
@@ -377,6 +378,19 @@ class VehicleScanManager:
                 } if plate_observations else None),
                 vehicle_attributes=attribute_consensus,
             )
+            event_submission = submit_recording_track(
+                session_id=session_id, target=target, video=video, track_id=track.track_id,
+                track_items=track_items, plate_observations=plate_observations,
+                consensus=plate_consensus, best_vehicle_crop=vehicle.crop_path,
+                best_plate_crop=(best_plate.get("raw_plate_crop_reference") if best_plate else None),
+                model_manifest={
+                    "vehicle_detector": vehicle.provenance.model_dump(mode="json"),
+                    "plate_pipeline": plate_model_manifest,
+                    "vehicle_attributes": attribute_consensus.get("model_manifest", {}),
+                },
+            )
+            if event_submission["skip_reason"] and event_submission["skip_reason"] not in ("camera_not_configured", "boundary_not_configured"):
+                cls._log(session_id, "EVENT_REVIEW", f"Automatic crossing event skipped: {event_submission['skip_reason'].replace('_', ' ')}.", "warning")
 
         results.sort(key=lambda item: (item.classification == "strong_match", item.overall_score), reverse=True)
         metrics = {"stage_timings": {"total": round(time.perf_counter() - started, 6)},

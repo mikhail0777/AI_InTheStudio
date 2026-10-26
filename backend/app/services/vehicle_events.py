@@ -227,6 +227,22 @@ def create_crossing_event(user, values):
         review_state = "confirmed" if transition else "requires_review"
         event_id = "event_" + uuid.uuid4().hex
         occurred_at = _absolute_time(values.get("recorded_start_at"), crossing_seconds)
+        # Suppress track fragmentation retries only when the same normalized plate
+        # crosses the same boundary in the same source within three seconds.
+        if consensus_plate and match_state in ("exact_consensus", "reviewed"):
+            nearby = conn.execute(
+                """SELECT * FROM vehicle_events WHERE dealership_id=? AND boundary_id=?
+                   AND COALESCE(session_id,recording_reference)=COALESCE(?,?)
+                   AND consensus_plate=? ORDER BY occurred_at DESC LIMIT 10""",
+                (user["dealership_id"], boundary["boundary_id"], values.get("session_id"),
+                 values.get("recording_reference"), consensus_plate),
+            ).fetchall()
+            current_time = datetime.fromisoformat(occurred_at)
+            for prior in nearby:
+                try: delta = abs((current_time - datetime.fromisoformat(prior["occurred_at"])).total_seconds())
+                except ValueError: continue
+                if delta <= 3:
+                    return {"created": False, "reason": "duplicate_fragment", "event": _row(prior)}
         evidence = values.get("evidence") or {}
         conn.execute(
             """INSERT INTO vehicle_events(

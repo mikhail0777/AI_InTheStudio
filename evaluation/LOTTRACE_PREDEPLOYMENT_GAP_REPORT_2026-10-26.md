@@ -17,9 +17,24 @@ quality, and long-duration evidence integrity still require clean-machine and
 dealership-camera tests. ONVIF discovery returns device service endpoints; profile
 selection currently relies on operator-provided profile/RTSP values.
 
+## D2 — automatic events
+
+Implemented locally: completed recorded-video vehicle tracks are normalized to
+camera coordinates and submitted to each configured boundary. The existing
+immutable transaction performs directed finite-line crossing checks, multi-frame
+plate consensus, unique vehicle matching, safe inventory transitions, audit
+records, retry idempotency, and review routing. A three-second same-source,
+same-boundary, same-plate guard suppresses duplicate fragmented tracks without
+merging unrelated observations. Missing camera mappings or absolute recording
+times fail closed.
+
+Verified with focused automatic-event, event persistence, and vehicle-scan tests.
+The live-camera worker still needs the production detector/tracker callback wired
+and measured against real camera streams; this remains a release blocker rather
+than being represented as complete field validation.
+
 ## Remaining milestones
 
-- D2: connect live/recorded tracking output automatically to boundary events.
 - D3: finish legal redistribution inventory and checksum-enforced offline bundle.
 - D4: add certified backup/restore, upgrade rollback, crash recovery and diagnostics.
 - D5: rebuild and smoke-test the installer; configure but do not claim Authenticode

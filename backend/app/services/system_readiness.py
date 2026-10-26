@@ -77,11 +77,11 @@ def runtime_readiness() -> dict:
         "immutable_crossing_events": True,
         "desktop_application_shell": True,
         "live_camera_ingestion": True,
-        "automatic_track_to_crossing_event": False,
+        "automatic_track_to_crossing_event": True,
         "dealership_video_accuracy_certified": False,
     }
     blockers = [
-        "The recording worker does not yet submit tracked observations to configured camera boundaries.",
+        "Recorded-video tracks now submit to configured boundaries; the live-camera worker still requires production detector/tracker wiring and field validation.",
         "Live-camera ingestion is implemented with simulated coverage; physical ONVIF/RTSP cameras and dealership network conditions remain unverified.",
         "The declared release gates have not been measured on held-out dealership video.",
         "Backup/restore, deployment TLS, and rate limiting are not certified; camera credentials use Windows DPAPI but still require installed-build verification.",
