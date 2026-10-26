@@ -369,6 +369,24 @@ def init_db():
         role TEXT NOT NULL DEFAULT 'unknown', location TEXT, timezone TEXT NOT NULL,
         active INTEGER NOT NULL DEFAULT 1, created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(dealership_id) REFERENCES dealerships(dealership_id))""")
+    camera_columns = {row[1] for row in cursor.execute("PRAGMA table_info(cameras)")}
+    camera_additions = {
+        "stream_url": "TEXT", "credential_blob": "BLOB", "onvif_device_url": "TEXT",
+        "onvif_profile_token": "TEXT", "capture_fps": "REAL NOT NULL DEFAULT 15",
+        "inference_fps": "REAL NOT NULL DEFAULT 3", "evidence_enabled": "INTEGER NOT NULL DEFAULT 1",
+        "evidence_segment_seconds": "INTEGER NOT NULL DEFAULT 60",
+        "evidence_retention_hours": "INTEGER NOT NULL DEFAULT 168",
+        "updated_at": "TEXT DEFAULT CURRENT_TIMESTAMP",
+    }
+    for column, definition in camera_additions.items():
+        if column not in camera_columns:
+            cursor.execute(f"ALTER TABLE cameras ADD COLUMN {column} {definition}")
+    cursor.execute("""CREATE TABLE IF NOT EXISTS camera_runtime_events (
+        runtime_event_id TEXT PRIMARY KEY, camera_id TEXT NOT NULL, event_type TEXT NOT NULL,
+        status TEXT NOT NULL, detail TEXT, metrics_json JSON NOT NULL DEFAULT '{}',
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(camera_id) REFERENCES cameras(camera_id))""")
+    cursor.execute("CREATE INDEX IF NOT EXISTS camera_runtime_by_camera ON camera_runtime_events(camera_id,created_at DESC)")
     cursor.execute("""CREATE TABLE IF NOT EXISTS vehicles (
         vehicle_id TEXT PRIMARY KEY, dealership_id TEXT NOT NULL, normalized_plate TEXT,
         vin TEXT, stock_number TEXT, make TEXT, model TEXT, year INTEGER,

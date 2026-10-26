@@ -76,15 +76,15 @@ def runtime_readiness() -> dict:
         "human_review_and_audit": True,
         "immutable_crossing_events": True,
         "desktop_application_shell": True,
-        "live_camera_ingestion": False,
+        "live_camera_ingestion": True,
         "automatic_track_to_crossing_event": False,
         "dealership_video_accuracy_certified": False,
     }
     blockers = [
         "The recording worker does not yet submit tracked observations to configured camera boundaries.",
-        "Live camera ingestion, reconnect/backoff, bounded queues, and rolling evidence buffers are not implemented.",
+        "Live-camera ingestion is implemented with simulated coverage; physical ONVIF/RTSP cameras and dealership network conditions remain unverified.",
         "The declared release gates have not been measured on held-out dealership video.",
-        "Backup/restore, deployment TLS, encrypted camera credentials, and rate limiting are not certified.",
+        "Backup/restore, deployment TLS, and rate limiting are not certified; camera credentials use Windows DPAPI but still require installed-build verification.",
         "The downloadable Windows installer still needs a redistributable packaged model/runtime set and code signing.",
     ]
     healthy = database_health.get("ok") is True and storage_health.get("ok") is True

@@ -22,7 +22,7 @@ class SystemReadinessTests(unittest.TestCase):
         self.assertFalse(result["production_certified"])
         self.assertTrue(result["capabilities"]["recorded_video_upload"])
         self.assertTrue(result["capabilities"]["desktop_application_shell"])
-        self.assertFalse(result["capabilities"]["live_camera_ingestion"])
+        self.assertTrue(result["capabilities"]["live_camera_ingestion"])
         self.assertFalse(result["capabilities"]["automatic_track_to_crossing_event"])
         self.assertGreaterEqual(len(result["release_blockers"]), 3)
         self.assertIn("not model accuracy", result["accuracy_note"])

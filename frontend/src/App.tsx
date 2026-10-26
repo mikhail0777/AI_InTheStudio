@@ -17,6 +17,7 @@ import {InspectionsPage} from './workspace/InspectionsPage';
 import {OperationalIncidentsPage} from './workspace/OperationalIncidentsPage';
 import {VehicleEventsPage} from './workspace/VehicleEventsPage';
 import {SystemReadinessPage} from './workspace/SystemReadinessPage';
+import {LiveCamerasPage} from './workspace/LiveCamerasPage';
 import './recording.css';
 
 const RecordingApp = React.lazy(() => import('./RecordingApp').then(m => ({default: m.RecordingApp})));
@@ -29,6 +30,7 @@ const sampleNav = [
 ] as const;
 const localNav = [
   {id: 'recording', label: 'Analyse recording', icon: Upload},
+  {id: 'cameras', label: 'Live cameras', icon: Camera},
   {id: 'events', label: 'Arrival / departure', icon: ArrowLeftRight},
   {id: 'search', label: 'Saved sightings', icon: Search},
   {id: 'records', label: 'Vehicle records', icon: Car},
@@ -90,6 +92,7 @@ function Workspace({user}:{user:AuthUser}) {
         {sample && view === 'incidents' && <IncidentPage/>}
         {sample && view === 'activity' && <ActivityPage/>}
         {!sample && view === 'search' && <OperationalSightingsPage/>}
+        {!sample && view === 'cameras' && <LiveCamerasPage canManage={user.role==='manager'||user.role==='administrator'}/>}
         {!sample && view === 'events' && <VehicleEventsPage/>}
         {!sample && view === 'records' && <VehicleRecordsPage canManage={user.role==='manager'||user.role==='administrator'}/>}
         {!sample && view === 'inspections' && <InspectionsPage/>}

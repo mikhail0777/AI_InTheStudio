@@ -16,6 +16,13 @@ export interface SystemReadiness {
  checks:Record<string,{ok:boolean;[key:string]:unknown}>;
  capabilities:Record<string,boolean>;release_blockers:string[];accuracy_note:string;
 }
+export interface CameraRecord {camera_id:string;name:string;role:string;location:string|null;timezone:string;stream_url:string|null;credentials_configured:boolean;capture_fps:number;inference_fps:number;evidence_enabled:number}
+export interface CameraStatus {camera_id:string;status:'online'|'reconnecting'|'offline'|'authentication_failure'|'unsupported_stream'|'overloaded'|'paused';status_detail:string|null;metrics:{captured_frames:number;processed_frames:number;corrupt_frames:number;dropped_processing_frames:number;evidence_queue_failures:number;processing_queue_depth:number;evidence_queue_depth:number;last_receipt_at:string|null}}
+export const getCameras=()=>json<CameraRecord[]>(`${API_BASE}/cameras`);
+export const configureCameraStream=(id:string,body:Record<string,unknown>)=>json<CameraRecord>(`${API_BASE}/cameras/${encodeURIComponent(id)}/stream`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+export const getCameraStatus=(id:string)=>json<CameraStatus>(`${API_BASE}/cameras/${encodeURIComponent(id)}/status`);
+export const startCamera=(id:string)=>json<CameraStatus>(`${API_BASE}/cameras/${encodeURIComponent(id)}/start`,{method:'POST'});
+export const controlCamera=(id:string,action:'pause'|'resume'|'stop')=>json<CameraStatus>(`${API_BASE}/cameras/${encodeURIComponent(id)}/control/${action}`,{method:'POST'});
 export interface PlateOcrCandidate {text:string;confidence:number;source_variant:string}
 export interface PlateOcrObservation {
  observation_id:string;frame_idx:number;timestamp_seconds:number;

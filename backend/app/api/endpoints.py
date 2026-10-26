@@ -21,6 +21,7 @@ from app.services.generic_search import OpenVocabularySearchManager, load_search
 from app.services.vehicle_sightings import list_sightings
 from app.services import governance, vehicle_records, vehicle_events
 from app.services import condition_incidents, system_readiness
+from app.services import camera_ingestion
 
 router = APIRouter(prefix="/api")
 MAX_VIDEO_BYTES = int(os.environ.get("AIEYE_MAX_VIDEO_BYTES", 4 * 1024**3))
@@ -45,6 +46,12 @@ class ReasonInput(BaseModel):
     reason: str
 class CameraInput(BaseModel):
     name: str; role: str="unknown"; location: str|None=None; timezone: str="UTC"
+class CameraStreamInput(BaseModel):
+    stream_url: str; username: str|None=None; password: str|None=None
+    onvif_device_url: str|None=None; onvif_profile_token: str|None=None
+    capture_fps: float=Field(default=15,gt=0,le=120); inference_fps: float=Field(default=3,gt=0,le=30)
+    evidence_enabled: bool=True; evidence_segment_seconds: int=Field(default=60,ge=10,le=3600)
+    evidence_retention_hours: int=Field(default=168,ge=1,le=8760)
 class BoundaryInput(BaseModel):
     name: str = Field(min_length=1,max_length=120)
     boundary_type: str; x1: float; y1: float; x2: float; y2: float; travel_direction: str
@@ -480,6 +487,35 @@ def cameras(request:Request):return vehicle_records.list_cameras(_user(request))
 
 @router.post("/cameras")
 def create_camera(values:CameraInput,request:Request):return vehicle_records.create_camera(_user(request),values.model_dump())
+
+@router.put("/cameras/{camera_id}/stream")
+def configure_camera_stream(camera_id:str,values:CameraStreamInput,request:Request):
+    try:return camera_ingestion.configure_camera(_user(request),camera_id,values.model_dump())
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+    except ValueError as error:raise HTTPException(400,str(error)) from error
+
+@router.post("/cameras/{camera_id}/start")
+def start_camera(camera_id:str,request:Request):
+    try:return camera_ingestion.manager.start_camera(camera_id,_user(request)["dealership_id"])
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+    except ValueError as error:raise HTTPException(409,str(error)) from error
+
+@router.post("/cameras/{camera_id}/control/{action}")
+def control_camera(camera_id:str,action:str,request:Request):
+    try:return camera_ingestion.manager.control(camera_id,_user(request)["dealership_id"],action)
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+    except ValueError as error:raise HTTPException(400,str(error)) from error
+
+@router.get("/cameras/{camera_id}/status")
+def camera_status(camera_id:str,request:Request):
+    user=_user(request)
+    try:camera_ingestion.public_camera(camera_id,user["dealership_id"])
+    except LookupError as error:raise HTTPException(404,str(error)) from error
+    return camera_ingestion.manager.status(camera_id,user["dealership_id"])
+
+@router.get("/onvif/discover")
+def onvif_discover(request:Request,timeout:float=1.5):
+    _user(request); return camera_ingestion.discover_onvif(min(max(timeout,.1),5))
 
 @router.get("/camera-boundaries")
 def camera_boundaries(request:Request,camera_id:str|None=None):

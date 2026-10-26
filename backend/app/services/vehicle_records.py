@@ -100,14 +100,20 @@ def timeline(user,vehicle_id):
 
 def list_cameras(user):
     with get_db_connection() as conn: rows=conn.execute("SELECT * FROM cameras WHERE dealership_id=? ORDER BY name",(user["dealership_id"],)).fetchall()
-    return [dict(row) for row in rows]
+    result=[]
+    for row in rows:
+        item=dict(row); secret=item.pop("credential_blob",None)
+        item["credentials_configured"]=bool(secret)
+        result.append(item)
+    return result
 
 def create_camera(user,values):
     camera_id="camera_"+uuid.uuid4().hex
     with get_db_connection() as conn:
         conn.execute("INSERT INTO cameras(camera_id,dealership_id,name,role,location,timezone) VALUES (?,?,?,?,?,?)",(camera_id,user["dealership_id"],values["name"].strip(),values.get("role","unknown"),values.get("location"),values.get("timezone","UTC")))
-        row=conn.execute("SELECT * FROM cameras WHERE camera_id=?",(camera_id,)).fetchone(); audit(conn,user,"camera.created","camera",camera_id,new=dict(row))
-    return dict(row)
+        row=conn.execute("SELECT * FROM cameras WHERE camera_id=?",(camera_id,)).fetchone(); audit(conn,user,"camera.created","camera",camera_id,new={k:v for k,v in dict(row).items() if k!="credential_blob"})
+    item=dict(row); item.pop("credential_blob",None); item["credentials_configured"]=False
+    return item
 
 def get_retention(user):
     with get_db_connection() as conn: row=conn.execute("SELECT * FROM retention_policies WHERE dealership_id=?",(user["dealership_id"],)).fetchone()

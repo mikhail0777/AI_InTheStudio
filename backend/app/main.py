@@ -11,15 +11,18 @@ from app.database import init_db
 from app.services.agentic_loop import DATA_DIR
 from app.services.analysis_worker import worker
 from app.services import governance
+from app.services.camera_ingestion import manager as camera_manager
 from app.database import get_db_connection
 
 
 @asynccontextmanager
 async def lifespan(app):
     worker.start()
+    camera_manager.start_configured()
     try:
         yield
     finally:
+        camera_manager.stop_all()
         worker.stop()
 
 # Ensure DB & static directories exist
