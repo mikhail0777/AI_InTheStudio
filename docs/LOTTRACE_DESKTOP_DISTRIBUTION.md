@@ -1,5 +1,11 @@
 # LotTrace desktop distribution
 
+> Model packaging gate: `backend/model_bundle_manifest.json` is authoritative.
+> The commercial build must fail while any required asset is missing, corrupt,
+> or lacks verified redistribution approval. The current research make/model
+> checkpoint is never packaged and normal installed operation must not download
+> models. Resolve model rights or replace the affected assets before release.
+
 LotTrace now has a Windows desktop application shell. It is no longer necessary
 for an operator to open a browser or separately start frontend and backend
 terminals. The desktop process starts a private loopback API, opens one native

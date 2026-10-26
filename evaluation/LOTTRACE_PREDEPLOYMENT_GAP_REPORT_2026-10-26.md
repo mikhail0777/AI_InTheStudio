@@ -35,7 +35,22 @@ than being represented as complete field validation.
 
 ## Remaining milestones
 
-- D3: finish legal redistribution inventory and checksum-enforced offline bundle.
+## D3 — offline model bundle
+
+Implemented locally: a machine-readable asset inventory, exact checksums, installed
+paths, loaders, benchmark references, offline environment enforcement, and a
+fail-closed commercial packaging gate. The build specification includes only
+assets explicitly marked both packageable and redistribution-approved. The
+research make/model checkpoint is excluded and the feature remains operator
+supplied.
+
+The commercial bundle gate intentionally fails today. Ultralytics YOLO requires
+AGPL compliance or an Enterprise licence for the intended proprietary commercial
+distribution, while exact model-weight redistribution terms for the FastALPR
+detector/OCR assets have not been established in repository evidence. No model
+was relabelled or silently bundled to make the gate green. Offline installed-app
+inference is therefore blocked pending replacement assets or documented rights.
+
 - D4: add certified backup/restore, upgrade rollback, crash recovery and diagnostics.
 - D5: rebuild and smoke-test the installer; configure but do not claim Authenticode
   signing without the production certificate.

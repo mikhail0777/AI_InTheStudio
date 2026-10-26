@@ -5,6 +5,7 @@ import argparse
 import importlib.util
 import subprocess
 import sys
+from app.services.model_bundle import verify_bundle
 from pathlib import Path
 
 
@@ -18,12 +19,15 @@ def validate() -> None:
         )
     required = [
         ROOT / "backend" / "desktop_entry.py",
-        ROOT / "backend" / "models" / "yolo11s-seg.pt",
+        ROOT / "backend" / "model_bundle_manifest.json",
         ROOT / "frontend" / "dist" / "index.html",
     ]
     missing = [str(path) for path in required if not path.is_file()]
     if missing:
         raise RuntimeError("Desktop build inputs are missing:\n- " + "\n- ".join(missing))
+    bundle=verify_bundle(ROOT / "backend", commercial=True)
+    if not bundle["ok"]:
+        raise RuntimeError("Commercial model bundle gate failed:\n- " + "\n- ".join(bundle["errors"]))
 
 
 def main() -> int:

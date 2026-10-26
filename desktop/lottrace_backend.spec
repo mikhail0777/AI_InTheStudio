@@ -12,9 +12,15 @@ hiddenimports = [
     "fast_alpr.default_ocr",
 ]
 
-yolo = BACKEND / "models" / "yolo11s-seg.pt"
-if yolo.is_file():
-    datas.append((str(yolo), "models"))
+manifest = BACKEND / "model_bundle_manifest.json"
+datas.append((str(manifest), "."))
+# Model binaries are added only after the manifest records approved commercial
+# redistribution. Research checkpoints and developer caches never enter COLLECT.
+model_manifest = __import__("json").loads(manifest.read_text(encoding="utf-8"))
+for asset in model_manifest["assets"]:
+    if asset.get("package") and asset.get("redistribution_status") in ("approved", "permitted"):
+        source = BACKEND / asset["expected_installed_path"]
+        if source.is_file(): datas.append((str(source), str(Path(asset["expected_installed_path"]).parent)))
 
 analysis = Analysis(
     [str(BACKEND / "desktop_entry.py")],
