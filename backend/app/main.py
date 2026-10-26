@@ -8,6 +8,8 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.endpoints import router as api_router
 from app.database import init_db
+from app.services.backup_restore import apply_pending_restore
+from app.services.diagnostic_logging import configure_logging,shutdown_logging
 from app.services.agentic_loop import DATA_DIR
 from app.services.analysis_worker import worker
 from app.services import governance
@@ -17,6 +19,7 @@ from app.database import get_db_connection
 
 @asynccontextmanager
 async def lifespan(app):
+    configure_logging()
     worker.start()
     camera_manager.start_configured()
     try:
@@ -24,7 +27,10 @@ async def lifespan(app):
     finally:
         camera_manager.stop_all()
         worker.stop()
+        shutdown_logging()
 
+# Apply only a previously validated staged restore before opening application DB connections.
+apply_pending_restore()
 # Ensure DB & static directories exist
 init_db()
 os.makedirs(os.path.join(DATA_DIR, "uploads"), exist_ok=True)

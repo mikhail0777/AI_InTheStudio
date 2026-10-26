@@ -46,6 +46,8 @@ export const createVehicleRecord=(body:Record<string,unknown>)=>json<VehicleReco
 export const getVehicleTimeline=(id:string)=>json<TimelineItem[]>(`${API_BASE}/vehicles/${encodeURIComponent(id)}/timeline`);
 export const getVehicleEvents=(review_state?:string)=>json<VehicleEvent[]>(`${API_BASE}/vehicle-events${review_state?`?review_state=${encodeURIComponent(review_state)}`:''}`);
 export const getSystemReadiness=()=>json<SystemReadiness>(`${API_BASE}/system/readiness`);
+export const createBackup=()=>json<{path:string;sha256:string;size_bytes:number;encrypted:boolean}>(`${API_BASE}/system/backups`,{method:'POST'});
+export const stageRestore=(path:string)=>json<{restore_id:string;status:string;activation:string}>(`${API_BASE}/system/restores/stage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path})});
 export const getPlateAnalysis=(sightingId:string)=>json<PlateAnalysis>(`${API_BASE}/vehicle-sightings/${encodeURIComponent(sightingId)}/plate-analysis`);
 export const linkSighting=(sightingId:string,vehicle_id:string,reason:string)=>json(`${API_BASE}/vehicle-sightings/${encodeURIComponent(sightingId)}/link`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vehicle_id,reason})});
 export interface InspectionMedia {media_id:string;viewpoint:string;source_filename:string;sha256:string;width:number;height:number;evidence_url:string|null}

@@ -22,6 +22,7 @@ from app.services.vehicle_sightings import list_sightings
 from app.services import governance, vehicle_records, vehicle_events
 from app.services import condition_incidents, system_readiness
 from app.services import camera_ingestion
+from app.services import backup_restore
 
 router = APIRouter(prefix="/api")
 MAX_VIDEO_BYTES = int(os.environ.get("AIEYE_MAX_VIDEO_BYTES", 4 * 1024**3))
@@ -83,6 +84,7 @@ class EvidenceInput(BaseModel):
 class NoteInput(BaseModel): note:str
 class DecisionInput(BaseModel): action:str; reason:str
 class HoldInput(BaseModel): reason:str
+class RestoreInput(BaseModel): path:str
 
 def _user(request:Request):
     user=getattr(request.state,"user",None)
@@ -103,6 +105,14 @@ def auth_status(request:Request):
 def readiness(request:Request):
     _user(request)
     return system_readiness.runtime_readiness()
+
+@router.post("/system/backups")
+def create_system_backup(request:Request):return backup_restore.create_backup(_user(request),encrypt=True)
+
+@router.post("/system/restores/stage")
+def stage_system_restore(values:RestoreInput,request:Request):
+    try:return backup_restore.stage_restore(_user(request),values.path)
+    except (ValueError,OSError) as error:raise HTTPException(400,str(error)) from error
 
 @router.post("/auth/bootstrap")
 def auth_bootstrap(values:BootstrapInput,response:Response):

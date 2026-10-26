@@ -12,6 +12,9 @@ from pathlib import Path
 
 from app import database
 from app.services.analysis_worker import worker
+from app.services import backup_restore
+from app.services.camera_ingestion import manager as camera_manager
+from app.services.model_bundle import verify_bundle
 
 
 def _database_health() -> dict:
@@ -69,6 +72,9 @@ def runtime_readiness() -> dict:
                 else "The worker may be owned by another server process; queued jobs remain in SQLite."
             ),
         },
+        "camera_workers": {"ok": all(item.status not in ("authentication_failure","unsupported_stream","overloaded") for item in camera_manager.workers.values()),"active":len(camera_manager.workers),"metrics":{key:value.snapshot()["metrics"] for key,value in camera_manager.workers.items()}},
+        "models": verify_bundle(commercial=True),
+        "backup": backup_restore.latest_backup_status(),
     }
     capabilities = {
         "recorded_video_upload": True,

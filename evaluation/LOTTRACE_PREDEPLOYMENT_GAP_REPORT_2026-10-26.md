@@ -51,7 +51,20 @@ detector/OCR assets have not been established in repository evidence. No model
 was relabelled or silently bundled to make the gate green. Offline installed-app
 inference is therefore blocked pending replacement assets or documented rights.
 
-- D4: add certified backup/restore, upgrade rollback, crash recovery and diagnostics.
+## D4 — recovery and diagnostics
+
+Implemented locally: schema version records, SQLite online backups, evidence
+manifests with SHA-256 hashes, Windows-protected backup archives, staged restore
+validation, restart-bound activation, pre-activation rollback copies, backup and
+restore audit entries, operator controls, structured rotating JSON logs with
+credential redaction, and readiness checks for disk, database, model bundle,
+camera queues and backup status.
+
+Automated tests cover backup consistency, encrypted envelopes, tamper rejection,
+restore staging/activation, rollback preservation, schema versioning and audit
+records. Abrupt physical power-loss and downgrade behavior across a real installed
+old/new binary pair still require clean-VM testing.
+
 - D5: rebuild and smoke-test the installer; configure but do not claim Authenticode
   signing without the production certificate.
 

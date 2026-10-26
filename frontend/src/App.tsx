@@ -97,7 +97,7 @@ function Workspace({user}:{user:AuthUser}) {
         {!sample && view === 'records' && <VehicleRecordsPage canManage={user.role==='manager'||user.role==='administrator'}/>}
         {!sample && view === 'inspections' && <InspectionsPage/>}
         {!sample && view === 'incidents' && <OperationalIncidentsPage canManage={user.role==='manager'||user.role==='administrator'}/>}
-        {!sample && view === 'readiness' && <SystemReadinessPage/>}
+        {!sample && view === 'readiness' && <SystemReadinessPage canAdmin={user.role==='administrator'}/>}
         <div hidden={view !== 'recording' || sample}>
           {view === 'recording' && <PageHeading title="Analyse a recording" description="Upload footage and build a timeline of every supported vehicle and readable plate."/>}
           <Suspense fallback={<div className="empty" role="status">Loading recording tools…</div>}>

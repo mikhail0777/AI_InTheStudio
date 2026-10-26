@@ -10,6 +10,8 @@ def init_db():
     os.makedirs(DB_DIR, exist_ok=True)
     conn = sqlite3.connect(DB_PATH, timeout=20.0, check_same_thread=False)
     cursor = conn.cursor()
+    cursor.execute("""CREATE TABLE IF NOT EXISTS schema_migrations (
+        version INTEGER PRIMARY KEY, name TEXT NOT NULL, applied_at TEXT DEFAULT CURRENT_TIMESTAMP)""")
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS sessions (
@@ -535,6 +537,9 @@ def init_db():
             BEFORE UPDATE ON {table} BEGIN SELECT RAISE(ABORT, '{table} is immutable'); END""")
         cursor.execute(f"""CREATE TRIGGER IF NOT EXISTS {table}_immutable_delete
             BEFORE DELETE ON {table} BEGIN SELECT RAISE(ABORT, '{table} is immutable'); END""")
+
+    cursor.execute("INSERT OR IGNORE INTO schema_migrations(version,name) VALUES (1,'predeployment_baseline')")
+    cursor.execute("PRAGMA user_version=1")
 
     conn.commit()
     conn.close()
