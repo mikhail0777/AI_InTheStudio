@@ -1,4 +1,4 @@
-const {app, BrowserWindow, dialog, session} = require('electron');
+const {app, BrowserWindow, dialog, ipcMain, session} = require('electron');
 const {spawn} = require('node:child_process');
 const fs = require('node:fs');
 const http = require('node:http');
@@ -8,6 +8,55 @@ const path = require('node:path');
 let backend = null;
 let backendLog = null;
 let mainWindow = null;
+let appOrigin = null;
+
+function settingsPath() {
+  return path.join(app.getPath('userData'), 'desktop-settings.json');
+}
+
+function selectedDataDirectory() {
+  try {
+    const settings = JSON.parse(fs.readFileSync(settingsPath(), 'utf8'));
+    if (typeof settings.dataDir === 'string' && path.isAbsolute(settings.dataDir)) return settings.dataDir;
+  } catch {}
+  return path.join(app.getPath('userData'), 'data');
+}
+
+function trustedIpc(event) {
+  return Boolean(appOrigin && event.senderFrame && event.senderFrame.url.startsWith(`${appOrigin}/app/`));
+}
+
+async function importExistingData(event) {
+  if (!trustedIpc(event)) throw new Error('Untrusted desktop request.');
+  const selection = await dialog.showOpenDialog(mainWindow, {
+    title: 'Choose an existing LotTrace data folder',
+    properties: ['openDirectory'],
+  });
+  if (selection.canceled || selection.filePaths.length !== 1) return {status: 'cancelled'};
+  const source = path.resolve(selection.filePaths[0]);
+  const sourceDatabase = path.join(source, 'aerofind.db');
+  if (!fs.existsSync(sourceDatabase) || fs.statSync(sourceDatabase).size === 0) {
+    throw new Error('That folder does not contain a LotTrace database (aerofind.db).');
+  }
+  if (source === path.resolve(selectedDataDirectory())) {
+    throw new Error('That data folder is already active.');
+  }
+  const importsRoot = path.join(app.getPath('userData'), 'imports');
+  const destination = path.join(importsRoot, `import-${Date.now()}`);
+  const relativeDestination = path.relative(source, destination);
+  if (relativeDestination === '' || (!relativeDestination.startsWith('..') && !path.isAbsolute(relativeDestination))) {
+    throw new Error('Choose the LotTrace data folder itself, not a folder containing this installation.');
+  }
+  fs.mkdirSync(importsRoot, {recursive: true});
+  await fs.promises.cp(source, destination, {recursive: true, errorOnExist: true, force: false});
+  const temporarySettings = `${settingsPath()}.${process.pid}.tmp`;
+  fs.writeFileSync(temporarySettings, JSON.stringify({dataDir: destination}, null, 2), {encoding: 'utf8', flag: 'wx'});
+  fs.renameSync(temporarySettings, settingsPath());
+  stopBackend();
+  app.relaunch();
+  app.exit(0);
+  return {status: 'restarting'};
+}
 
 function reservePort() {
   return new Promise((resolve, reject) => {
@@ -42,7 +91,7 @@ function waitForBackend(url, timeoutMs = 60000) {
 
 function backendLaunch(port) {
   const userData = app.getPath('userData');
-  const dataDir = path.join(userData, 'data');
+  const dataDir = selectedDataDirectory();
   const logDir = path.join(userData, 'logs');
   fs.mkdirSync(dataDir, {recursive: true});
   fs.mkdirSync(logDir, {recursive: true});
@@ -51,10 +100,10 @@ function backendLaunch(port) {
   const packaged = app.isPackaged;
   const projectRoot = path.resolve(__dirname, '..', '..');
   const frontendDir = packaged
-    ? path.join(process.resourcesPath, 'frontend')
+    ? path.join(process.resourcesPath, 'dist')
     : path.join(projectRoot, 'frontend', 'dist');
   const executable = packaged
-    ? path.join(process.resourcesPath, 'backend', 'lottrace-backend.exe')
+    ? path.join(process.resourcesPath, 'lottrace-backend', 'lottrace-backend.exe')
     : (process.env.LOTTRACE_PYTHON || 'python');
   const args = packaged
     ? []
@@ -121,6 +170,7 @@ function createWindow(origin) {
     backgroundColor: '#f6f6f3',
     autoHideMenuBar: true,
     webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -139,6 +189,7 @@ function createWindow(origin) {
 async function start() {
   const port = await reservePort();
   const origin = `http://127.0.0.1:${port}`;
+  appOrigin = origin;
   backendLaunch(port);
   await waitForBackend(`${origin}/`);
   if (process.env.LOTTRACE_DESKTOP_SMOKE_TEST === '1') {
@@ -160,6 +211,7 @@ if (!app.requestSingleInstanceLock()) {
   });
   app.whenReady().then(() => {
     session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
+    ipcMain.handle('lottrace:import-existing-data', importExistingData);
     return start();
   }).catch(error => {
     dialog.showErrorBox('LotTrace could not start', `${error.message}\n\nLogs are stored under ${app.getPath('userData')}.`);

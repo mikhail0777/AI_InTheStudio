@@ -6,6 +6,22 @@ terminals. The desktop process starts a private loopback API, opens one native
 application window, stores data under the Windows application-data directory,
 and stops the API when the application exits.
 
+## Existing accounts and installations
+
+LotTrace accounts are local installation accounts, not cloud accounts. A
+configured installation shows returning users the normal email/password sign-in
+screen. A fresh desktop installation offers two choices:
+
+- create the first administrator for a genuinely new installation; or
+- import an existing LotTrace data folder containing `aerofind.db`.
+
+Import copies the selected database, recordings, evidence, and configuration to
+a new timestamped folder under the desktop application's data directory. It
+does not overwrite or delete either installation. LotTrace then restarts using
+the imported copy and presents the returning-user sign-in screen. Close the
+previous LotTrace process before importing so its database is not being written
+while the copy is made.
+
 ## Development run
 
 ```powershell
@@ -28,6 +44,11 @@ npm.cmd --prefix frontend run desktop:make
 The output is produced by Electron Forge with the Squirrel.Windows maker. The
 installer must be code-signed before it is distributed to a dealership.
 
+The 2026-10-26 packaging verification produced an unsigned 505.4 MB Windows
+installer and successfully started its bundled frontend and private backend.
+Generated installers remain ignored by Git and must be rebuilt from the pinned
+source and dependencies for a release.
+
 ## Security boundaries
 
 - The API listens only on a dynamically selected `127.0.0.1` port.
@@ -46,7 +67,7 @@ deployable by themselves. Before producing the company download:
 1. Replace or separately license the research-only make/model checkpoint.
 2. Stage every redistributable OCR/detection/model asset in the packaged runtime
    and verify its licence and checksum.
-3. Run the packaged backend and installer smoke tests on a clean Windows VM.
+3. Run the installer and upgrade/rollback tests on a clean Windows VM.
 4. Configure a Windows code-signing certificate in Electron Forge.
 5. Add backup/restore and upgrade/migration acceptance tests.
 6. Complete live camera ingestion and the held-out dealership-video benchmark.

@@ -1,6 +1,6 @@
 # LotTrace Milestone D production-readiness report
 
-Generated: 2026-10-26T03:07:41.229191+00:00
+Generated: 2026-10-26T04:40:23.160158+00:00
 
 **Decision: NOT READY FOR PRODUCTION.**
 
@@ -10,7 +10,7 @@ Functional software tests and healthy runtime checks do not prove model accuracy
 
 - Backend: 275 tests passed
 - Frontend unit: 20 tests passed
-- Browser end-to-end: 7 tests passed
+- Browser end-to-end: 9 tests passed
 - Production frontend build: passed
 
 These prove tested software behavior only; they do not change the recognition accuracy gates.
@@ -26,6 +26,7 @@ These prove tested software behavior only; they do not change the recognition ac
 | Immutable Events And Status Transitions | Implemented |
 | Authentication Roles Audit Retention Exports | Implemented |
 | Desktop Application Shell | Implemented |
+| Installable Windows Build | Implemented |
 | Automatic Worker To Crossing Event Wiring | Missing / uncertified |
 | Live Camera Ingestion | Missing / uncertified |
 | Backup Restore Certified | Missing / uncertified |
@@ -51,7 +52,7 @@ These prove tested software behavior only; they do not change the recognition ac
 1. Wire recording/live tracked observations into configured boundaries and event creation.
 2. Add and harden live camera ingestion with encrypted credentials, reconnect/backoff, bounded queues, and rolling evidence.
 3. Certify backup/restore, TLS deployment, rate limiting, resource limits, and failure recovery.
-4. Package only redistributable model assets, build the self-contained Windows installer, and code-sign it.
+4. Stage only redistributable model assets, validate the generated installer on a clean Windows VM, and code-sign it.
 5. Freeze and run a held-out dealership-video benchmark separated by site, camera, vehicle, and date.
 6. Pass every declared event, plate, association, false-positive, and resource-use gate.
 

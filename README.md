@@ -23,6 +23,9 @@ When no plate is known, a second dense path detects cars, trucks, buses, and mot
 The primary development experience is now a native LotTrace window. The
 desktop shell starts and stops the private local API automatically and stores
 runtime data under the user's Windows application-data directory.
+Returning users see the sign-in screen when that installation already contains
+accounts. A fresh installation can safely import a previous LotTrace data
+folder instead of creating a second empty account database.
 
 ```powershell
 python -m pip install -r backend/requirements.txt

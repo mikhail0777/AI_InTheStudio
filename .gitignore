@@ -23,6 +23,7 @@ node_modules/
 frontend/dist/
 frontend/test-results/
 frontend/playwright-report/
+frontend/out/
 frontend/node_modules/
 .npm
 .cache/

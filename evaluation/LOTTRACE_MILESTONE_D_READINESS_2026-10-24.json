@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-10-26T03:07:41.229191+00:00",
+  "generated_at": "2026-10-26T04:40:23.160158+00:00",
   "milestone": "D - production certification",
   "production_certified": false,
   "decision": "not_ready_for_production",
@@ -12,6 +12,7 @@
     "immutable_events_and_status_transitions": true,
     "authentication_roles_audit_retention_exports": true,
     "desktop_application_shell": true,
+    "installable_windows_build": true,
     "automatic_worker_to_crossing_event_wiring": false,
     "live_camera_ingestion": false,
     "backup_restore_certified": false,
@@ -117,7 +118,7 @@
   "functional_verification": {
     "backend_tests": 275,
     "frontend_tests": 20,
-    "browser_tests": 7,
+    "browser_tests": 9,
     "frontend_build": "passed"
   },
   "interpretation": "Functional software tests and healthy runtime checks do not prove model accuracy. Certification remains false until every declared dealership-video gate is measured and passed."

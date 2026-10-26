@@ -1,18 +1,16 @@
 # PyInstaller one-folder build for the private desktop API process.
 from pathlib import Path
-from PyInstaller.utils.hooks import collect_all
 
 ROOT = Path(SPECPATH).parent
 BACKEND = ROOT / "backend"
 
 datas = []
 binaries = []
-hiddenimports = []
-for package in ("fast_alpr", "onnxruntime", "ultralytics", "transformers"):
-    package_datas, package_binaries, package_hidden = collect_all(package)
-    datas += package_datas
-    binaries += package_binaries
-    hiddenimports += package_hidden
+hiddenimports = [
+    "fast_alpr",
+    "fast_alpr.default_detector",
+    "fast_alpr.default_ocr",
+]
 
 yolo = BACKEND / "models" / "yolo11s-seg.pt"
 if yolo.is_file():
@@ -26,7 +24,10 @@ analysis = Analysis(
     hiddenimports=hiddenimports,
     hookspath=[],
     runtime_hooks=[],
-    excludes=[],
+    # These belong to the retired general-purpose visual-search workflow. The
+    # LotTrace desktop runtime uses YOLO/ONNX inference and should not ship the
+    # entire Hugging Face training/conversion stack.
+    excludes=["transformers", "datasets", "nltk", "tkinter"],
     noarchive=False,
 )
 pyz = PYZ(analysis.pure)

@@ -4,8 +4,8 @@ module.exports = {
     executableName: 'LotTrace',
     asar: true,
     extraResource: [
-      {from: 'dist', to: 'frontend'},
-      {from: '../dist/lottrace-backend', to: 'backend'},
+      'dist',
+      '../dist/lottrace-backend',
     ],
   },
   makers: [
