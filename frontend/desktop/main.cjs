@@ -133,6 +133,7 @@ function backendLaunch(port) {
       LOTTRACE_BACKEND_PORT: String(port),
       LOTTRACE_FRONTEND_DIR: frontendDir,
       LOTTRACE_DESKTOP: '1',
+      LOTTRACE_ENFORCE_MODEL_BUNDLE: packaged ? '1' : (process.env.LOTTRACE_ENFORCE_MODEL_BUNDLE || '0'),
       PYTHONUNBUFFERED: '1',
       ...vehicleEnvironment,
     },

@@ -28,6 +28,9 @@ frontend/node_modules/
 .npm
 .cache/
 *.log
+.env.trustedsigning
+*.pfx
+*.p12
 .runtime/
 /Ultralytics/
 evaluation/datasets/

@@ -1,0 +1,12 @@
+{
+  "generated_at": "2026-10-26T10:51:18.823163+00:00",
+  "artifacts": [
+    {
+      "path": "C:\\Personal\\GitProjects\\AI_InTheStudio\\frontend\\out\\make\\squirrel.windows\\x64\\LotTrace-Setup.exe",
+      "size_bytes": 529923584,
+      "sha256": "a132504bcb2387e38ce57c0727e34adca2f75994e3eac791aa02adc61b646864",
+      "authenticode_status": "NotSigned"
+    }
+  ],
+  "production_signed": false
+}

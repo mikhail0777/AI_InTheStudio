@@ -66,12 +66,13 @@ Milestones A and B are development-complete for the current prototype, not produ
 
 Milestone C is development-complete with year removed from visual recognition. The frozen grouped make+model benchmark measured 92.10% top-1 (2,332/2,532), 98.22% top-5, and 94.15% make-only accuracy. This is a closed-set research still-image result and does not certify dealership-video performance or commercial distribution of the checkpoint.
 
-Milestone D is active. The application now has an Electron desktop shell,
-private backend lifecycle, per-user data storage, runtime-readiness screen, and
-Windows packaging configuration. Automatic track-to-boundary event wiring,
-live camera ingestion, backup/restore certification, redistributable production
-model assets, installer code signing, and the dealership-video release
-benchmark remain incomplete.
+Milestone D local engineering now includes the Electron shell, live RTSP worker
+foundation, protected camera credentials, automatic recorded-track boundary
+events, encrypted backup/staged restore, diagnostics, and fail-closed offline
+model/signing release gates. Physical-camera validation, live detector/tracker
+wiring, redistributable commercial model rights, a signed clean-VM installer,
+and the dealership-video release benchmark remain incomplete. See
+`evaluation/LOTTRACE_RELEASE_CANDIDATE_REPORT_2026-10-26.md`.
 
 Set `AIEYE_PLATE_SCAN_FPS` to override the plate cadence (0.1–15 FPS). Set `AIEYE_PLATE_REVIEW_SIMILARITY` to tune which non-exact OCR strings enter the review queue; the default is `0.78`. `AIEYE_PLATE_MIRROR_FALLBACK` enables the guarded mirrored-camera pass, and `AIEYE_PLATE_MIRROR_THRESHOLD` controls when it runs (default `0.72`). These settings affect recall, runtime, and the number of false review candidates. They do not change the definition of an exact match.
 

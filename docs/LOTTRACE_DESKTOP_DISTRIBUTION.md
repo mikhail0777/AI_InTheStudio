@@ -50,6 +50,22 @@ npm.cmd --prefix frontend run desktop:make
 The output is produced by Electron Forge with the Squirrel.Windows maker. The
 installer must be code-signed before it is distributed to a dealership.
 
+Squirrel is intentionally a per-user installation. Application binaries can be
+upgraded or uninstalled without deleting the separate Electron user-data folder.
+Dealership data removal must remain a distinct, explicit operator action.
+
+For Authenticode signing, set `WINDOWS_CERTIFICATE_FILE` and
+`WINDOWS_CERTIFICATE_PASSWORD` only in the secured release environment. An optional
+`WINDOWS_TIMESTAMP_SERVER` may override the default. Forge rejects a partial
+certificate configuration and signing errors are fatal. After `desktop:make`, run:
+
+```powershell
+python scripts/verify_windows_release.py frontend/out/make/squirrel.windows/x64/LotTrace-Setup.exe
+```
+
+Never commit the certificate or password. A production certificate was not
+available for the current audit, so no signed artifact was created.
+
 The 2026-10-26 packaging verification produced an unsigned 505.4 MB Windows
 installer and successfully started its bundled frontend and private backend.
 Generated installers remain ignored by Git and must be rebuilt from the pinned

@@ -68,6 +68,21 @@ old/new binary pair still require clean-VM testing.
 - D5: rebuild and smoke-test the installer; configure but do not claim Authenticode
   signing without the production certificate.
 
+## D5 — release preparation
+
+Implemented locally: conditional environment-only Authenticode configuration,
+Windows version metadata, mandatory packaged model gate, release artifact
+checksum/signature inspection, and a repeatable clean-VM checklist. The prior
+unsigned prototype installer was inventoried but is not promoted as the new release.
+
+The D5 installer build is intentionally blocked by unapproved/missing commercial
+model assets. Authenticode signing is also blocked because no production certificate
+or secure signing identity is available. Clean-VM, physical-camera and dealership
+benchmark work remains external.
+
+The available Playwright browser suite completed 9/9 tests. This validates browser
+workflows against its test harness, not installation on a clean Windows machine.
+
 ## Certification gates
 
 The held-out dealership-video event benchmark, physical cameras/network, clean
